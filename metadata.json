@@ -1,0 +1,6 @@
+{
+  "name": "NaijaStores Online",
+  "description": "An e-commerce marketplace connecting local vendors with shoppers across Nigeria, featuring deep vendor metrics, Paystack secure checkout, and real-time delivery tracking on an integrated map.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
