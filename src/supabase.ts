@@ -83,6 +83,7 @@ export const PROVISION_SQL_SCRIPT = `-- SQL DB Script for NaijaStores Setup in S
 -- Open your Supabase Dashboard -> SQL Editor and paste/run this code to provision tables!
 
 -- Drop existing tables to ensure a clean slate and recreate with actual data dependencies
+drop table if exists public.profiles cascade;
 drop table if exists public.products cascade;
 drop table if exists public.orders cascade;
 drop table if exists public.vendors cascade;
@@ -142,10 +143,22 @@ create table public.orders (
   "currentCity" text
 );
 
+-- 4. Create Profiles Table
+create table public.profiles (
+  id text primary key,
+  email text not null,
+  role text default 'customer',
+  "fullName" text,
+  "shopName" text,
+  location text,
+  phone text
+);
+
 -- Enable row-level security but allow all public reads/writes for showcase applet:
 alter table if exists public.vendors disable row level security;
 alter table if exists public.products disable row level security;
 alter table if exists public.orders disable row level security;
+alter table if exists public.profiles disable row level security;
 
 -- Seed Merchants
 insert into public.vendors (id, name, "ownerName", avatar, rating, "ratingCount", "salesToday", "ordersPending", "stockAlerts", email, phone, location) values

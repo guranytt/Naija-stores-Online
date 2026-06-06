@@ -4,11 +4,12 @@
  */
 
 import React, { useState } from "react";
-import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud } from "lucide-react";
+import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud, BarChart2 } from "lucide-react";
 import { Vendor, Order, AdminTeamMember, Product } from "../types";
 import { MOCK_VENDORS, MOCK_ORDERS, MOCK_TEAM_MEMBERS, MOCK_PRODUCTS } from "../data/mockData";
 import { formatNaira } from "./CustomerViews";
 import { uploadToCloudinary, convertFileToBase64 } from "../cloudinaryService";
+import SalesAnalyticsDashboard from "./SalesAnalyticsDashboard";
 
 interface VendorAdminProps {
   orders: Order[];
@@ -39,7 +40,7 @@ export default function VendorAdmin({
   onRefreshMailLogs = () => {},
   userEmail = "nigerian.developer@gmail.com"
 }: VendorAdminProps) {
-  const [adminTab, setAdminTab] = useState<"vendor" | "platform" | "emails">("vendor");
+  const [adminTab, setAdminTab] = useState<"vendor" | "dashboard" | "platform" | "emails">("vendor");
   
   // States for adding a customized new product
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -138,6 +139,18 @@ export default function VendorAdmin({
           >
             <TrendingUp className="w-4 h-4 text-orange-500" />
             <span>Alex's Merchant Cabin</span>
+          </button>
+
+          <button
+            onClick={() => setAdminTab("dashboard")}
+            className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              adminTab === "dashboard"
+                ? "bg-white text-neutral-900 shadow-sm font-extrabold"
+                : "text-neutral-500 hover:text-neutral-900"
+            }`}
+          >
+            <BarChart2 className="w-4 h-4 text-indigo-500" />
+            <span>Visual Analytics Board</span>
           </button>
           
           <button
@@ -478,6 +491,11 @@ export default function VendorAdmin({
           )}
 
         </div>
+      )}
+
+      {/* ---------------- INTERACTIVE SALES ANALYTICS DASHBOARD ---------------- */}
+      {adminTab === "dashboard" && (
+        <SalesAnalyticsDashboard orders={orders} />
       )}
 
       {/* ---------------- B. MASTER SYSTEM ADMINISTRATOR VIEW ---------------- */}

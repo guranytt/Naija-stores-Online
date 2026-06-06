@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp } from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home } from "lucide-react";
 import { Product, Category, CartItem, Vendor } from "../types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS } from "../data/mockData";
 
@@ -52,15 +52,39 @@ export default function CustomerViews({
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>("all");
   const [sortOption, setSortOption] = useState<string>("recommended");
   const [selectedStateForShipping, setSelectedStateForShipping] = useState<string>("Lagos");
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+
+  React.useEffect(() => {
+    setIsSearchLoading(true);
+    const timer = setTimeout(() => {
+      setIsSearchLoading(false);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [searchFilter]);
 
   // Local state for product detail customization
   const [detailQty, setDetailQty] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [commentInput, setCommentInput] = useState("");
   const [addedReviews, setAddedReviews] = useState<typeof MOCK_REVIEWS>(MOCK_REVIEWS);
   const [hoveredVendorStar, setHoveredVendorStar] = useState<number | null>(null);
+  const [justAddedProducts, setJustAddedProducts] = useState<Record<string, boolean>>({});
+
+  const handleAddToCartWithFeedback = (product: Product, quantity: number, size?: string, color?: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    onAddToCart(product, quantity, size || product.sizes?.[0] || "", color || product.colors?.[0] || "");
+    setJustAddedProducts(prev => ({ ...prev, [product.id]: true }));
+    setTimeout(() => {
+      setJustAddedProducts(prev => {
+        const copy = { ...prev };
+        delete copy[product.id];
+        return copy;
+      });
+    }, 1500);
+  };
 
   // Toggle wishlist helpers
   const toggleWishlist = (id: string, e?: React.MouseEvent) => {
@@ -125,6 +149,7 @@ export default function CustomerViews({
     setSelectedSize(detailProduct.sizes?.[0] || "");
     setSelectedColor(detailProduct.colors?.[0] || "");
     setDetailQty(1);
+    setSelectedImageIndex(0);
   }, [detailProduct]);
 
   // Cart totals math
@@ -133,58 +158,104 @@ export default function CustomerViews({
   const estimatedTax = cartSubtotal * 0.075; // 7.5% VAT Nigeria
   const cartTotalSum = cartSubtotal + activeShippingFee + estimatedTax;
 
+  const shouldReduceMotion = useReducedMotion();
+
+  const pageVariants = {
+    initial: { opacity: 0, y: shouldReduceMotion ? 0 : 12 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: shouldReduceMotion ? 0 : -12 },
+  };
+  const pageTransition = { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] };
+
   return (
     <div className="font-sans text-neutral-800">
       
       {/* ---------------- 1. MARKETPLACE HOMEPAGE ---------------- */}
-      {screen === "home" && (
-        <div className="space-y-8">
-          
-          {/* Animated Hero Mega Banner */}
-          <section className="relative rounded-2xl overflow-hidden bg-emerald-950 text-white min-h-[340px] flex items-center shadow-premium bg-radial from-emerald-900 to-emerald-950 border border-emerald-800 p-8 sm:p-12">
-            {/* Background design accents */}
-            <div className="absolute right-0 bottom-0 opacity-15 pointer-events-none select-none">
-              <span className="text-[250px] font-extrabold text-white leading-none tracking-tighter">₦</span>
-            </div>
-
-            <div className="max-w-xl text-left space-y-5 z-10">
-              <div className="inline-flex items-center space-x-2 bg-emerald-800/60 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-bold text-emerald-300">
-                <Sparkles className="w-4 h-4 text-orange-400" />
-                <span>NIGERIA'S SEAMLESS ESCROW HUB</span>
-              </div>
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-none text-white">
-                Premium Shopping, <br />
-                <span className="text-orange-400">Homegrown Trust.</span>
-              </h1>
-              <p className="text-sm text-emerald-100/90 leading-relaxed max-w-md">
-                Connecting top-tier local artisans, electronic vendors and raw organic cooperatives directly to your doorstep. Secure real-time delivery with full Nigeria map telemetry.
-              </p>
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  onClick={() => {
-                    setActiveCategoryTab("all");
-                    onNavigate("shop");
-                  }}
-                  className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold px-6 py-3 rounded-full transition-all text-xs tracking-wider uppercase active:scale-95 shadow-md"
-                  id="hero-shop-all"
+      <AnimatePresence mode="wait">
+        {screen === "home" && (
+          <motion.div
+            key="home"
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={pageTransition}
+            className="space-y-8"
+          >
+            
+            {/* Animated Hero Mega Banner */}
+            <motion.section
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="relative rounded-2xl overflow-hidden bg-emerald-950 text-white min-h-[340px] flex items-center shadow-premium bg-radial from-emerald-900 to-emerald-950 border border-emerald-800 p-8 sm:p-12"
+            >
+              {/* Background design accents */}
+              <motion.div
+                animate={shouldReduceMotion ? {} : { y: [0, -10, 0] }}
+                transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+                className="absolute right-0 bottom-0 opacity-15 pointer-events-none select-none"
+              >
+                <span className="text-[250px] font-extrabold text-white leading-none tracking-tighter">₦</span>
+              </motion.div>
+  
+              <div className="max-w-xl text-left space-y-5 z-10">
+                <motion.div
+                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                  className="inline-flex items-center space-x-2 bg-emerald-800/60 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-bold text-emerald-300"
                 >
-                  Explore Departments &rarr;
-                </button>
-                <button
-                  onClick={() => onNavigate("map")}
-                  className="bg-transparent hover:bg-white/5 border border-emerald-500 text-white font-extrabold px-5 py-3 rounded-full transition-all text-xs tracking-wider uppercase"
+                  <Sparkles className="w-4 h-4 text-orange-400" />
+                  <span>NIGERIA'S SEAMLESS ESCROW HUB</span>
+                </motion.div>
+                
+                <motion.h1
+                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="text-3xl sm:text-5xl font-black tracking-tight leading-none text-white"
                 >
-                  View Active Shipments
-                </button>
+                  Premium Shopping, <br />
+                  <span className="text-orange-400">Homegrown Trust.</span>
+                </motion.h1>
+                
+                <motion.p
+                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 }}
+                  className="text-sm text-emerald-100/90 leading-relaxed max-w-md"
+                >
+                  Connecting top-tier local artisans, electronic vendors and raw organic cooperatives directly to your doorstep with escrow-secured protection.
+                </motion.p>
+                
+                <motion.div
+                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.4 }}
+                  className="flex flex-wrap items-center gap-3 pt-2"
+                >
+                  <motion.button
+                    whileHover={shouldReduceMotion ? {} : { scale: 1.03 }}
+                    whileTap={shouldReduceMotion ? {} : { scale: 0.97 }}
+                    onClick={() => {
+                      setActiveCategoryTab("all");
+                      onNavigate("shop");
+                    }}
+                    className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold px-6 py-3 rounded-full transition-all text-xs tracking-wider uppercase active:scale-95 shadow-md cursor-pointer"
+                    id="hero-shop-all"
+                  >
+                    Explore Categories &rarr;
+                  </motion.button>
+                </motion.div>
               </div>
-            </div>
-          </section>
+            </motion.section>
 
           {/* Shop by Category Bento layout */}
           <section className="space-y-4">
             <div className="flex justify-between items-end">
               <div className="text-left">
-                <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">Shop by Department</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">Shop by Category</h2>
                 <p className="text-xs text-neutral-400 font-semibold mt-1">Verified merchant collectives across geographic hubs</p>
               </div>
               <button
@@ -199,22 +270,49 @@ export default function CustomerViews({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {MOCK_CATEGORIES.map((cat) => (
-                <div
+            <motion.div
+              variants={{
+                hidden: { opacity: 0 },
+                show: {
+                  opacity: 1,
+                  transition: {
+                    staggerChildren: 0.1
+                  }
+                }
+              }}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-10px" }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+            >
+              {MOCK_CATEGORIES.map((cat, idx) => (
+                <motion.div
                   key={cat.id}
                   onClick={() => {
                     setActiveCategoryTab(cat.id);
                     onNavigate("shop");
                   }}
-                  className="group relative h-48 rounded-2xl overflow-hidden cursor-pointer shadow-ambient border border-neutral-150 flex flex-col justify-end p-5 transition-all hover:shadow-premium hover:-translate-y-1"
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
+                  }}
+                  whileHover={shouldReduceMotion ? {} : { y: -10, scale: 1.025, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)" }}
+                  className="group relative h-48 rounded-2xl overflow-hidden cursor-pointer shadow-ambient border border-neutral-150 flex flex-col justify-end p-5 transition-all hover:shadow-premium"
                   id={`cat-card-${cat.id}`}
                 >
+                  {/* Category animated icon on top-right */}
+                  <div className="absolute top-4 right-4 p-2.5 rounded-xl bg-white/10 backdrop-blur-md text-white border border-white/15 z-10 opacity-90 transition-all duration-300 group-hover:bg-orange-500 group-hover:border-orange-400 group-hover:scale-110 group-hover:-rotate-3">
+                    {cat.id === "electronics" ? <Laptop className="w-4.5 h-4.5" /> :
+                     cat.id === "fashion" ? <Shirt className="w-4.5 h-4.5" /> :
+                     cat.id === "beauty" ? <Sparkles className="w-4.5 h-4.5" /> :
+                     <Home className="w-4.5 h-4.5" />}
+                  </div>
+
                   {/* Background cover */}
                   <img
                     src={cat.image}
                     alt={cat.name}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-112"
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent opacity-85" />
@@ -226,9 +324,9 @@ export default function CustomerViews({
                     <h3 className="font-extrabold text-base leading-snug tracking-tight">{cat.name}</h3>
                     <p className="text-[10px] text-neutral-300 line-clamp-1 truncate">{cat.description}</p>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </section>
 
           {/* Trending Deals of the week (Asymmetric Bento layout) */}
@@ -239,82 +337,114 @@ export default function CustomerViews({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {MOCK_PRODUCTS.slice(0, 4).map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => {
-                    onSelectProduct(p.id);
-                    onNavigate("details");
-                  }}
-                  className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-ambient hover:shadow-premium group cursor-pointer transition-all flex flex-col"
-                >
-                  <div className="relative aspect-square bg-neutral-50 overflow-hidden">
-                    <img
-                      src={p.image}
-                      alt={p.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
-                      referrerPolicy="no-referrer"
-                    />
-                    
-                    {/* Badge */}
-                    {p.isBestSeller && (
-                      <span className="absolute top-3 left-3 bg-orange-500 text-white font-extrabold text-[9px] uppercase px-2 py-1 rounded-md tracking-wider">
-                        Best Seller
-                      </span>
-                    )}
-                    {p.salePercentage && (
-                      <span className="absolute top-3 right-3 bg-red-600 text-white font-extrabold text-[9px] uppercase px-2 py-1 rounded-md tracking-wider">
-                        SAVE {p.salePercentage}%
-                      </span>
-                    )}
+              {MOCK_PRODUCTS.slice(0, 4).map((p, idx) => {
+                const isAdded = !!justAddedProducts[p.id];
+                const isLiked = wishlist.includes(p.id);
+                return (
+                  <motion.div
+                    key={p.id}
+                    onClick={() => {
+                      onSelectProduct(p.id);
+                      onNavigate("details");
+                    }}
+                    initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-10px" }}
+                    transition={{ duration: 0.4, delay: idx * 0.08 }}
+                    whileHover={shouldReduceMotion ? {} : { y: -8, scale: 1.015, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.06), 0 8px 10px -6px rgba(0,0,0,0.06)" }}
+                    className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-ambient hover:shadow-premium group cursor-pointer transition-all flex flex-col justify-between"
+                  >
+                    <div className="relative aspect-square bg-neutral-50 overflow-hidden">
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                        referrerPolicy="no-referrer"
+                      />
+                      
+                      {/* Badge */}
+                      {p.isBestSeller && (
+                        <span className="absolute top-3 left-3 bg-orange-500 text-white font-extrabold text-[9px] uppercase px-2 py-1 rounded-md tracking-wider shadow-sm z-10">
+                          Best Seller
+                        </span>
+                      )}
+                      {p.salePercentage && (
+                        <span className="absolute top-3 right-3 bg-red-600 text-white font-extrabold text-[9px] uppercase px-2 py-1 rounded-md tracking-wider shadow-sm z-10">
+                          SAVE {p.salePercentage}%
+                        </span>
+                      )}
 
-                    {/* Wishlist toggle */}
-                    <button
-                      onClick={(e) => toggleWishlist(p.id, e)}
-                      className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center hover:scale-105 transition-transform shadow-xs text-neutral-500 hover:text-red-500"
-                    >
-                      <Heart className={`w-4.5 h-4.5 ${wishlist.includes(p.id) ? "fill-red-500 text-red-500" : ""}`} />
-                    </button>
-                  </div>
-
-                  <div className="p-4 flex-1 flex flex-col justify-between text-left space-y-2">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
-                      <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-1 truncate group-hover:text-orange-500 transition-colors">
-                        {p.title}
-                      </h3>
-                      {/* Rating details */}
-                      <div className="flex items-center space-x-1.5 text-xs text-neutral-500">
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <span className="font-bold text-neutral-800">{p.rating}</span>
-                        <span>({p.reviewsCount})</span>
-                      </div>
+                      {/* Wishlist toggle */}
+                      <motion.button
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.85 }}
+                        onClick={(e) => toggleWishlist(p.id, e)}
+                        className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center shadow-xs text-neutral-500 hover:text-red-500 z-10"
+                      >
+                        <motion.div
+                          key={isLiked ? "liked" : "unliked"}
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                        >
+                          <Heart className={`w-4.5 h-4.5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+                        </motion.div>
+                      </motion.button>
                     </div>
 
-                    <div className="flex items-end justify-between pt-2 border-t border-neutral-50">
-                      <div>
-                        {p.originalPrice && (
-                          <p className="text-xs text-neutral-400 line-through leading-none mb-0.5">
-                            {formatNaira(p.originalPrice)}
+                    <div className="p-4 flex-1 flex flex-col justify-between text-left space-y-2">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
+                        <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-1 truncate group-hover:text-orange-500 transition-colors">
+                          {p.title}
+                        </h3>
+                        {/* Rating details */}
+                        <div className="flex items-center space-x-1.5 text-xs text-neutral-500">
+                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 animate-none" />
+                          <span className="font-bold text-neutral-800">{p.rating}</span>
+                          <span>({p.reviewsCount})</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-end justify-between pt-2 border-t border-neutral-50">
+                        <div>
+                          {p.originalPrice && (
+                            <p className="text-xs text-neutral-400 line-through leading-none mb-0.5 font-mono">
+                              {formatNaira(p.originalPrice)}
+                            </p>
+                          )}
+                          <p className="font-black text-base text-neutral-900 leading-none font-mono">
+                            {formatNaira(p.price)}
                           </p>
-                        )}
-                        <p className="font-black text-base text-neutral-900 leading-none">
-                          {formatNaira(p.price)}
-                        </p>
-                      </div>
+                        </div>
 
-                      <span className="text-[10px] bg-neutral-100 hover:bg-orange-100 font-bold px-2.5 py-1.5 rounded-lg text-neutral-600 hover:text-orange-600 transition-colors">
-                        Buy Now
-                      </span>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
+                          className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all duration-300 ${
+                            isAdded
+                              ? "bg-emerald-600 text-white shadow-xs"
+                              : "bg-neutral-100 hover:bg-orange-500 text-neutral-700 hover:text-white"
+                          }`}
+                        >
+                          {isAdded ? "✓ Added" : "Buy Now"}
+                        </motion.button>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           </section>
 
           {/* Secure Assurance Banner */}
-          <section className="bg-neutral-50 rounded-2xl border border-neutral-150 p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <motion.section
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="bg-neutral-50 rounded-2xl border border-neutral-150 p-6 flex flex-col md:flex-row items-center justify-between gap-4"
+          >
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 flex-shrink-0">
                 <ShieldCheck className="w-6 h-6" />
@@ -330,40 +460,64 @@ export default function CustomerViews({
               <span className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-pulse" />
               <span>Verified Paystack Integration</span>
             </div>
-          </section>
+          </motion.section>
 
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* ---------------- 2. CATALOG BROWSER & SORTING ---------------- */}
+      <AnimatePresence mode="wait">
       {screen === "shop" && (
-        <div className="space-y-6">
+        <motion.div
+          key="shop"
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={pageTransition}
+          className="space-y-6"
+        >
           
           {/* Filters Bar Row */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-4 border border-neutral-200 rounded-2xl shadow-xs">
             
             {/* Category tabs filters */}
-            <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pr-1">
+            <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pr-1 z-10">
               <button
                 onClick={() => setActiveCategoryTab("all")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold relative transition-colors duration-200 ${
                   activeCategoryTab === "all"
-                    ? "bg-emerald-950 text-white shadow-xs"
+                    ? "text-white font-extrabold"
                     : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                 }`}
               >
-                All Departments
+                {activeCategoryTab === "all" && (
+                  <motion.div
+                    layoutId="activeCategoryTabHighlight"
+                    className="absolute inset-0 bg-emerald-950 rounded-xl -z-10"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+                All Categories
               </button>
               {MOCK_CATEGORIES.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setActiveCategoryTab(c.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold relative transition-colors duration-200 whitespace-nowrap ${
                     activeCategoryTab === c.id
-                      ? "bg-emerald-950 text-white shadow-xs"
+                      ? "text-white font-extrabold"
                       : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                   }`}
                 >
+                  {activeCategoryTab === c.id && (
+                    <motion.div
+                      layoutId="activeCategoryTabHighlight"
+                      className="absolute inset-0 bg-emerald-950 rounded-xl -z-10"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
                   {c.name}
                 </button>
               ))}
@@ -388,75 +542,119 @@ export default function CustomerViews({
 
           {/* Main Catalog Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {sortedProducts.map((p) => (
-              <div
-                key={p.id}
-                onClick={() => {
-                  onSelectProduct(p.id);
-                  onNavigate("details");
-                }}
-                className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-ambient hover:shadow-premium group cursor-pointer transition-all flex flex-col justify-between"
-                id={`product-cell-${p.id}`}
-              >
-                <div>
-                  <div className="relative aspect-square bg-neutral-50 overflow-hidden">
-                    <img
-                      src={p.image}
-                      alt={p.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
-                      referrerPolicy="no-referrer"
-                    />
-
-                    {/* Stock Alert */}
-                    {p.stock <= 5 && (
-                      <span className="absolute top-3 left-3 bg-red-600 text-white font-extrabold text-[9px] uppercase px-2 py-0.5 rounded tracking-wider">
-                        Only {p.stock} left!
-                      </span>
-                    )}
-
-                    {/* Wishlist item toggles */}
-                    <button
-                      onClick={(e) => toggleWishlist(p.id, e)}
-                      className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/95 flex items-center justify-center hover:scale-105 transition-transform shadow-xs text-neutral-500 hover:text-red-500"
-                    >
-                      <Heart className={`w-4.5 h-4.5 ${wishlist.includes(p.id) ? "fill-red-500 text-red-500" : ""}`} />
-                    </button>
+            {isSearchLoading ? (
+              Array.from({ length: 8 }).map((_, skeletonIdx) => (
+                <div
+                  key={`skeleton-card-${skeletonIdx}`}
+                  className="bg-white rounded-2xl border border-neutral-150 p-4 space-y-4 shadow-ambient select-none text-left"
+                >
+                  <div className="w-full h-48 shimmer-bg rounded-xl" />
+                  <div className="space-y-2.5">
+                    <div className="h-4 shimmer-bg rounded-md w-2/3" />
+                    <div className="h-3 shimmer-bg rounded-md w-1/2" />
                   </div>
+                  <div className="pt-2 flex justify-between items-center">
+                    <div className="h-6 shimmer-bg rounded-md w-1/4" />
+                    <div className="h-8 shimmer-bg rounded-lg w-16" />
+                  </div>
+                </div>
+              ))
+            ) : sortedProducts.map((p, idx) => {
+              const isAdded = !!justAddedProducts[p.id];
+              const isLiked = wishlist.includes(p.id);
+              return (
+                <motion.div
+                  key={p.id}
+                  onClick={() => {
+                    onSelectProduct(p.id);
+                    onNavigate("details");
+                  }}
+                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-10px" }}
+                  transition={{ duration: 0.35, delay: Math.min(idx * 0.04, 0.3) }}
+                  whileHover={shouldReduceMotion ? {} : { y: -8, scale: 1.015, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.06), 0 8px 10px -6px rgba(0,0,0,0.06)" }}
+                  className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-ambient hover:shadow-premium group cursor-pointer transition-all flex flex-col justify-between"
+                  id={`product-cell-${p.id}`}
+                >
+                  <div>
+                    <div className="relative aspect-square bg-neutral-50 overflow-hidden">
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                        referrerPolicy="no-referrer"
+                      />
 
-                  <div className="p-4 text-left space-y-1">
-                    <span className="text-[9px] font-bold text-orange-500 uppercase tracking-widest block">{p.vendorName}</span>
-                    <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-2 leading-snug truncate">
-                      {p.title}
-                    </h3>
-                    <div className="flex items-center space-x-1.5 text-xs text-neutral-505 pt-1">
-                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                      <span className="font-bold text-neutral-800">{p.rating}</span>
-                      <span>({p.reviewsCount} reviews)</span>
+                      {/* Stock Alert */}
+                      {p.stock <= 5 && (
+                        <span className="absolute top-3 left-3 bg-red-600 text-white font-extrabold text-[9px] uppercase px-2 py-0.5 rounded tracking-wider shadow-xs z-10">
+                          Only {p.stock} left!
+                        </span>
+                      )}
+
+                      {/* Wishlist item toggles */}
+                      <motion.button
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.85 }}
+                        onClick={(e) => toggleWishlist(p.id, e)}
+                        className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/95 flex items-center justify-center hover:scale-105 transition-transform shadow-xs text-neutral-500 hover:text-red-500 z-10"
+                      >
+                        <motion.div
+                          key={isLiked ? "liked" : "unliked"}
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                        >
+                          <Heart className={`w-4.5 h-4.5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+                        </motion.div>
+                      </motion.button>
+                    </div>
+
+                    <div className="p-4 text-left space-y-1">
+                      <span className="text-[9px] font-bold text-orange-500 uppercase tracking-widest block">{p.vendorName}</span>
+                      <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-2 leading-snug truncate group-hover:text-orange-500 transition-colors">
+                        {p.title}
+                      </h3>
+                      <div className="flex items-center space-x-1.5 text-xs text-neutral-505 pt-1">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <span className="font-bold text-neutral-800">{p.rating}</span>
+                        <span>({p.reviewsCount} reviews)</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="p-4 pt-0 border-t border-neutral-50 flex items-center justify-between text-left mt-2">
-                  <div>
-                    {p.originalPrice && (
-                      <span className="text-xs text-neutral-400 line-through block font-mono">
-                        {formatNaira(p.originalPrice)}
+                  <div className="p-4 pt-0 border-t border-neutral-50 flex items-center justify-between text-left mt-2">
+                    <div>
+                      {p.originalPrice && (
+                        <span className="text-xs text-neutral-400 line-through block font-mono">
+                          {formatNaira(p.originalPrice)}
+                        </span>
+                      )}
+                      <span className="font-black text-neutral-900 text-base block font-mono">
+                        {formatNaira(p.price)}
                       </span>
-                    )}
-                    <span className="font-black text-neutral-900 text-base block font-mono">
-                      {formatNaira(p.price)}
-                    </span>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
+                      className={`px-3 py-1.5 font-bold text-xs rounded-lg shadow-xs transition-all duration-300 ${
+                        isAdded
+                          ? "bg-emerald-600 text-white"
+                          : "bg-orange-500 hover:bg-orange-600 text-white"
+                      }`}
+                    >
+                      {isAdded ? "✓ Added" : "Add Cart"}
+                    </motion.button>
                   </div>
-                  <span className="px-3 py-1.5 bg-orange-500 text-white font-bold text-xs rounded-lg hover:bg-orange-600 shadow-xs transition-colors">
-                    Add Cart
-                  </span>
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              );
+            })}
 
-            {sortedProducts.length === 0 && (
+            {sortedProducts.length === 0 && !isSearchLoading && (
               <div className="col-span-full py-16 text-center space-y-2">
-                <p className="text-base font-bold text-neutral-500">No products match your criteria inside this department.</p>
+                <p className="text-base font-bold text-neutral-500">No products match your criteria inside this category.</p>
                 <p className="text-xs text-neutral-400">Try modifying search inputs or choosing another category block above.</p>
                 <button
                   onClick={() => {
@@ -470,12 +668,22 @@ export default function CustomerViews({
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* ---------------- 3. PRODUCT DETAILS SCREEN ---------------- */}
+      <AnimatePresence mode="wait">
       {screen === "details" && detailProduct && (
-        <div className="space-y-8 text-left">
+        <motion.div
+          key="details"
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={pageTransition}
+          className="space-y-8 text-left"
+        >
           
           {/* Breadcrumb row */}
           <button
@@ -492,18 +700,65 @@ export default function CustomerViews({
             {/* Gallery Image block (5 columns) */}
             <div className="lg:col-span-5 space-y-4">
               <div className="aspect-square bg-neutral-50 border border-neutral-200 rounded-2xl overflow-hidden shadow-ambient relative">
-                <img
-                  src={detailProduct.image}
-                  alt={detailProduct.title}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={selectedImageIndex}
+                    src={detailProduct.image}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.02 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    alt={detailProduct.title}
+                    className={`w-full h-full object-cover ${
+                      selectedImageIndex === 1
+                        ? "brightness-105 contrast-105 scale-102"
+                        : selectedImageIndex === 2
+                        ? "contrast-95 saturate-110"
+                        : ""
+                    }`}
+                    referrerPolicy="no-referrer"
+                  />
+                </AnimatePresence>
                 
                 {detailProduct.isBestSeller && (
                   <span className="absolute top-4 left-4 bg-orange-500 text-white font-extrabold text-[10px] uppercase px-2.5 py-1 rounded-md tracking-wider">
                     Best Seller
                   </span>
                 )}
+              </div>
+
+              {/* Thumbnails Selection Panel */}
+              <div className="flex items-center gap-3 justify-center pt-1">
+                {[0, 1, 2].map((idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className="relative w-16 h-16 rounded-xl bg-neutral-50 border overflow-hidden cursor-pointer focus:outline-none flex-shrink-0"
+                    style={{
+                      borderColor: selectedImageIndex === idx ? "#f97316" : "#e5e5e5"
+                    }}
+                  >
+                    {selectedImageIndex === idx && (
+                      <motion.div
+                        layoutId="activeThumbRing"
+                        className="absolute inset-0 border-2 border-orange-500 rounded-xl z-10 pointer-events-none"
+                        transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                      />
+                    )}
+                    <img
+                      src={detailProduct.image}
+                      alt="Product thumbnail view"
+                      className={`w-full h-full object-cover transition-all duration-300 ${
+                        idx === 1
+                          ? "brightness-105 contrast-105 scale-110"
+                          : idx === 2
+                          ? "contrast-95 saturate-110"
+                          : ""
+                      } ${selectedImageIndex !== idx ? "opacity-70 hover:opacity-100" : ""}`}
+                    />
+                  </button>
+                ))}
               </div>
               
               <div className="p-4 bg-neutral-50 border border-neutral-100 rounded-2xl flex items-center justify-between">
@@ -700,42 +955,76 @@ export default function CustomerViews({
 
               {/* Counter Picker & Add Cart Trigger */}
               <div className="pt-4 border-t border-neutral-100 flex flex-wrap items-center gap-4">
-                <div className="flex items-center border border-neutral-200 rounded-xl overflow-hidden h-11">
-                  <button
+                <div className="flex items-center border border-neutral-200 rounded-xl overflow-hidden h-11 bg-white">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => setDetailQty(Math.max(1, detailQty - 1))}
-                    className="px-3 hover:bg-neutral-100 transition-colors h-full text-neutral-500 text-lg"
+                    className="px-3 hover:bg-neutral-100 transition-colors h-full text-neutral-500 text-lg select-none"
                   >
                     -
-                  </button>
-                  <span className="px-4 font-bold text-sm w-12 text-center select-none font-mono">
-                    {detailQty}
-                  </span>
-                  <button
+                  </motion.button>
+                  <div className="relative w-12 h-full flex items-center justify-center overflow-hidden">
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={detailQty}
+                        initial={{ y: -6, opacity: 0, scale: 0.8 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: 6, opacity: 0, scale: 0.8 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 20 }}
+                        className="font-bold text-sm select-none font-mono block text-neutral-800"
+                      >
+                        {detailQty}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => setDetailQty(Math.min(detailProduct.stock, detailQty + 1))}
-                    className="px-3 hover:bg-neutral-100 transition-colors h-full text-neutral-500 text-lg"
+                    className="px-3 hover:bg-neutral-100 transition-colors h-full text-neutral-500 text-lg select-none"
                   >
                     +
-                  </button>
+                  </motion.button>
                 </div>
 
-                <button
-                  onClick={() => {
-                    onAddToCart(detailProduct, detailQty, selectedSize, selectedColor);
-                    setDetailQty(1);
-                  }}
-                  className="flex-1 min-w-[200px] h-11 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-md transition-colors active:scale-98 flex items-center justify-center space-x-2"
-                  id="add-to-cart-action"
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                  <span>Secure Escrow Purchase</span>
-                </button>
+                {(() => {
+                  const detailIsAdded = !!justAddedProducts[detailProduct.id];
+                  return (
+                    <motion.button
+                      animate={detailIsAdded ? { scale: [1, 1.05, 1] } : {}}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        handleAddToCartWithFeedback(detailProduct, detailQty, selectedSize, selectedColor);
+                        setDetailQty(1);
+                      }}
+                      className={`flex-1 min-w-[200px] h-11 text-white font-bold rounded-xl shadow-md transition-all duration-300 flex items-center justify-center space-x-2 select-none ${
+                        detailIsAdded ? "bg-emerald-600" : "bg-orange-500 hover:bg-orange-600"
+                      }`}
+                      id="add-to-cart-action"
+                    >
+                      {detailIsAdded ? <Check className="w-5 h-5 animate-bounce" /> : <ShoppingCart className="w-5 h-5" />}
+                      <span>{detailIsAdded ? "Added to Cart!" : "Secure Escrow Purchase"}</span>
+                    </motion.button>
+                  );
+                })()}
 
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => toggleWishlist(detailProduct.id)}
-                  className="w-11 h-11 border border-neutral-200 hover:border-neutral-300 rounded-xl flex items-center justify-center hover:bg-neutral-50 text-neutral-550 transition-colors"
+                  className="w-11 h-11 border border-neutral-200 hover:border-neutral-300 rounded-xl flex items-center justify-center hover:bg-neutral-50 text-neutral-550 transition-colors cursor-pointer"
                 >
-                  <Heart className={`w-5 h-5 ${wishlist.includes(detailProduct.id) ? "fill-red-500 text-red-500 border-none" : ""}`} />
-                </button>
+                  <AnimatePresence mode="popLayout">
+                    <motion.div
+                      key={wishlist.includes(detailProduct.id) ? "liked" : "unliked"}
+                      initial={{ scale: 0.6, rotate: -25, opacity: 0 }}
+                      animate={{ scale: [0.6, 1.35, 1], rotate: 0, opacity: 1 }}
+                      exit={{ scale: 0.6, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 15 }}
+                    >
+                      <Heart className={`w-5 h-5 ${wishlist.includes(detailProduct.id) ? "fill-red-500 text-red-500 border-none" : ""}`} />
+                    </motion.div>
+                  </AnimatePresence>
+                </motion.button>
               </div>
 
               {/* Bullet Features Checklist */}
@@ -791,8 +1080,16 @@ export default function CustomerViews({
             <div className="lg:col-span-8 space-y-4">
               <p className="font-bold text-sm text-neutral-400 uppercase tracking-widest pb-1 border-b border-neutral-100">Shopper Testimonials</p>
               <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
-                {addedReviews.map((rev) => (
-                  <div key={rev.id} className="p-4 bg-white border border-neutral-155 rounded-2xl flex space-x-4 items-start text-xs">
+                {addedReviews.map((rev, idx) => (
+                  <motion.div
+                    key={rev.id}
+                    initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-15px" }}
+                    transition={{ duration: 0.35, delay: Math.min(idx * 0.05, 0.2) }}
+                    whileHover={{ x: 4 }}
+                    className="p-4 bg-white border border-neutral-155 rounded-2xl flex space-x-4 items-start text-xs transition-shadow hover:shadow-xs"
+                  >
                     <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-black font-mono flex items-center justify-center flex-shrink-0">
                       {rev.avatarInitials}
                     </div>
@@ -811,18 +1108,28 @@ export default function CustomerViews({
                       </div>
                       <p className="text-neutral-600 leading-relaxed font-semibold">{rev.text}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
           </div>
 
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* ---------------- 4. SHOPPING CART VIEW ---------------- */}
+      <AnimatePresence mode="wait">
       {screen === "cart" && (
-        <div className="space-y-6">
+        <motion.div
+          key="cart"
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={pageTransition}
+          className="space-y-6"
+        >
           <div className="text-left pb-4 border-b border-neutral-100">
             <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">Your Escrow Shopping Basket</h1>
             <p className="text-xs text-neutral-400 font-semibold mt-1">Verify cart configurations and secure shipment details before gateway routing</p>
@@ -847,77 +1154,102 @@ export default function CustomerViews({
               
               {/* Product row Items (8 cols) */}
               <div className="lg:col-span-8 lg:max-h-[500px] overflow-y-auto pr-1 space-y-4">
-                {cart.map((item) => (
-                  <div
-                    key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`}
-                    className="p-4 sm:p-5 bg-white border border-neutral-150 rounded-2xl flex flex-col sm:flex-row items-center gap-4 text-left shadow-xs justify-between"
-                  >
-                    <div className="flex items-center space-x-4 w-full sm:w-auto">
-                      <div className="w-16 h-16 bg-neutral-50 rounded-xl overflow-hidden border border-neutral-100 flex-shrink-0">
-                        <img src={item.product.image} alt={item.product.title} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-extrabold text-sm text-neutral-800 truncate max-w-[280px]">
-                          {item.product.title}
-                        </h3>
-                        <p className="text-[10px] text-orange-500 font-bold uppercase tracking-wide">{item.product.vendorName}</p>
-                        
-                        {/* Selected variant parameters */}
-                        <div className="flex flex-wrap gap-1.5 mt-1 text-[9px] font-bold font-mono">
-                          {item.selectedSize && (
-                            <span className="px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-500">Size: {item.selectedSize}</span>
-                          )}
-                          {item.selectedColor && (
-                            <span className="px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-500 font-bold">Color: {item.selectedColor}</span>
-                          )}
+                <AnimatePresence initial={false}>
+                  {cart.map((item) => (
+                    <motion.div
+                      key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`}
+                      initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 15 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -15 }}
+                      layout
+                      transition={{ duration: 0.25 }}
+                      whileHover={{ scale: 1.005 }}
+                      className="p-4 sm:p-5 bg-white border border-neutral-150 rounded-2xl flex flex-col sm:flex-row items-center gap-4 text-left shadow-xs justify-between"
+                    >
+                      <div className="flex items-center space-x-4 w-full sm:w-auto">
+                        <div className="w-16 h-16 bg-neutral-50 rounded-xl overflow-hidden border border-neutral-100 flex-shrink-0">
+                          <img src={item.product.image} alt={item.product.title} className="w-full h-full object-cover pointer-events-none" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-extrabold text-sm text-neutral-800 truncate max-w-[280px]">
+                            {item.product.title}
+                          </h3>
+                          <p className="text-[10px] text-orange-500 font-bold uppercase tracking-wide">{item.product.vendorName}</p>
+                          
+                          {/* Selected variant parameters */}
+                          <div className="flex flex-wrap gap-1.5 mt-1 text-[9px] font-bold font-mono">
+                            {item.selectedSize && (
+                              <span className="px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-500">Size: {item.selectedSize}</span>
+                            )}
+                            {item.selectedColor && (
+                              <span className="px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-500 font-bold">Color: {item.selectedColor}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center justify-between w-full sm:w-auto sm:space-x-8">
-                      {/* Counter */}
-                      <div className="flex items-center border border-neutral-150 rounded-lg overflow-hidden h-9 bg-neutral-50">
-                        <button
-                          onClick={() => {
-                            if (item.quantity === 1) {
-                              onRemoveFromCart(item.product.id);
-                            } else {
-                              onUpdateCartQty(item.product.id, item.quantity - 1);
-                            }
-                          }}
-                          className="px-2 hover:bg-neutral-100 transition-colors h-full text-neutral-400"
+                      <div className="flex items-center justify-between w-full sm:w-auto sm:space-x-8">
+                        {/* Counter */}
+                        <div className="flex items-center border border-neutral-150 rounded-lg overflow-hidden h-9 bg-neutral-50 relative">
+                          <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => {
+                              if (item.quantity === 1) {
+                                onRemoveFromCart(item.product.id);
+                              } else {
+                                onUpdateCartQty(item.product.id, item.quantity - 1);
+                              }
+                            }}
+                            className="px-2 hover:bg-neutral-100 transition-colors h-full text-neutral-400 select-none"
+                          >
+                            -
+                          </motion.button>
+                          <div className="relative w-8 h-full flex items-center justify-center overflow-hidden">
+                            <AnimatePresence mode="popLayout" initial={false}>
+                              <motion.span
+                                key={item.quantity}
+                                initial={{ y: -6, opacity: 0, scale: 0.8 }}
+                                animate={{ y: 0, opacity: 1, scale: 1 }}
+                                exit={{ y: 6, opacity: 0, scale: 0.8 }}
+                                transition={{ type: "spring", stiffness: 350, damping: 20 }}
+                                className="font-bold text-xs select-none font-mono block text-emerald-600 font-black"
+                              >
+                                {item.quantity}
+                              </motion.span>
+                            </AnimatePresence>
+                          </div>
+                          <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => onUpdateCartQty(item.product.id, item.quantity + 1)}
+                            className="px-2 hover:bg-neutral-100 transition-colors h-full text-neutral-400 select-none"
+                          >
+                            +
+                          </motion.button>
+                        </div>
+
+                        {/* Cost */}
+                        <div className="text-right min-w-24">
+                          <p className="font-black text-neutral-900 text-sm font-mono">
+                            {formatNaira(item.product.price * item.quantity)}
+                          </p>
+                          <p className="text-[10px] text-neutral-400 mt-0.5 font-semibold">({formatNaira(item.product.price)} each)</p>
+                        </div>
+
+                        {/* Remove button */}
+                        <motion.button
+                          whileHover={{ scale: 1.12, color: "#ef4444" }}
+                          whileTap={{ scale: 0.88 }}
+                          onClick={() => onRemoveFromCart(item.product.id)}
+                          className="p-1 text-neutral-400 hover:text-red-500 transition-colors"
+                          id={`delete-cart-${item.product.id}`}
                         >
-                          -
-                        </button>
-                        <span className="px-3 font-semibold text-xs font-mono w-8 text-center">{item.quantity}</span>
-                        <button
-                          onClick={() => onUpdateCartQty(item.product.id, item.quantity + 1)}
-                          className="px-2 hover:bg-neutral-100 transition-colors h-full text-neutral-400"
-                        >
-                          +
-                        </button>
+                          <Trash2 className="w-4.5 h-4.5" />
+                        </motion.button>
                       </div>
 
-                      {/* Cost */}
-                      <div className="text-right min-w-24">
-                        <p className="font-black text-neutral-900 text-sm font-mono">
-                          {formatNaira(item.product.price * item.quantity)}
-                        </p>
-                        <p className="text-[10px] text-neutral-400 mt-0.5">({formatNaira(item.product.price)} each)</p>
-                      </div>
-
-                      {/* Remove button */}
-                      <button
-                        onClick={() => onRemoveFromCart(item.product.id)}
-                        className="p-1 text-neutral-400 hover:text-red-500 transition-colors"
-                        id={`delete-cart-${item.product.id}`}
-                      >
-                        <Trash2 className="w-4.5 h-4.5" />
-                      </button>
-                    </div>
-
-                  </div>
-                ))}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
 
               {/* Order Summary Form (4 cols) */}
@@ -947,24 +1279,70 @@ export default function CustomerViews({
 
                 {/* Sub calculations */}
                 <div className="space-y-2 text-xs font-semibold text-neutral-600">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center h-5">
                     <span>Basket Subtotal</span>
-                    <span className="font-mono text-neutral-800">{formatNaira(cartSubtotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Shipping Logistics ({selectedStateForShipping})</span>
-                    <span className="font-mono text-neutral-800">
-                      {activeShippingFee === 0 ? "FREE" : formatNaira(activeShippingFee)}
+                    <span className="font-mono text-neutral-800 relative block min-w-[80px] text-right overflow-hidden">
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.span
+                          key={cartSubtotal}
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          className="inline-block"
+                        >
+                          {formatNaira(cartSubtotal)}
+                        </motion.span>
+                      </AnimatePresence>
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center h-5">
+                    <span>Shipping Logistics ({selectedStateForShipping})</span>
+                    <span className="font-mono text-neutral-800 relative block min-w-[80px] text-right overflow-hidden">
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.span
+                          key={activeShippingFee}
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          className="inline-block"
+                        >
+                          {activeShippingFee === 0 ? "FREE" : formatNaira(activeShippingFee)}
+                        </motion.span>
+                      </AnimatePresence>
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center h-5">
                     <span>Escrow Service & VAT (7.5% Nigeria tax)</span>
-                    <span className="font-mono text-neutral-800">{formatNaira(estimatedTax)}</span>
+                    <span className="font-mono text-neutral-800 relative block min-w-[80px] text-right overflow-hidden">
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.span
+                          key={estimatedTax}
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          className="inline-block"
+                        >
+                          {formatNaira(estimatedTax)}
+                        </motion.span>
+                      </AnimatePresence>
+                    </span>
                   </div>
                   
-                  <div className="border-t border-neutral-100 pt-3 flex justify-between text-sm">
+                  <div className="border-t border-neutral-100 pt-3 flex justify-between items-center text-sm">
                     <span className="font-extrabold text-neutral-900">Total Settlement</span>
-                    <span className="font-black text-neutral-900 text-base font-mono">{formatNaira(cartTotalSum)}</span>
+                    <span className="font-black text-neutral-900 text-base font-mono relative block min-w-[100px] text-right overflow-hidden h-6">
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.span
+                          key={cartTotalSum}
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 5 }}
+                          className="inline-block font-black"
+                        >
+                          {formatNaira(cartTotalSum)}
+                        </motion.span>
+                      </AnimatePresence>
+                    </span>
                   </div>
                 </div>
 
@@ -987,8 +1365,9 @@ export default function CustomerViews({
 
             </div>
           )}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
     </div>
   );

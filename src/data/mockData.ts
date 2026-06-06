@@ -19,17 +19,8 @@ export const NIGERIAN_CITIES = [
 
 export const MOCK_CATEGORIES: Category[] = [
   {
-    id: "fashion",
-    name: "Naija Fashion & Ankara",
-    description: "Premium handcrafted Agbada, Ankara kaftans, Aso-Oke, streetwear, and matching accessories.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuA5oKFaFjimFRNiVk4ZskPyQaFdOoNcwqZ5kTVXhQhdFSQwmwThUya_xriBWtqNlsA0tAGEfiOXj40jbXeTeYWNTX0ZXVbm8ZrQ79ghOlxVVjghOVrVtRN5QYsuC2QQwjmFB6HyCoIhHpIuYUgcV1Fi29ryLiY8-gKc6z53SUXNB-kkDKa0qeclc7byrYDhK0gFAdSThBzKmj9oZILEcqvesze3sJwTZ_Ek3C4YdAEM3jgckByMxoiP8LRD_kTwhomV49xmPu-USntl",
-    iconName: "apparel",
-    itemCount: 432,
-    subcategories: ["Men's Traditional Set", "Ankara Gowns", "Aso-Oke Heritage", "Lagos Streetwear", "Kola & Leather Crafts"]
-  },
-  {
     id: "electronics",
-    name: "Naija Tech Hub",
+    name: "Electronics",
     description: "High-performance laptops, noise-cancelling headphones, screens, smart accessories, and developer hardware.",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDy5GOD9-1WbSSbfqRQffobk20mSWZoV1dLV1ZXP2lENmb-STvXnzfC8OpXBmqoAF3XKdZ2zr38GMFs2YbrwhOcUFxUSnoNg43X3HRDQSfpFFZlz5_nnk-3iA03XfWQ0-YJA1WS9ytK4nkxFP3l03r7H7qE8KyKRySzJkCv87TXYqTQ90rtN-FZM2ZVh2anbHYhZhE9AkFFy80FOXuRS5RNbYh2R8uwkL7qfCkYf0xy95TZThfgpI4V1Y0uOgZtNp6KWyB0IB6c4ltB",
     iconName: "devices",
@@ -37,8 +28,35 @@ export const MOCK_CATEGORIES: Category[] = [
     subcategories: ["Laptops & PCs", "Wireless Audio", "Creatives Tab", "Smart Wearables", "Displays & Accessories"]
   },
   {
+    id: "fashion",
+    name: "Fashion",
+    description: "Premium handcrafted Agbada, Ankara kaftans, Aso-Oke, streetwear, and matching accessories.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuA5oKFaFjimFRNiVk4ZskPyQaFdOoNcwqZ5kTVXhQhdFSQwmwThUya_xriBWtqNlsA0tAGEfiOXj40jbXeTeYWNTX0ZXVbm8ZrQ79ghOlxVVjghOVrVtRN5QYsuC2QQwjmFB6HyCoIhHpIuYUgcV1Fi29ryLiY8-gKc6z53SUXNB-kkDKa0qeclc7byrYDhK0gFAdSThBzKmj9oZILEcqvesze3sJwTZ_Ek3C4YdAEM3jgckByMxoiP8LRD_kTwhomV49xmPu-USntl",
+    iconName: "apparel",
+    itemCount: 432,
+    subcategories: ["Men's Traditional Set", "Ankara Gowns", "Aso-Oke Heritage", "Lagos Streetwear", "Kola & Leather Crafts"]
+  },
+  {
+    id: "beauty",
+    name: "Beauty",
+    description: "Premium organic cosmetic formulations, locally processed shea butter, herbal soaps, and wellness oils.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCXcNrYLLAD2B0Jdg4rSvx49n-hyrX2ZsfZjp4ynE8d3wKmxxRMEnWCEEBvxLSrFsmC0yJEgYZoqlEThCW48fz8y5D9b_XcW76yxnNBILOQ8TVr_YWBdpMRY72JdwHF8hWs_Wnhopje6KR-bWZH9mReWxQBBMDHvLo_NIUEeY5m-Z4KLRfd9QpVuLlrLWUIakCKJu3nWjrEfH9y3QX-b_A6-M5izgMKDxoLc-hNpbqTHH_uP8TdLh-AdBfTzE0GPql74NRa6pIyvGxG",
+    iconName: "self_care",
+    itemCount: 94,
+    subcategories: ["Body Creams", "Black Soaps", "Hair Cleansers", "Natural Serums", "Aromas & Incense"]
+  },
+  {
+    id: "home-living",
+    name: "Home & Living",
+    description: "Elegant handcrafted furniture, woven rugs, ambient lighting, and art pieces for your home space.",
+    image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=500&q=80",
+    iconName: "home",
+    itemCount: 112,
+    subcategories: ["Wooden Living Set", "Aesthetic Lights", "Woven Carpets", "Terracotta Vases"]
+  },
+  {
     id: "groceries",
-    name: "Naija Foods & Raw Goods",
+    name: "Groceries",
     description: "Fresh farm produce, processed Nigerian food items, chin-chin snacks, plantain chips, and regional commodities.",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAu683NWIz41rf9BrFcqAl9nUQGkGXSJnWAws_BUjK-cHIRa7BmKNrrx0q03hMwVFCyfW9_JhFD0AGtZfw1f9b9xyea7gNryucoXeCll39GbyowyFVPtKthcjfwD-eWJ5kifJrVU26WPp4WMoUcCgCb2IRpedtK5MrngzO08UHXByPr6S1qpY0uk6EunXxc8M9N7ym1mF7PldkseWVx_KHgtueakc9-NxIAlfj52hLPsfPBq11FiQyddU58uyOfHwJiekvXimImHQyA",
     iconName: "shopping_bag",
@@ -46,13 +64,49 @@ export const MOCK_CATEGORIES: Category[] = [
     subcategories: ["Snacks & Sweets", "Flour & Grains", "Palm Oils & Spices", "Dried Proteins", "Cocoa & Coffees"]
   },
   {
-    id: "beauty",
-    name: "Shea Butter & Cosmetics",
-    description: "Premium organic cosmetic formulations, locally processed shea butter, herbal soaps, and wellness oils.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCXcNrYLLAD2B0Jdg4rSvx49n-hyrX2ZsfZjp4ynE8d3wKmxxRMEnWCEEBvxLSrFsmC0yJEgYZoqlEThCW48fz8y5D9b_XcW76yxnNBILOQ8TVr_YWBdpMRY72JdwHF8hWs_Wnhopje6KR-bWZH9mReWxQBBMDHvLo_NIUEeY5m-Z4KLRfd9QpVuLlrLWUIakCKJu3nWjrEfH9y3QX-b_A6-M5izgMKDxoLc-hNpbqTHH_uP8TdLh-AdBfTzE0GPql74NRa6pIyvGxG",
-    iconName: "self_care",
-    itemCount: 94,
-    subcategories: ["Body Creams", "Black Soaps", "Hair Cleansers", "Natural Serums", "Aromas & Incense"]
+    id: "health-wellness",
+    name: "Health & Wellness",
+    description: "Natural herbal extracts, vitamins, modern fitness accessories, wellness supplements, and healing tea packs.",
+    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=500&q=80",
+    iconName: "heart",
+    itemCount: 85,
+    subcategories: ["Herbal Teas", "Vitamins & Minerals", "Essential Oils", "Fitness Accessories"]
+  },
+  {
+    id: "baby-kids",
+    name: "Baby & Kids",
+    description: "Organic baby foods, soft pure cotton clothing, handcrafted wood toys, and standard kids learning tools.",
+    image: "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&w=500&q=80",
+    iconName: "baby",
+    itemCount: 78,
+    subcategories: ["Pure Cotton Clothes", "Baby Foods", "Educational Wooden Toys"]
+  },
+  {
+    id: "sports-outdoors",
+    name: "Sports & Outdoors",
+    description: "Excellent athletic wears, dynamic custom football jerseys, tracking compasses, and outdoor styling gear.",
+    image: "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=500&q=80",
+    iconName: "trophy",
+    itemCount: 63,
+    subcategories: ["Naija Jerseys", "Athletic Activewear", "Outdoor Running Accessories"]
+  },
+  {
+    id: "automotive",
+    name: "Automotive",
+    description: "Smart car diagnostics tools, dashboard cameras, heavy-duty emergency kits, and detailing products.",
+    image: "https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=500&q=80",
+    iconName: "truck",
+    itemCount: 52,
+    subcategories: ["OBD2 Scanners", "Dash Cameras", "Detailing Solutions"]
+  },
+  {
+    id: "agriculture",
+    name: "Agriculture",
+    description: "Organic heirloom crop seeds, safe biostimulants, mini farm-monitoring sensors, and eco tools.",
+    image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=500&q=80",
+    iconName: "sprout",
+    itemCount: 110,
+    subcategories: ["Organic Seeds", "Soil Diagnostics Helpers", "Eco Farmers Accents"]
   }
 ];
 
@@ -66,7 +120,7 @@ export const MOCK_PRODUCTS: Product[] = [
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuA5oKFaFjimFRNiVk4ZskPyQaFdOoNcwqZ5kTVXhQhdFSQwmwThUya_xriBWtqNlsA0tAGEfiOXj40jbXeTeYWNTX0ZXVbm8ZrQ79ghOlxVVjghOVrVtRN5QYsuC2QQwjmFB6HyCoIhHpIuYUgcV1Fi29ryLiY8-gKc6z53SUXNB-kkDKa0qeclc7byrYDhK0gFAdSThBzKmj9oZILEcqvesze3sJwTZ_Ek3C4YdAEM3jgckByMxoiP8LRD_kTwhomV49xmPu-USntl",
     rating: 4.9,
     reviewsCount: 124,
-    category: "Naija Fashion & Ankara",
+    category: "Fashion",
     vendorId: "v_heritage",
     vendorName: "Eko Heritage Weavers",
     sizes: ["Medium", "Large", "X-Large"],
@@ -95,7 +149,7 @@ export const MOCK_PRODUCTS: Product[] = [
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDDYPqYFkjaKdJ3qcGBKO6_Re4LJQhmYSE6kb2HIuIatWoHdHbwSUURYQ1ee05rL4KDv0ZrCYz0HQGFZUpjx5nL8TKNngTvTbZeO2l9efvd3jh14TWcjrlPJqU-5dsg7l6iqZBy-dOdePCJ9W-STY63egQRP70UBdmK8yjiaUjnp3jY-VbnLOgC87pSiXke7xrmDD4eLZUWKT-I607K82i12F8xBkcT4WbnsFyby4hivF13tFwbtMgqa6WsEJlucO3EZ1l_zLsCMpN3",
     rating: 4.8,
     reviewsCount: 1248,
-    category: "Naija Tech Hub",
+    category: "Electronics",
     vendorId: "v_alaba",
     vendorName: "Alaba Digital Hub",
     colors: ["Slate Charcoal", "Silver Satin", "Lagoon Green"],
@@ -124,7 +178,7 @@ export const MOCK_PRODUCTS: Product[] = [
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCbYcKlR0YosM9ximABFoaiSUDMUrUEv5BcUy6aTHGt59PRX17YBnWoLZbRDI56hq1D2Eyl50EEP4j6J6WujpXV9F13MJYvlfYPIDZwdfvCGAxbvtPNR2wjJ17h4Xls3Uqu5Tkot1sk678S9ezX5uIPaBbnVAQljNJtW8HgLk4wUOZ5hRUa_41TIDdR-P3N2FpAK6EHgGGQWnj3ApljvB67Rf00q1xoM9SLfm5DOsbrbZgRmKHYRXJxXw9XskjNr9b-8SxnqLDAq_Hm",
     rating: 4.9,
     reviewsCount: 76,
-    category: "Naija Tech Hub",
+    category: "Electronics",
     vendorId: "v_compvillage",
     vendorName: "Computer Village Depot",
     stock: 4,
@@ -151,7 +205,7 @@ export const MOCK_PRODUCTS: Product[] = [
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBXHHRDhnfXAPzOsfwJAJsaalg4cWfRii5vBleuGOxKrptM-qmw3JgFBhmDSeXClxBlfi3YbQJiQs13dl3CJxFMTrEsoeKAI1JkXEckU88mcDf64zuwrUdWJW8NNuhXEbmbimeAKXSCpzoTENrA7IaXi3jzD_WCPb-on3IiWMAikNItCyKkPDuCIxGIIFS30rf-qvm-aGDzOiKqproxCid4Yu_VB_ycleJTW0iXWyz1WZUzAk_v-gZdvKW2YKJet89-kA4ee4AC0u9d",
     rating: 4.7,
     reviewsCount: 88,
-    category: "Naija Fashion & Ankara",
+    category: "Fashion",
     vendorId: "v_balogun",
     vendorName: "Balogun Leather Craft",
     sizes: ["41", "42", "43", "44", "45"],
@@ -174,7 +228,7 @@ export const MOCK_PRODUCTS: Product[] = [
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCXcNrYLLAD2B0Jdg4rSvx49n-hyrX2ZsfZjp4ynE8d3wKmxxRMEnWCEEBvxLSrFsmC0yJEgYZoqlEThCW48fz8y5D9b_XcW76yxnNBILOQ8TVr_YWBdpMRY72JdwHF8hWs_Wnhopje6KR-bWZH9mReWxQBBMDHvLo_NIUEeY5m-Z4KLRfd9QpVuLlrLWUIakCKJu3nWjrEfH9y3QX-b_A6-M5izgMKDxoLc-hNpbqTHH_uP8TdLh-AdBfTzE0GPql74NRa6pIyvGxG",
     rating: 4.8,
     reviewsCount: 312,
-    category: "Shea Butter & Cosmetics",
+    category: "Beauty",
     vendorId: "v_sheabeauty",
     vendorName: "Shea & Beauty Enugu",
     stock: 200,
@@ -200,7 +254,7 @@ export const MOCK_PRODUCTS: Product[] = [
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAu683NWIz41rf9BrFcqAl9nUQGkGXSJnWAws_BUjK-cHIRa7BmKNrrx0q03hMwVFCyfW9_JhFD0AGtZfw1f9b9xyea7gNryucoXeCll39GbyowyFVPtKthcjfwD-eWJ5kifJrVU26WPp4WMoUcCgCb2IRpedtK5MrngzO08UHXByPr6S1qpY0uk6EunXxc8M9N7ym1mF7PldkseWVx_KHgtueakc9-NxIAlfj52hLPsfPBq11FiQyddU58uyOfHwJiekvXimImHQyA",
     rating: 4.9,
     reviewsCount: 450,
-    category: "Naija Foods & Raw Goods",
+    category: "Groceries",
     vendorId: "v_snacks",
     vendorName: "Naija Sweet Treats",
     stock: 80,
@@ -221,7 +275,7 @@ export const MOCK_PRODUCTS: Product[] = [
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDoArHt2XxArub18bK8PZP0et2kHIVpWH-xP9IFqsowANLgLNqGG3HrSgME17kXvoSzm6cKDRlGg1k2b43xQod7CRvDKu5j5xFRCE1ScPm9ZW3eMvNVWHpATIztNqLeCRsbQp8RdC4L7wW7epyGZJ8DmrIFH09ZpCPzlmXKnAFtvH8VppIoXipnocOYNiki2LHWQg6kl-fyC6gjlGST-vHBXYymZQIZ3nJ8mpKOlCvM8u0szv6xxAnRPcTvY2_P28GIBDoXlUJgAyZm",
     rating: 4.6,
     reviewsCount: 94,
-    category: "Naija Fashion & Ankara",
+    category: "Fashion",
     vendorId: "v_lekki",
     vendorName: "Lekki Elite Optics",
     stock: 22,
@@ -241,7 +295,7 @@ export const MOCK_PRODUCTS: Product[] = [
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCcLaXCLsW43s98ybP73OCEvgJ9RE0FJfsB7gq1pYSS1RNbemeXv2r4tI-NbsnnphK4NE_-6ZZkv7hM0dws1vCm2AP-9YFu-EsLl7nUpPyS5YH6Nkbbjc6TNcl-KKzmYG9VCEde0WxXCNuCHrlh-AaC-eMGEfOqJ_Y-YPpkbNTCF8ysjQe0ny1b6s9Of_uf0MitHtymBND4HNMP_EUCwW6GNfssHw6HefGEl-C7S8GsT_1TaMCqufEuMrgl2MYYbnxKntqqQA0H6Vh9",
     rating: 4.7,
     reviewsCount: 104,
-    category: "Naija Fashion & Ankara",
+    category: "Fashion",
     vendorId: "v_yaba",
     vendorName: "Yaba Streetwear",
     sizes: ["Small", "Medium", "Large", "X-Large"],

@@ -9,10 +9,13 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Navbar from "./components/Navbar";
 import CustomerViews from "./components/CustomerViews";
 import MapTracking from "./components/MapTracking";
 import VendorAdmin from "./components/VendorAdmin";
+import VendorAuth from "./components/VendorAuth";
+import UserAuthHub from "./components/UserAuthHub";
 import PaystackCheckout from "./components/PaystackCheckout";
 import { Product, CartItem, Order, Vendor } from "./types";
 import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS } from "./data/mockData";
@@ -23,6 +26,7 @@ import { sendResendEmail, fetchEmailLogs, MailLogEntry } from "./emailService";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<string>("home");
+  const [vendorAuthenticated, setVendorAuthenticated] = useState<boolean>(false);
   const [selectedProductId, setSelectedProductId] = useState<string>("p1");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
@@ -47,6 +51,39 @@ export default function App() {
     loading: true
   });
   const [copiedSql, setCopiedSql] = useState<boolean>(false);
+
+  // Synchronize Supabase authentication state changes and roles
+  useEffect(() => {
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserEmail(session.user.email || "shopper@example.com");
+        const role = session.user.user_metadata?.role || "customer";
+        if (role === "vendor" || role === "admin") {
+          setVendorAuthenticated(true);
+        } else {
+          setVendorAuthenticated(false);
+        }
+      }
+    });
+
+    // Listen for auth level events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUserEmail(session.user.email || "shopper@example.com");
+        const role = session.user.user_metadata?.role || "customer";
+        if (role === "vendor" || role === "admin") {
+          setVendorAuthenticated(true);
+        } else {
+          setVendorAuthenticated(false);
+        }
+      } else {
+        setVendorAuthenticated(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Sync Supabase on initial render
   useEffect(() => {
@@ -117,6 +154,7 @@ export default function App() {
     });
   };
   const [searchFilter, setSearchFilter] = useState<string>("");
+  const shouldReduceMotion = useReducedMotion();
   const [userEmail, setUserEmail] = useState<string>("nigerian.developer@gmail.com");
   const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
@@ -405,127 +443,115 @@ export default function App() {
         onToggleDevConfig={() => setSettingsDrawerOpen(true)}
       />
 
-      {/* Main Container Workspace layout */}
+       {/* Main Container Workspace layout */}
       <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 transition-all">
-        
-        {/* Banner Alert for Interactive Map Navigation */}
-        {currentScreen === "home" && orders.some(o => o.status === "Processing" || o.status === "Shipped") && (
-          <div className="bg-orange-50 border border-orange-150 p-4 rounded-xl text-left flex items-center justify-between mb-6 shadow-xs animate-pulse">
-            <div className="flex items-center space-x-3 text-xs sm:text-sm font-semibold text-orange-800">
-              <span className="w-2.5 h-2.5 bg-orange-500 rounded-full animate-ping" />
-              <span>You have active shipments in transit! Track live delivery schedules on the geographical map tracker.</span>
-            </div>
-            <button
-              onClick={() => setCurrentScreen("map")}
-              className="text-xs bg-orange-550 text-white font-bold bg-orange-500 px-3.5 py-1.5 rounded-lg hover:bg-orange-600 transition-colors"
-            >
-              Trace Shipments
-            </button>
-          </div>
-        )}
 
-        <div className="fade-in">
+        <AnimatePresence mode="wait">
           {/* Customer views coordination */}
           {(currentScreen === "home" ||
             currentScreen === "shop" ||
             currentScreen === "details" ||
             currentScreen === "cart") && (
-            <CustomerViews
-              screen={currentScreen as any}
-              onNavigate={(s) => setCurrentScreen(s)}
-              selectedProductId={selectedProductId}
-              onSelectProduct={(id) => setSelectedProductId(id)}
-              cart={cart}
-              onAddToCart={handleAddToCart}
-              onUpdateCartQty={handleUpdateCartQty}
-              onRemoveFromCart={handleRemoveFromCart}
-              onCheckout={handleCheckoutTrigger}
-              searchFilter={searchFilter}
-              vendors={vendors}
-              onRateVendor={handleRateVendor}
-            />
+            <motion.div
+              key="customer-views-block"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <CustomerViews
+                screen={currentScreen as any}
+                onNavigate={(s) => setCurrentScreen(s)}
+                selectedProductId={selectedProductId}
+                onSelectProduct={(id) => setSelectedProductId(id)}
+                cart={cart}
+                onAddToCart={handleAddToCart}
+                onUpdateCartQty={handleUpdateCartQty}
+                onRemoveFromCart={handleRemoveFromCart}
+                onCheckout={handleCheckoutTrigger}
+                searchFilter={searchFilter}
+                vendors={vendors}
+                onRateVendor={handleRateVendor}
+              />
+            </motion.div>
           )}
 
           {/* Integrated Nigeria Map tracker Screen */}
           {currentScreen === "map" && (
-            <MapTracking
-              orders={orders}
-              onUpdateOrderProgress={handleUpdateOrderProgress}
-            />
+            <motion.div
+              key="map-tracker-view"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <MapTracking
+                orders={orders}
+                onUpdateOrderProgress={handleUpdateOrderProgress}
+              />
+            </motion.div>
           )}
 
-          {/* Admin Platform / Merchant Screens */}
-          {currentScreen === "admin" && (
-            <VendorAdmin
-              orders={orders}
-              products={products}
-              vendors={vendors}
-              onReviewOrderFlag={handleReviewOrderFlag}
-              onAddNewProduct={handleAddNewProduct}
-              
-              // Email Automation Props
-              mailLogs={mailLogs}
-              onSendTestEmail={handleSendTestEmail}
-              autoSendEmails={autoSendEmails}
-              onToggleAutoSend={() => setAutoSendEmails(!autoSendEmails)}
-              onRefreshMailLogs={updateMailLogs}
-              userEmail={userEmail}
-            />
+          {/* Admin Platform / Merchant Screens - Authentication */}
+          {currentScreen === "admin" && !vendorAuthenticated && (
+            <motion.div
+              key="vendor-auth-view"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <VendorAuth 
+                onLoginSuccess={() => setVendorAuthenticated(true)} 
+                onNavigateHome={() => setCurrentScreen("home")}
+              />
+            </motion.div>
+          )}
+
+          {/* Admin Platform / Merchant Screens - Dashboard */}
+          {currentScreen === "admin" && vendorAuthenticated && (
+            <motion.div
+              key="vendor-admin-view"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <VendorAdmin
+                orders={orders}
+                products={products}
+                vendors={vendors}
+                onReviewOrderFlag={handleReviewOrderFlag}
+                onAddNewProduct={handleAddNewProduct}
+                
+                // Email Automation Props
+                mailLogs={mailLogs}
+                onSendTestEmail={handleSendTestEmail}
+                autoSendEmails={autoSendEmails}
+                onToggleAutoSend={() => setAutoSendEmails(!autoSendEmails)}
+                onRefreshMailLogs={updateMailLogs}
+                userEmail={userEmail}
+              />
+            </motion.div>
           )}
 
           {/* Shopper Account Verification Form */}
           {currentScreen === "auth" && (
-            <div className="max-w-md mx-auto bg-white rounded-2xl border border-neutral-200 shadow-premium p-8 text-left space-y-6">
-              <div className="text-center space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xl mx-auto">₦</div>
-                <h2 className="text-xl font-black text-neutral-900 tracking-tight">Shopper Verification Hub</h2>
-                <p className="text-xs text-neutral-400">Specify credentials to synchronize Paystack settlement databases</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Shopper Email</label>
-                  <div className="relative">
-                    <input
-                      type="email"
-                      value={userEmail}
-                      onChange={(e) => setUserEmail(e.target.value)}
-                      placeholder="e.g. shopper@naija.com"
-                      className="w-full px-4 py-3 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-neutral-700 bg-white"
-                      id="shopper-email-input"
-                    />
-                    <Mail className="w-4 h-4 text-neutral-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Escrow Location State</label>
-                  <select
-                    className="w-full px-4 py-3 text-xs border border-neutral-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-orange-500 font-bold"
-                  >
-                    <option>Lagos Mainland, Lagos</option>
-                    <option>Lekki Phase 1, Lagos</option>
-                    <option>Maitama, Abuja (FCT)</option>
-                    <option>Wuse II, Abuja (FCT)</option>
-                    <option>GRA, Port Harcourt (Rivers)</option>
-                    <option>Kano City, Kano</option>
-                  </select>
-                </div>
-
-                <button
-                  onClick={() => {
-                    triggerToast(`Synchronized profile as ${userEmail}.`);
-                    setCurrentScreen("home");
-                  }}
-                  className="w-full py-3 bg-orange-500 hover:bg-orange-600 font-bold text-xs tracking-wider uppercase text-white rounded-xl shadow-xs transition-colors"
-                  id="auth-submit"
-                >
-                  Confirm Escrow Session
-                </button>
-              </div>
-            </div>
+            <motion.div
+              key="shopper-auth-view"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <UserAuthHub
+                currentEmail={userEmail}
+                onNavigateHome={() => setCurrentScreen("home")}
+                onUpdateEmail={(email) => setUserEmail(email)}
+              />
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
 
       </main>
 
@@ -539,20 +565,33 @@ export default function App() {
       />
 
       {/* Stylized custom Settings drawer/overlay */}
-      {settingsDrawerOpen && (
-        <div className="fixed inset-0 z-100 flex justify-end">
-          <div className="absolute inset-0 bg-neutral-900/40 backdrop-blur-xs" onClick={() => setSettingsDrawerOpen(false)} />
-          <div className="relative w-80 sm:w-96 bg-white shadow-premium p-6 flex flex-col justify-between border-l border-neutral-200 h-full font-sans text-neutral-800 text-left overflow-y-auto">
-            <div className="space-y-6">
-              <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
-                <div className="flex items-center space-x-2">
-                  <Settings2 className="w-5 h-5 text-orange-500" />
-                  <span className="font-extrabold text-neutral-900 leading-none">Simulation Settings</span>
+      <AnimatePresence>
+        {settingsDrawerOpen && (
+          <div className="fixed inset-0 z-100 flex justify-end">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-neutral-900/40 backdrop-blur-xs"
+              onClick={() => setSettingsDrawerOpen(false)}
+            />
+            <motion.div
+              initial={shouldReduceMotion ? { opacity: 0 } : { x: "100%" }}
+              animate={shouldReduceMotion ? { opacity: 1 } : { x: 0 }}
+              exit={shouldReduceMotion ? { opacity: 0 } : { x: "100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 220 }}
+              className="relative w-80 sm:w-96 bg-white shadow-premium p-6 flex flex-col justify-between border-l border-neutral-200 h-full font-sans text-neutral-800 text-left overflow-y-auto"
+            >
+              <div className="space-y-6">
+                <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
+                  <div className="flex items-center space-x-2">
+                    <Settings2 className="w-5 h-5 text-orange-500" />
+                    <span className="font-extrabold text-neutral-900 leading-none">Simulation Settings</span>
+                  </div>
+                  <button onClick={() => setSettingsDrawerOpen(false)} className="p-1 rounded-full hover:bg-neutral-100">
+                    <X className="w-4 h-4 text-neutral-400" />
+                  </button>
                 </div>
-                <button onClick={() => setSettingsDrawerOpen(false)} className="p-1 rounded-full hover:bg-neutral-100">
-                  <X className="w-4 h-4 text-neutral-400" />
-                </button>
-              </div>
 
               {/* Settings content block */}
               <div className="space-y-4 text-xs">
@@ -717,26 +756,48 @@ export default function App() {
               <ShieldAlert className="w-4 h-4" />
               <span className="font-bold uppercase tracking-widest">NaijaStores System Admin Suite</span>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+    </AnimatePresence>
 
       {/* Toaster element */}
-      {toaster.show && (
-        <div className="fixed bottom-6 right-6 z-100 max-w-sm">
-          <div className={`p-4 rounded-xl shadow-premium border flex items-start space-x-3 text-xs leading-normal font-semibold text-left transition-all duration-300 animate-slide-in ${
-            toaster.type === "success"
-              ? "bg-emerald-950 border-emerald-800 text-white"
-              : "bg-neutral-900 border-neutral-800 text-neutral-200"
-          }`}>
-            <Info className={`w-4 h-4 mt-0.5 flex-shrink-0 ${toaster.type === "success" ? "text-orange-400" : "text-neutral-400"}`} />
-            <div>
-              <p className="font-bold uppercase tracking-widest text-[9px] mb-0.5 text-neutral-400">Notification Link</p>
-              <p className="text-sm font-medium">{toaster.msg}</p>
+      <AnimatePresence>
+        {toaster.show && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.9, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: 20, scale: 0.95, filter: "blur(4px)" }}
+            transition={{ type: "spring", stiffness: 380, damping: 26 }}
+            className="fixed bottom-6 right-6 z-100 max-w-sm"
+          >
+            <div className={`p-4 rounded-2xl shadow-ambient border flex items-start space-x-3.5 text-xs leading-normal font-semibold text-left transition-colors duration-300 ${
+              toaster.type === "success"
+                ? "bg-emerald-950/95 backdrop-blur-md border-emerald-800 text-white"
+                : "bg-neutral-900/95 backdrop-blur-md border-neutral-800 text-neutral-200"
+            }`}>
+              <div className="flex-shrink-0 mt-0.5 relative">
+                {toaster.type === "success" ? (
+                  <>
+                    <motion.div
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute inset-0 bg-emerald-550/20 rounded-full"
+                    />
+                    <CheckCircle className="w-5 h-5 text-emerald-400 relative z-10" />
+                  </>
+                ) : (
+                  <Info className="w-5 h-5 text-amber-400" />
+                )}
+              </div>
+              <div>
+                <p className="font-extrabold uppercase tracking-wider text-[9px] text-neutral-400">NaijaStores System Alert</p>
+                <p className="text-sm font-medium mt-0.5 leading-snug">{toaster.msg}</p>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Custom Global Footer */}
       <footer className="bg-emerald-950 text-white/50 py-8 border-t border-emerald-900 text-center text-xs select-none mt-auto">
