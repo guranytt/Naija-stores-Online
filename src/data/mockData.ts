@@ -11,7 +11,6 @@ export const NIGERIAN_CITIES = [
   { name: "Abuja", x: 380, y: 320, labelPos: "top" },
   { name: "Kano", x: 440, y: 140, labelPos: "top" },
   { name: "Port Harcourt", x: 300, y: 520, labelPos: "bottom" },
-  { name: "Enugu", x: 340, y: 420, labelPos: "right" },
   { name: "Ilorin", x: 210, y: 360, labelPos: "left" },
   { name: "Kaduna", x: 390, y: 230, labelPos: "left" },
   { name: "Maiduguri", x: 680, y: 130, labelPos: "right" },

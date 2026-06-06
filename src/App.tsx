@@ -17,7 +17,9 @@ import PaystackCheckout from "./components/PaystackCheckout";
 import { Product, CartItem, Order, Vendor } from "./types";
 import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS } from "./data/mockData";
 import { formatNaira } from "./components/CustomerViews";
-import { Info, Settings2, Sparkles, X, Mail, ShieldAlert } from "lucide-react";
+import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText } from "lucide-react";
+import { supabase, getSupabaseData, saveSupabaseRecord, PROVISION_SQL_SCRIPT } from "./supabase";
+import { sendResendEmail, fetchEmailLogs, MailLogEntry } from "./emailService";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<string>("home");
@@ -27,29 +29,147 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
 
+  // Supabase Sync States
+  const [dbSyncStatus, setDbSyncStatus] = useState<{
+    connected: boolean;
+    syncedTables: string[];
+    vendorsSynced: boolean;
+    productsSynced: boolean;
+    ordersSynced: boolean;
+    loading: boolean;
+    error?: string;
+  }>({
+    connected: false,
+    syncedTables: [],
+    vendorsSynced: false,
+    productsSynced: false,
+    ordersSynced: false,
+    loading: true
+  });
+  const [copiedSql, setCopiedSql] = useState<boolean>(false);
+
+  // Sync Supabase on initial render
+  useEffect(() => {
+    async function initSupabase() {
+      try {
+        // Load Vendors
+        const { data: dbVendors, synced: vSynced, error: vError } = await getSupabaseData<Vendor>("vendors", MOCK_VENDORS);
+        if (dbVendors) setVendors(dbVendors);
+
+        // Load Products
+        const { data: dbProducts, synced: pSynced, error: pError } = await getSupabaseData<Product>("products", MOCK_PRODUCTS);
+        if (dbProducts) setProducts(dbProducts);
+
+        // Load Orders
+        const { data: dbOrders, synced: oSynced, error: oError } = await getSupabaseData<Order>("orders", MOCK_ORDERS);
+        if (dbOrders) setOrders(dbOrders);
+
+        const syncedList: string[] = [];
+        if (vSynced) syncedList.push("vendors");
+        if (pSynced) syncedList.push("products");
+        if (oSynced) syncedList.push("orders");
+
+        setDbSyncStatus({
+          connected: syncedList.length > 0,
+          syncedTables: syncedList,
+          vendorsSynced: vSynced,
+          productsSynced: pSynced,
+          ordersSynced: oSynced,
+          loading: false,
+          error: vError || pError || oError
+        });
+
+        if (syncedList.length > 0) {
+          triggerToast(`Successfully connected to Supabase! Synced: ${syncedList.join(", ")}`, "success");
+        } else {
+          console.log("Supabase: Operating in optimized local fallback simulation.");
+        }
+      } catch (err: any) {
+        setDbSyncStatus(prev => ({ ...prev, loading: false, error: err.message }));
+      }
+    }
+    initSupabase();
+  }, []);
+
   const handleRateVendor = (vendorId: string, starRating: number) => {
-    setVendors(prevVendors =>
-      prevVendors.map(v => {
+    setVendors(prevVendors => {
+      const updated = prevVendors.map(v => {
         if (v.id === vendorId) {
           const currentCount = v.ratingCount || 10;
           const newCount = currentCount + 1;
           const newRating = Number(((v.rating * currentCount + starRating) / newCount).toFixed(1));
           triggerToast(`Thank you! Rated ${v.name} with ${starRating} Stars. Average is now ${newRating}.`, "success");
-          return {
+          
+          const updatedVendor = {
             ...v,
             rating: newRating,
             ratingCount: newCount
           };
+          
+          // Parallel background execution to save updated performance metrics directly to Supabase sandbox
+          saveSupabaseRecord("vendors", updatedVendor);
+          
+          return updatedVendor;
         }
         return v;
-      })
-    );
+      });
+      return updated;
+    });
   };
   const [searchFilter, setSearchFilter] = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("nigerian.developer@gmail.com");
   const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState<boolean>(false);
+
+  // Resend Automation states
+  const [mailLogs, setMailLogs] = useState<MailLogEntry[]>([]);
+  const [autoSendEmails, setAutoSendEmails] = useState<boolean>(true);
+
+  const updateMailLogs = async () => {
+    const logs = await fetchEmailLogs();
+    setMailLogs(logs);
+  };
+
+  // Poll server mail logs every 4 seconds to keep dashboard in perfect synchronization
+  useEffect(() => {
+    updateMailLogs();
+    const interval = setInterval(updateMailLogs, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Direct dispatcher trigger mapper for manual testers
+  const handleSendTestEmail = async (to: string, type: "payment_confirmation" | "delivery_confirmation" | "status_change" | "flagged", orderId: string) => {
+    const matchingOrder = orders.find(o => o.id === orderId) || orders[0];
+    const payload = {
+      to,
+      type,
+      data: {
+        orderId: matchingOrder?.id || orderId,
+        customerName: to.split("@")[0].toUpperCase() || "Shopper",
+        amount: matchingOrder?.value || 145000,
+        itemsCount: matchingOrder?.itemsCount || 1,
+        date: matchingOrder?.date || new Date().toISOString().split("T")[0],
+        currentCity: matchingOrder?.currentCity || "Lagos",
+        items: [
+          { name: "Raw Unrefined Shea Butter", qty: 2, price: 14500 },
+          { name: "Eko Calfskin slides", qty: 1, price: 32000 }
+        ],
+        actionUrl: window.location.origin,
+        alertReason: "Standard compliance check has triggered validation verification holds on the escrow network."
+      }
+    };
+    const response = await sendResendEmail(payload);
+    if (response.success) {
+      triggerToast(response.unconfigured 
+        ? "Simulated dispatch created in local logs successfully!" 
+        : "Live inbox dispatch triggered successfully via Resend API!", "success");
+    } else {
+      triggerToast(`Failing dispatch sequence: ${response.error || "Check logs"}`, "info");
+    }
+    updateMailLogs();
+    return response;
+  };
 
   // Success message toaster helper
   const [toaster, setToaster] = useState<{ show: boolean; msg: string; type: "success" | "info" }>({
@@ -146,9 +266,43 @@ export default function App() {
       currentCity: startState
     };
 
+    const emailItems = cart.map((item) => ({
+      name: item.product.title,
+      qty: item.quantity,
+      price: item.product.price
+    }));
+
     setOrders([newOrder, ...orders]);
     setCart([]); // Clear cart
+    
+    // Persist new order in Supabase table
+    saveSupabaseRecord("orders", newOrder);
+    
     triggerToast("Security Code 200: Transaction reconciled. Shipments logged successfully!");
+
+    // Automatically trigger Resend payment confirmation emails
+    if (autoSendEmails) {
+      sendResendEmail({
+        to: userEmail,
+        type: "payment_confirmation",
+        data: {
+          orderId: newOrder.id,
+          customerName: newOrder.customerName,
+          amount: newOrder.value,
+          itemsCount: newOrder.itemsCount,
+          date: newOrder.date,
+          items: emailItems,
+          actionUrl: window.location.origin
+        }
+      }).then((res) => {
+        if (res.success) {
+          triggerToast(res.unconfigured 
+            ? "Payment receipt simulation logged successfully." 
+            : `Resend Inbox Dispatch success for order ${newOrder.id}!`, "success");
+        }
+        updateMailLogs();
+      });
+    }
     
     // Automatically redirect to the interactive map dashboard so they can track it live
     setCurrentScreen("map");
@@ -157,9 +311,42 @@ export default function App() {
   // Admin order flag modifier
   const handleReviewOrderFlag = (orderId: string, status: Order["status"]) => {
     setOrders(
-      orders.map((o) =>
-        o.id === orderId ? { ...o, status, deliveryProgress: status === "Delivered" ? 100 : o.deliveryProgress } : o
-      )
+      orders.map((o) => {
+        if (o.id === orderId) {
+          const updated = { ...o, status, deliveryProgress: status === "Delivered" ? 100 : o.deliveryProgress };
+          
+          // Persist status modify in Supabase table
+          saveSupabaseRecord("orders", updated);
+
+          // Automatically trigger Resend automatic transactional emails
+          if (autoSendEmails) {
+            let emailType: "status_change" | "delivery_confirmation" | "flagged" = "status_change";
+            if (status === "Shipped" || status === "Delivered") {
+              emailType = "delivery_confirmation";
+            } else if (status === "Flagged") {
+              emailType = "flagged";
+            }
+            
+            sendResendEmail({
+              to: userEmail,
+              type: emailType,
+              data: {
+                orderId: updated.id,
+                customerName: updated.customerName,
+                oldStatus: o.status,
+                newStatus: status,
+                currentCity: updated.currentCity,
+                amount: updated.value
+              }
+            }).then(() => {
+              updateMailLogs();
+            });
+          }
+          
+          return updated;
+        }
+        return o;
+      })
     );
     triggerToast(`Order ${orderId} administrative status modified to ${status}.`);
   };
@@ -175,12 +362,17 @@ export default function App() {
       orders.map((o) => {
         if (o.id === orderId) {
           const updatedStatus = status || o.status;
-          return {
+          const updated = {
             ...o,
             deliveryProgress: progress,
             currentCity,
             status: updatedStatus
           };
+          
+          // Update tracker progress into Supabase table in background
+          saveSupabaseRecord("orders", updated);
+          
+          return updated;
         }
         return o;
       })
@@ -190,6 +382,10 @@ export default function App() {
   // Creator for newly published merchant items
   const handleAddNewProduct = (prod: Product) => {
     setProducts([prod, ...products]);
+    
+    // Push new product into Supabase table
+    saveSupabaseRecord("products", prod);
+    
     triggerToast(`Successfully published ${prod.title} to NaijaStores Catalog.`, "success");
   };
 
@@ -266,6 +462,14 @@ export default function App() {
               vendors={vendors}
               onReviewOrderFlag={handleReviewOrderFlag}
               onAddNewProduct={handleAddNewProduct}
+              
+              // Email Automation Props
+              mailLogs={mailLogs}
+              onSendTestEmail={handleSendTestEmail}
+              autoSendEmails={autoSendEmails}
+              onToggleAutoSend={() => setAutoSendEmails(!autoSendEmails)}
+              onRefreshMailLogs={updateMailLogs}
+              userEmail={userEmail}
             />
           )}
 
@@ -338,7 +542,7 @@ export default function App() {
       {settingsDrawerOpen && (
         <div className="fixed inset-0 z-100 flex justify-end">
           <div className="absolute inset-0 bg-neutral-900/40 backdrop-blur-xs" onClick={() => setSettingsDrawerOpen(false)} />
-          <div className="relative w-80 sm:w-96 bg-white shadow-premium p-6 flex flex-col justify-between border-l border-neutral-200 h-full font-sans text-neutral-800 text-left">
+          <div className="relative w-80 sm:w-96 bg-white shadow-premium p-6 flex flex-col justify-between border-l border-neutral-200 h-full font-sans text-neutral-800 text-left overflow-y-auto">
             <div className="space-y-6">
               <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
                 <div className="flex items-center space-x-2">
@@ -352,6 +556,117 @@ export default function App() {
 
               {/* Settings content block */}
               <div className="space-y-4 text-xs">
+                {/* Supabase Status Panel */}
+                <div className="p-4 bg-orange-50/70 border border-orange-100 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-orange-950 flex items-center space-x-1.5">
+                      <Database className="w-4 h-4 text-orange-500" />
+                      <span>Supabase Live Sync</span>
+                    </p>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                      dbSyncStatus.connected 
+                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200" 
+                        : "bg-amber-100 text-amber-800 border border-amber-200"
+                    }`}>
+                      {dbSyncStatus.connected ? "Connected" : "Simulated"}
+                    </span>
+                  </div>
+
+                  <p className="text-neutral-600 text-[11px] leading-relaxed">
+                    {dbSyncStatus.connected 
+                      ? "Real-time read/write states are synchronized to your live Supabase cloud database instance successfully."
+                      : "Operating in client-side high-fidelity fallback because tables aren't yet provisioned in the remote database."}
+                  </p>
+
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Database Schema Status</p>
+                    <div className="grid grid-cols-3 gap-1.5 text-center">
+                      <div className={`p-1.5 rounded-lg border text-[9px] font-bold ${
+                        dbSyncStatus.vendorsSynced 
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                          : "bg-neutral-50 text-neutral-400 border-neutral-200"
+                      }`}>
+                        vendors
+                      </div>
+                      <div className={`p-1.5 rounded-lg border text-[9px] font-bold ${
+                        dbSyncStatus.productsSynced 
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                          : "bg-neutral-50 text-neutral-400 border-neutral-200"
+                      }`}>
+                        products
+                      </div>
+                      <div className={`p-1.5 rounded-lg border text-[9px] font-bold ${
+                        dbSyncStatus.ordersSynced 
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                          : "bg-neutral-50 text-neutral-400 border-neutral-200"
+                      }`}>
+                        orders
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SQL Schema provisioner help block */}
+                  <div className="pt-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(PROVISION_SQL_SCRIPT);
+                        setCopiedSql(true);
+                        triggerToast("Supabase SQL queries copied to clipboard!");
+                        setTimeout(() => setCopiedSql(false), 2000);
+                      }}
+                      className="w-full py-2 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 font-bold rounded-xl flex items-center justify-center space-x-1.5 transition-colors shadow-2xs"
+                    >
+                      <Copy className="w-3 h-3 text-neutral-500" />
+                      <span>{copiedSql ? "Queries Copied!" : "Copy SQL Database Script"}</span>
+                    </button>
+                    <p className="text-[9px] text-neutral-400 mt-1 pl-1 leading-normal">
+                      Paste this code into the Supabase SQL Editor to spawn tables automatically!
+                    </p>
+                  </div>
+                </div>
+
+                {/* Resend Email Configuration Card */}
+                <div className="p-4 bg-orange-50/70 border border-orange-100 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-orange-950 flex items-center space-x-1.5">
+                      <Mail className="w-4 h-4 text-orange-550 text-orange-500" />
+                      <span>Resend Email Gateway</span>
+                    </p>
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9px] font-extrabold uppercase tracking-wider font-mono">
+                      Active
+                    </span>
+                  </div>
+
+                  <p className="text-neutral-600 text-[11px] leading-relaxed">
+                    Real-time transactional receipts and log files are handled securely via our fullstack Resend dispatch middleware.
+                  </p>
+
+                  <div className="flex items-center justify-between bg-white border border-neutral-150 p-2.5 rounded-xl">
+                    <span className="text-[10px] font-extrabold uppercase text-neutral-400">Trigger Actions</span>
+                    <button
+                      onClick={() => {
+                        setAutoSendEmails(!autoSendEmails);
+                        triggerToast(`Email automatic sending ${!autoSendEmails ? "enabled" : "disabled"}.`);
+                      }}
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md transition-colors ${
+                        autoSendEmails ? "bg-orange-500 text-white" : "bg-neutral-200 text-neutral-600"
+                      }`}
+                    >
+                      {autoSendEmails ? "Auto Firing" : "Manual Only"}
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setCurrentScreen("admin");
+                      setSettingsDrawerOpen(false);
+                    }}
+                    className="w-full py-2 bg-neutral-950 hover:bg-neutral-800 text-white font-extrabold rounded-xl text-center text-[10px] uppercase tracking-wider block border border-neutral-800"
+                  >
+                    Configure Mail Hub ↗
+                  </button>
+                </div>
+
                 <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
                   <p className="font-bold text-emerald-950 flex items-center space-x-1">
                     <Sparkles className="w-4 h-4 text-orange-400" />
@@ -398,7 +713,7 @@ export default function App() {
             </div>
 
             {/* Footer lock inside setup slider */}
-            <div className="p-3 bg-neutral-50 border border-neutral-100 rounded-xl flex items-center space-x-2 text-[10px] text-neutral-400 justify-center">
+            <div className="p-3 bg-neutral-50 border border-neutral-100 rounded-xl flex items-center space-x-2 text-[10px] text-neutral-400 justify-center mt-6">
               <ShieldAlert className="w-4 h-4" />
               <span className="font-bold uppercase tracking-widest">NaijaStores System Admin Suite</span>
             </div>
