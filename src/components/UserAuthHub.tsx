@@ -160,7 +160,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
           redirectTo: window.location.origin
         });
         if (error) throw error;
-        setFeedback({ type: "success", msg: "Password recovery link dispatched successfully via escrow mail servers." });
+        setFeedback({ type: "success", msg: "Password recovery link dispatched successfully via our verified mail servers." });
       }
     } catch (err: any) {
       setFeedback({ type: "error", msg: err.message || "Auth processing error" });
@@ -417,7 +417,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                 {authMode === "forgot" && "Recover Security Credentials"}
               </h2>
               <p className="text-xs text-neutral-400">
-                {authMode === "login" && "Specify email and password to securely authorize Paystack escrow clearances"}
+                {authMode === "login" && "Specify email and password to securely authorize your Paystack merchant checkout"}
                 {authMode === "register" && "Join millions of shoppers and vendors across Lagos and all of Nigeria."}
                 {authMode === "forgot" && "Input registering email. A recovery security hash will be compiled."}
               </p>
@@ -553,7 +553,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
               >
                 {isLoading && <RefreshCw className="w-4 h-4 animate-spin mr-1.5" />}
                 <span>
-                  {authMode === "login" && "Authorize Escrow Session"}
+                  {authMode === "login" && "Authorize Secure Session"}
                   {authMode === "register" && "Complete Sign Up Ledger"}
                   {authMode === "forgot" && "Dispatch Recovery Mail"}
                 </span>

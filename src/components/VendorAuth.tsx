@@ -232,7 +232,7 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
           <div className="pt-6 border-t border-neutral-100 flex flex-col gap-3">
              <div className="flex items-center gap-3 text-xs text-neutral-500 font-medium">
                <ShieldCheck className="w-4 h-4 text-orange-500 flex-shrink-0" />
-               <span className="leading-tight">Bank-grade security and escrow protection for all transactions.</span>
+               <span className="leading-tight">Bank-grade security and direct payout facilitation for all transactions.</span>
              </div>
              <div className="flex items-center gap-3 text-xs text-neutral-500 font-medium">
                <TrendingUp className="w-4 h-4 text-emerald-500 flex-shrink-0" />

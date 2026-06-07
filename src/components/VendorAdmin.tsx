@@ -10,6 +10,8 @@ import { MOCK_VENDORS, MOCK_ORDERS, MOCK_TEAM_MEMBERS, MOCK_PRODUCTS } from "../
 import { formatNaira } from "./CustomerViews";
 import { uploadToCloudinary, convertFileToBase64 } from "../cloudinaryService";
 import SalesAnalyticsDashboard from "./SalesAnalyticsDashboard";
+import { sendVendorApproval } from "../emailService";
+
 
 interface VendorAdminProps {
   orders: Order[];
@@ -41,12 +43,30 @@ export default function VendorAdmin({
   userEmail = "nigerian.developer@gmail.com"
 }: VendorAdminProps) {
   const [adminTab, setAdminTab] = useState<"vendor" | "dashboard" | "platform" | "emails">("vendor");
+  const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
+
+  const handleSendVendorApprovalEmail = async (email: string, businessName: string) => {
+    setApprovalFeedback(null);
+    try {
+      const response = await sendVendorApproval(email, businessName);
+      if (response && response.success) {
+        setApprovalFeedback(`🎉 Vendor approval email dispatched to ${email}! Status: ${response.status}`);
+        setTimeout(() => setApprovalFeedback(null), 5000);
+      } else {
+        setApprovalFeedback(`❌ Failed: ${response?.error || 'Unknown transport issue'}`);
+      }
+    } catch (err: any) {
+      setApprovalFeedback(`❌ Error: ${err.message || 'Verification failure'}`);
+    }
+    onRefreshMailLogs?.();
+  };
+
   
   // States for adding a customized new product
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newPrice, setNewPrice] = useState("");
-  const [newCategory, setNewCategory] = useState("fashion");
+  const [newCategory, setNewCategory] = useState("Fashion");
   const [newStock, setNewStock] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newImage, setNewImage] = useState("");
@@ -103,7 +123,7 @@ export default function VendorAdmin({
         description: newDesc || "High-quality item customized for Nigerian markets.",
         price: Number(newPrice),
         stock: Number(newStock),
-        category: newCategory === "fashion" ? "Naija Fashion & Ankara" : "Naija Tech Hub",
+        category: newCategory,
         image: newImage || "https://lh3.googleusercontent.com/aida-public/AB6AXuBXHHRDhnfXAPzOsfwJAJsaalg4cWfRii5vBleuGOxKrptM-qmw3JgFBhmDSeXClxBlfi3YbQJiQs13dl3CJxFMTrEsoeKAI1JkXEckU88mcDf64zuwrUdWJW8NNuhXEbmbimeAKXSCpzoTENrA7IaXi3jzD_WCPb-on3IiWMAikNItCyKkPDuCIxGIIFS30rf-qvm-aGDzOiKqproxCid4Yu_VB_ycleJTW0iXWyz1WZUzAk_v-gZdvKW2YKJet89-kA4ee4AC0u9d",
         vendorId: activeVendor.id,
         vendorName: activeVendor.name,
@@ -391,8 +411,12 @@ export default function VendorAdmin({
                       onChange={(e) => setNewCategory(e.target.value)}
                       className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-bold text-neutral-700"
                     >
-                      <option value="fashion">Naija Fashion & Ankara</option>
-                      <option value="electronics">Naija Tech Hub</option>
+                      <option value="Fashion">Fashion</option>
+                      <option value="Electronics">Electronics</option>
+                      <option value="Home and Kitchen">Home and Kitchen</option>
+                      <option value="Beauty">Beauty</option>
+                      <option value="Sports">Sports</option>
+                      <option value="Grocery">Grocery</option>
                     </select>
                   </div>
 
@@ -574,7 +598,7 @@ export default function VendorAdmin({
           {/* Orders log database table list with actions */}
           <div className="bg-white border border-neutral-200 rounded-2xl shadow-xs overflow-hidden">
             <div className="px-6 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/55 select-none">
-              <p className="font-extrabold text-sm text-neutral-800 tracking-tight">Recent Escrow Order Dispatches</p>
+              <p className="font-extrabold text-sm text-neutral-800 tracking-tight">Recent Direct Order Dispatches</p>
               <span className="text-[10px] bg-neutral-200 font-bold text-neutral-600 px-2 py-1 rounded">Telemetry database Logs</span>
             </div>
 
@@ -586,7 +610,7 @@ export default function VendorAdmin({
                     <th className="px-6 py-3.5">Shopper Name</th>
                     <th className="px-6 py-3.5">Status Check</th>
                     <th className="px-6 py-3.5">Naira value</th>
-                    <th className="px-6 py-3.5 text-right">Route Escrow Action</th>
+                    <th className="px-6 py-3.5 text-right font-bold">Order Audit Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100 font-medium">
@@ -639,9 +663,17 @@ export default function VendorAdmin({
           {/* Active Vendor Reputation Ledger Section */}
           <div className="bg-white border border-neutral-200 rounded-2xl shadow-xs overflow-hidden">
             <div className="px-6 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/55 select-none animate-fade-in">
-              <p className="font-extrabold text-sm text-neutral-800 tracking-tight">Active Vendor Trust Indexes & Escrow Dispatches</p>
+              <p className="font-extrabold text-sm text-neutral-800 tracking-tight">Active Vendor Trust Indexes & Completed Dispatches</p>
               <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 font-bold px-2.5 py-1 rounded">Dynamic Star Rating Averages</span>
             </div>
+
+            {/* Live Email Approval Toast */}
+            {approvalFeedback && (
+              <div className="px-6 py-3 bg-emerald-50 border-b border-emerald-100 text-xs text-emerald-800 font-semibold animate-fade-in flex items-center justify-between">
+                <span>{approvalFeedback}</span>
+                <button onClick={() => setApprovalFeedback(null)} className="text-emerald-550 hover:text-emerald-800 font-bold">dismiss</button>
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
@@ -651,7 +683,8 @@ export default function VendorAdmin({
                     <th className="px-6 py-3.5">Managing Partner</th>
                     <th className="px-6 py-3.5">Operational Center</th>
                     <th className="px-6 py-3.5">Feedback Weight</th>
-                    <th className="px-6 py-3.5 text-right">Reputation Index</th>
+                    <th className="px-6 py-3.5">Reputation Index</th>
+                    <th className="px-6 py-3.5 text-right">Approval Alerts</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100 font-medium">
@@ -671,8 +704,8 @@ export default function VendorAdmin({
                       <td className="px-6 py-4 text-neutral-700">{v.ownerName}</td>
                       <td className="px-6 py-4 text-neutral-500">{v.location}</td>
                       <td className="px-6 py-4 text-neutral-450">{v.ratingCount || 10} verified submissions</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end space-x-2">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
                           <span className="font-extrabold text-sm text-amber-600 font-mono">{v.rating.toFixed(1)} ★</span>
                           <div className="flex">
                             {[1, 2, 3, 4, 5].map((s) => (
@@ -687,6 +720,15 @@ export default function VendorAdmin({
                             ))}
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => handleSendVendorApprovalEmail(v.email, v.name)}
+                          className="font-sans px-2 py-1 bg-orange-50 hover:bg-orange-100 text-orange-600 hover:text-orange-700 font-bold text-[10px] rounded-lg border border-orange-200 transition-colors inline-flex items-center space-x-1"
+                        >
+                          <Mail className="w-3 h-3" />
+                          <span>Approve &amp; Send email</span>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -823,7 +865,7 @@ function EmailAutomationTabContent({
                 </span>
               </h3>
               <p className="text-[11px] text-neutral-450 mt-0.5">
-                Transactional messaging framework synced to local sales checkouts and Escrow modifications.
+                Transactional messaging framework synced to local sales checkouts and direct dispatcher operations.
               </p>
             </div>
           </div>
@@ -891,10 +933,10 @@ function EmailAutomationTabContent({
                   onChange={(e: any) => setTestMailType(e.target.value)}
                   className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 font-bold text-neutral-700"
                 >
-                  <option value="payment_confirmation">Invoice Paid &amp; Checked Out (Escrow Receipt)</option>
+                  <option value="payment_confirmation">Invoice Paid &amp; Checked Out (Direct Receipt)</option>
                   <option value="delivery_confirmation">🚚 Out for Dispatch (Shipping Map Update)</option>
                   <option value="status_change">System Notification (Status Modified)</option>
-                  <option value="flagged">⚠️ Security Risk Alert (Compliance Escrow Hold)</option>
+                  <option value="flagged">⚠️ Security Risk Alert (Compliance Review Hold)</option>
                 </select>
               </div>
 
@@ -956,11 +998,11 @@ function EmailAutomationTabContent({
               <HelpCircle className="w-4 h-4 text-orange-500" />
               <span>Fullstack Automation System Guide</span>
             </h3>
-            <span className="text-[10px] font-extrabold uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">Escrow Certified</span>
+            <span className="text-[10px] font-extrabold uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">Direct Delivery</span>
           </div>
 
           <p className="text-xs text-neutral-500 leading-normal">
-            NaijaStores incorporates high fidelity server-side email dispatch automation with <strong className="text-neutral-800">Resend</strong>. All dispatches keep your microcredentials perfectly encrypted and protected in backend node processes.
+            Naija Online Stores incorporates high fidelity server-side email dispatch automation with <strong className="text-neutral-800">Resend</strong>. All dispatches keep your microcredentials perfectly encrypted and protected in backend node processes.
           </p>
 
           <div className="space-y-3.5 text-xs">
@@ -1137,7 +1179,7 @@ function thisHtmlBody(type: string, orderId: string, to: string, subject: string
   const year = new Date().getFullYear();
 
   let heading = "Invoice Confirmed";
-  let intro = `Hello <strong>${customerName}</strong>, your payment for order <strong>${orderId}</strong> has been cleared. Our escrow vault has successfully logged the payment.`;
+  let intro = `Hello <strong>${customerName}</strong>, your payment for order <strong>${orderId}</strong> has been cleared. Our secure payment gateway has successfully logged your order.`;
   let detailHtml = "";
   let accentColor = "#10b981";
 
@@ -1169,7 +1211,7 @@ function thisHtmlBody(type: string, orderId: string, to: string, subject: string
     detailHtml = `
       <div style="background-color: #fffbeb; border-radius: 12px; padding: 16px; border: 1px solid #fef3c7; margin-top: 15px; text-align: left;">
         <h4 style="margin: 0 0 10px 0; color: #78350f; font-size: 14px;">Real-Time Tracking Information</h4>
-        <div style="font-size: 13px; color: #475569; margin-bottom: 8px;">Your delivery parcel is in route to your local Escrow state tracker. Watch live progress on the mapping screen inside the web app.</div>
+        <div style="font-size: 13px; color: #475569; margin-bottom: 8px;">Your delivery parcel is in route to your delivery location. Watch live progress on the tracking map inside the web app.</div>
         <div style="text-align: center; margin-top: 10px;">
           <a href="#" style="background-color: #f59e0b; color: white; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 12px; display: inline-block;">View Live Progress Map</a>
         </div>
@@ -1200,7 +1242,7 @@ function thisHtmlBody(type: string, orderId: string, to: string, subject: string
     detailHtml = `
       <div style="background-color: #fef2f2; border-radius: 12px; padding: 16px; border: 1px solid #fee2e2; margin-top: 15px; text-align: left;">
         <h4 style="margin: 0 0 10px 0; color: #991b1b; font-size: 14px;">Compliance Review Queue</h4>
-        <div style="font-size: 12px; color: #7f1d1d; line-height: 1.5;">Our operations intelligence department flagged this order because checkout details crossed threshold benchmarks. Escrow funds will remain safely locked in hold.</div>
+        <div style="font-size: 12px; color: #7f1d1d; line-height: 1.5;">Our operations intelligence department flagged this order for verification review. The order is placed on temporary hold pending team review.</div>
       </div>
     `;
   }
@@ -1221,8 +1263,8 @@ function thisHtmlBody(type: string, orderId: string, to: string, subject: string
 
             <!-- Header banner -->
             <div style="background-color: #0f172a; padding: 25px; text-align: center;">
-              <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: #10b981; font-weight: 800; display: block; margin-bottom: 6px;">NaijaStores Elite Network</span>
-              <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.025em;">NaijaStores Plaza</h1>
+              <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: #10b981; font-weight: 800; display: block; margin-bottom: 6px;">Naija Online Stores Elite Network</span>
+              <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.025em;">Naija Online Stores</h1>
             </div>
 
             <!-- Content Area -->
@@ -1234,8 +1276,8 @@ function thisHtmlBody(type: string, orderId: string, to: string, subject: string
 
             <!-- Footer -->
             <div style="background-color: #f8fafc; padding: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
-              <p style="font-size: 11px; color: #64748b; margin: 0;">NaijaStores Support &amp; Escrow Security Division</p>
-              <p style="font-size: 9px; color: #94a3b8; margin: 5px 0 0 0;">© ${迫使年份()} NaijaStores Online Plaza.</p>
+              <p style="font-size: 11px; color: #64748b; margin: 0;">Naija Online Stores Support</p>
+              <p style="font-size: 9px; color: #94a3b8; margin: 5px 0 0 0;">© ${迫使年份()} Naija Online Stores.</p>
             </div>
           </table>
         </td>

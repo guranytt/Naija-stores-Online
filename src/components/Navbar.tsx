@@ -74,17 +74,17 @@ export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch,
               <div className="w-10 h-10 rounded-xl bg-orange-500 overflow-hidden flex items-center justify-center font-extrabold text-white text-lg tracking-tighter group-hover:scale-105 transition-transform shadow-md border-2 border-orange-400">
                 <img
                   src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png"
-                  alt="NaijaStores Logo"
+                  alt="Naija Online Stores Logo"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
               </div>
               <div className="text-left leading-none">
-                <span className="font-extrabold text-lg sm:text-xl tracking-tight block text-white">
-                  NaijaStores<span className="text-orange-400">.</span>
+                <span className="font-extrabold text-lg sm:text-xl tracking-tight block text-white animate-fade-in">
+                  Naija<span className="text-orange-400"> Online Stores</span>
                 </span>
                 <span className="text-[9px] font-bold text-emerald-300 uppercase tracking-widest block">
-                  Online Plaza
+                  Marketplace Hub
                 </span>
               </div>
             </div>
@@ -255,7 +255,7 @@ export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch,
                   <motion.span
                     key={cartCount}
                     initial={{ scale: 0.6, opacity: 0 }}
-                    animate={{ scale: [0.6, 1.25, 1], opacity: 1 }}
+                    animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.6, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 380, damping: 15 }}
                     className="absolute top-1 right-1 bg-orange-500 text-white text-[10px] font-extrabold w-5 h-5 rounded-full border-2 border-secondary flex items-center justify-center shadow-lg"
@@ -312,12 +312,12 @@ export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch,
                   <div className="w-8 h-8 rounded-lg bg-orange-500 overflow-hidden flex items-center justify-center font-extrabold text-white text-base shadow-inner">
                     <img
                       src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png"
-                      alt="NaijaStores Logo"
+                      alt="Naija Online Stores Logo"
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
                     />
                   </div>
-                  <span className="font-extrabold text-lg tracking-tight">NaijaStores</span>
+                  <span className="font-extrabold text-lg tracking-tight">Naija Online Stores</span>
                 </div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-1 rounded-full hover:bg-emerald-800">
                   <X className="w-5 h-5 text-neutral-400" />

@@ -93,10 +93,10 @@ export async function sendResendEmail(payload: SendEmailPayload): Promise<{ succ
     payment_confirmation: `Receipt for Order #${payload.data.orderId}`,
     delivery_confirmation: `Delivery Dispatched - Order #${payload.data.orderId}`,
     status_change: `Order status upgraded - #${payload.data.orderId}`,
-    flagged: `Escrow Hold - Audit Triggered #${payload.data.orderId}`
+    flagged: `Order Audit - Review Triggered #${payload.data.orderId}`
   };
 
-  const subject = subjectMap[payload.type] || `NaijaStores Alert: Support Message - #${payload.data.orderId}`;
+  const subject = subjectMap[payload.type] || `Naija Online Stores: Support Message - #${payload.data.orderId}`;
   
   const simulatedEntry: MailLogEntry = {
     id: "mail_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
@@ -149,3 +149,68 @@ export async function fetchEmailLogs(): Promise<MailLogEntry[]> {
 
   return localLogs;
 }
+
+/**
+ * Sends a generic HTML email to Resend server-side API proxy.
+ * Fallbacks safely to browser-side logging simulation if offline or unconfigured.
+ */
+export async function sendEmail(
+  to: string,
+  subject: string,
+  html: string
+): Promise<{ success: boolean; status: string; unconfigured: boolean; error?: string }> {
+  try {
+    const response = await fetch("/api/resend/send-custom", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ to, subject, html }),
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    if (response.ok && contentType.includes("application/json")) {
+      const result = await response.json();
+      return {
+        success: result.success,
+        status: result.status,
+        unconfigured: !!result.unconfigured,
+        error: result.error,
+      };
+    }
+  } catch (error: any) {
+    console.warn("[EMAIL FALLBACK] Server offline or custom mail route failed, falling back to simulated log.");
+  }
+
+  // Pure Client SPA Email Dispatch Simulation for Custom emails
+  const simulatedEntry: MailLogEntry = {
+    id: "mail_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+    to: to || "shopper@example.com",
+    type: "custom_email",
+    subject: subject,
+    status: "Simulated",
+    timestamp: new Date().toISOString(),
+    bodyLength: html.length,
+    orderId: "CUSTOM-MAIL"
+  };
+
+  saveLocalMailLog(simulatedEntry);
+
+  return {
+    success: true,
+    status: "Simulated",
+    unconfigured: true
+  };
+}
+
+/**
+ * Specific vendor approval email wrapper requested by the user.
+ */
+export async function sendVendorApproval(email: string, businessName: string) {
+  return sendEmail(
+    email,
+    "Vendor approved",
+    `<p>${businessName} approved. You can now list products.</p>`
+  );
+}
+

@@ -60,8 +60,8 @@ export function generateInvoiceTemplate(data: EmailTemplateData): string {
 
           <!-- Brand Header Banner -->
           <div style="background-color: #0f172a; padding: 40px 32px; text-align: center;">
-            <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: #10b981; font-weight: 800; margin: 0 0 8px 0;">Premium Escrow Network</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 950; letter-spacing: -0.03em;">NaijaStores Plaza</h1>
+            <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: #10b981; font-weight: 800; margin: 0 0 8px 0;">Premium Direct Network</p>
+            <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 950; letter-spacing: -0.03em;">Naija Online Stores</h1>
           </div>
 
           <!-- Primary Body and Copy -->
@@ -70,7 +70,7 @@ export function generateInvoiceTemplate(data: EmailTemplateData): string {
             
             <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 24px 0;">
               Hello <strong>${customerName}</strong>,<br>
-              Your payment for Order <strong>${orderId}</strong> was processed with full cryptographic validation. The funds are safely secured in our smart escrow vault, and the merchant has been notified for instant warehouse packing.
+              Your payment for Order <strong>${orderId}</strong> was processed with full cryptographic validation. The payment has been securely settled, and the merchant has been notified for instant warehouse packing.
             </p>
 
             <!-- Metadata Box -->
@@ -107,7 +107,7 @@ export function generateInvoiceTemplate(data: EmailTemplateData): string {
             <!-- CTA Call To Action Button -->
             <div style="text-align: center; margin-top: 32px;">
               <a href="${actionUrl}" style="background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-size: 13px; font-weight: bold; display: inline-block; transition: background-color 0.2s; box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.1);">
-                View Interactive Escrow Board
+                View Interactive Order Board
               </a>
             </div>
 
@@ -115,9 +115,9 @@ export function generateInvoiceTemplate(data: EmailTemplateData): string {
 
           <!-- Professional Footer Notes -->
           <div style="background-color: #f8fafc; padding: 32px; border-top: 1px solid #e2e8f0; text-align: center;">
-            <p style="font-size: 11px; font-weight: bold; color: #64748b; margin: 0 0 4px 0;">NaijaStores Support &amp; Escrow Security Division</p>
+            <p style="font-size: 11px; font-weight: bold; color: #64748b; margin: 0 0 4px 0;">Naija Online Stores Support</p>
             <p style="font-size: 10px; color: #94a3b8; margin: 0 0 12px 0;">This transmission represents an official electronic sales receipt under automated ledger security.</p>
-            <p style="font-size: 10px; color: #94a3b8; margin: 0;">© ${new Date().getFullYear()} NaijaStores Online. Operating across Lagos, Abuja & Enugu Hubs.</p>
+            <p style="font-size: 10px; color: #94a3b8; margin: 0;">© ${new Date().getFullYear()} Naija Online Stores. Operating across Lagos, Abuja & Enugu Hubs.</p>
           </div>
 
         </table>
@@ -199,9 +199,9 @@ export function generateShippingTrackerTemplate(data: EmailTemplateData): string
           </div>
 
           <div style="background-color: #f8fafc; padding: 32px; border-top: 1px solid #e2e8f0; text-align: center;">
-            <p style="font-size: 11px; font-weight: bold; color: #64748b; margin: 0 0 4px 0;">NaijaStores Transit Division</p>
-            <p style="font-size: 10px; color: #94a3b8; margin: 0 0 12px 0;">Cargo transport logistics under strict digital escrow protocol.</p>
-            <p style="font-size: 10px; color: #94a3b8; margin: 0;">© ${new Date().getFullYear()} NaijaStores. All rights reserved.</p>
+            <p style="font-size: 11px; font-weight: bold; color: #64748b; margin: 0 0 4px 0;">Naija Online Stores Transit Division</p>
+            <p style="font-size: 10px; color: #94a3b8; margin: 0 0 12px 0;">Cargo transport logistics under secure tracking protocol.</p>
+            <p style="font-size: 10px; color: #94a3b8; margin: 0;">© ${new Date().getFullYear()} Naija Online Stores. All rights reserved.</p>
           </div>
 
         </table>
@@ -244,7 +244,7 @@ export function generateSecurityHoldTemplate(data: EmailTemplateData): string {
 
           <div style="background-color: #0f172a; padding: 40px 32px; text-align: center;">
             <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: #ef4444; font-weight: 800; margin: 0 0 8px 0;">Compliance and Safety</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 950; letter-spacing: -0.03em;">Escrow Security</h1>
+            <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 950; letter-spacing: -0.03em;">Merchant Security</h1>
           </div>
 
           <div style="padding: 40px 32px;">
@@ -264,7 +264,7 @@ export function generateSecurityHoldTemplate(data: EmailTemplateData): string {
             </div>
 
             <p style="font-size: 13px; line-height: 1.5; color: #64748b; margin-bottom: 24px;">
-              <strong>Note:</strong> Your trade funds are completely secure and remain safely preserved in holding escrow. No funds will be lost or disbursed until verification clearance.
+              <strong>Note:</strong> Your purchase is completely secure and remains safely backed by our buyer protection guidelines.
             </p>
 
             <div style="text-align: center; margin-top: 32px;">
@@ -278,7 +278,7 @@ export function generateSecurityHoldTemplate(data: EmailTemplateData): string {
           <div style="background-color: #f8fafc; padding: 32px; border-top: 1px solid #e2e8f0; text-align: center;">
             <p style="font-size: 11px; font-weight: bold; color: #64748b; margin: 0 0 4px 0;">Credit Integrity Compliance Division</p>
             <p style="font-size: 10px; color: #94a3b8; margin: 0 0 12px 0;">Protected by automated double-sided transaction insurance.</p>
-            <p style="font-size: 10px; color: #94a3b8; margin: 0;">© ${new Date().getFullYear()} NaijaStores Security.</p>
+            <p style="font-size: 10px; color: #94a3b8; margin: 0;">© ${new Date().getFullYear()} Naija Online Stores. All rights reserved.</p>
           </div>
 
         </table>

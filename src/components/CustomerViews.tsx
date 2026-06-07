@@ -207,7 +207,7 @@ export default function CustomerViews({
                   className="inline-flex items-center space-x-2 bg-emerald-800/60 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-bold text-emerald-300"
                 >
                   <Sparkles className="w-4 h-4 text-orange-400" />
-                  <span>NIGERIA'S SEAMLESS ESCROW HUB</span>
+                  <span>NIGERIA'S SEAMLESS MARKET HUB</span>
                 </motion.div>
                 
                 <motion.h1
@@ -226,7 +226,7 @@ export default function CustomerViews({
                   transition={{ duration: 0.4, delay: 0.3 }}
                   className="text-sm text-emerald-100/90 leading-relaxed max-w-md"
                 >
-                  Connecting top-tier local artisans, electronic vendors and raw organic cooperatives directly to your doorstep with escrow-secured protection.
+                  Connecting top-tier local artisans, electronic vendors and raw organic cooperatives directly to your doorstep with secure direct checkout.
                 </motion.p>
                 
                 <motion.div
@@ -354,13 +354,19 @@ export default function CustomerViews({
                     whileHover={shouldReduceMotion ? {} : { y: -8, scale: 1.015, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.06), 0 8px 10px -6px rgba(0,0,0,0.06)" }}
                     className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-ambient hover:shadow-premium group cursor-pointer transition-all flex flex-col justify-between"
                   >
-                    <div className="relative aspect-square bg-neutral-50 overflow-hidden">
-                      <img
-                        src={p.image}
-                        alt={p.title}
-                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-                        referrerPolicy="no-referrer"
-                      />
+                    <div className="relative aspect-square bg-neutral-50 overflow-hidden flex items-center justify-center border-b border-neutral-100/60">
+                      {p.image ? (
+                        <img
+                          src={p.image}
+                          alt={p.title}
+                          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="text-neutral-300 font-extrabold uppercase text-[9px] tracking-widest text-center px-4 self-center">
+                          ₦ Image-Free Classic
+                        </div>
+                      )}
                       
                       {/* Badge */}
                       {p.isBestSeller && (
@@ -450,9 +456,9 @@ export default function CustomerViews({
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div className="text-left">
-                <h4 className="font-extrabold text-neutral-900">100% Secure Escrow Checkout</h4>
+                <h4 className="font-extrabold text-neutral-900">100% Secure Direct Checkout</h4>
                 <p className="text-xs text-neutral-500 mt-1">
-                  NaijaStores holds shopper payments securely in escrow. Vendors are only paid upon delivery verification.
+                  Naija Online Stores processes shopper payments securely. Purchases are routed directly to vendors for rapid dispatch.
                 </p>
               </div>
             </div>
@@ -540,22 +546,25 @@ export default function CustomerViews({
             </div>
           </div>
 
-          {/* Main Catalog Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Main Catalog Grid - Styled exactly to display horizontal rectangular cards two per line downwards */}
+          <div className="grid grid-cols-2 gap-4 md:gap-6">
             {isSearchLoading ? (
               Array.from({ length: 8 }).map((_, skeletonIdx) => (
                 <div
                   key={`skeleton-card-${skeletonIdx}`}
-                  className="bg-white rounded-2xl border border-neutral-150 p-4 space-y-4 shadow-ambient select-none text-left"
+                  className="bg-white rounded-2xl border border-neutral-150 p-3 flex flex-row h-36 sm:h-44 shadow-ambient select-none text-left gap-3"
                 >
-                  <div className="w-full h-48 shimmer-bg rounded-xl" />
-                  <div className="space-y-2.5">
-                    <div className="h-4 shimmer-bg rounded-md w-2/3" />
-                    <div className="h-3 shimmer-bg rounded-md w-1/2" />
-                  </div>
-                  <div className="pt-2 flex justify-between items-center">
-                    <div className="h-6 shimmer-bg rounded-md w-1/4" />
-                    <div className="h-8 shimmer-bg rounded-lg w-16" />
+                  <div className="w-[35%] h-full shimmer-bg rounded-xl shrink-0" />
+                  <div className="flex-1 flex flex-col justify-between py-1">
+                    <div className="space-y-2">
+                      <div className="h-3 shimmer-bg rounded-md w-1/3" />
+                      <div className="h-4 shimmer-bg rounded-md w-full" />
+                      <div className="h-3.5 shimmer-bg rounded-md w-1/2" />
+                    </div>
+                    <div className="pt-2 flex justify-between items-center bg-white">
+                      <div className="h-5 shimmer-bg rounded-md w-1/4" />
+                      <div className="h-7 shimmer-bg rounded-lg w-16" />
+                    </div>
                   </div>
                 </div>
               ))
@@ -573,80 +582,97 @@ export default function CustomerViews({
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-10px" }}
                   transition={{ duration: 0.35, delay: Math.min(idx * 0.04, 0.3) }}
-                  whileHover={shouldReduceMotion ? {} : { y: -8, scale: 1.015, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.06), 0 8px 10px -6px rgba(0,0,0,0.06)" }}
-                  className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-ambient hover:shadow-premium group cursor-pointer transition-all flex flex-col justify-between"
+                  whileHover={shouldReduceMotion ? {} : { y: -5, scale: 1.01, boxShadow: "0 12px 20px -8px rgba(0,0,0,0.06)" }}
+                  className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-sm hover:shadow-md group cursor-pointer transition-all flex flex-row h-36 sm:h-44 md:h-48"
                   id={`product-cell-${p.id}`}
                 >
-                  <div>
-                    <div className="relative aspect-square bg-neutral-50 overflow-hidden">
+                  {/* Left Side: Rectangular Image Area (35% width, horizontal rectangular ratio context) */}
+                  <div className="relative w-[35%] h-full bg-neutral-50 overflow-hidden shrink-0 border-r border-neutral-100 flex items-center justify-center">
+                    {p.image ? (
                       <img
                         src={p.image}
                         alt={p.title}
                         className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                         referrerPolicy="no-referrer"
                       />
-
-                      {/* Stock Alert */}
-                      {p.stock <= 5 && (
-                        <span className="absolute top-3 left-3 bg-red-600 text-white font-extrabold text-[9px] uppercase px-2 py-0.5 rounded tracking-wider shadow-xs z-10">
-                          Only {p.stock} left!
-                        </span>
-                      )}
-
-                      {/* Wishlist item toggles */}
-                      <motion.button
-                        whileHover={{ scale: 1.15 }}
-                        whileTap={{ scale: 0.85 }}
-                        onClick={(e) => toggleWishlist(p.id, e)}
-                        className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/95 flex items-center justify-center hover:scale-105 transition-transform shadow-xs text-neutral-500 hover:text-red-500 z-10"
-                      >
-                        <motion.div
-                          key={isLiked ? "liked" : "unliked"}
-                          initial={{ scale: 0.8 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                        >
-                          <Heart className={`w-4.5 h-4.5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
-                        </motion.div>
-                      </motion.button>
-                    </div>
-
-                    <div className="p-4 text-left space-y-1">
-                      <span className="text-[9px] font-bold text-orange-500 uppercase tracking-widest block">{p.vendorName}</span>
-                      <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-2 leading-snug truncate group-hover:text-orange-500 transition-colors">
-                        {p.title}
-                      </h3>
-                      <div className="flex items-center space-x-1.5 text-xs text-neutral-505 pt-1">
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <span className="font-bold text-neutral-800">{p.rating}</span>
-                        <span>({p.reviewsCount} reviews)</span>
+                    ) : (
+                      <div className="text-neutral-300 font-extrabold uppercase text-[8px] tracking-widest text-center px-1 select-none leading-relaxed">
+                        ₦ No Image
                       </div>
-                    </div>
+                    )}
+
+                    {/* Stock Alert */}
+                    {p.stock <= 5 && (
+                      <span className="absolute top-2 left-2 bg-red-600 text-white font-extrabold text-[8px] sm:text-[9px] uppercase px-1.5 py-0.5 rounded tracking-wider shadow-xs z-10">
+                        {p.stock} left!
+                      </span>
+                    )}
+
+                    {/* Wishlist item toggles */}
+                    <motion.button
+                      whileHover={{ scale: 1.15 }}
+                      whileTap={{ scale: 0.85 }}
+                      onClick={(e) => toggleWishlist(p.id, e)}
+                      className="absolute bottom-2 right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 flex items-center justify-center hover:scale-105 transition-transform shadow-xs text-neutral-500 hover:text-red-500 z-10"
+                    >
+                      <motion.div
+                        key={isLiked ? "liked" : "unliked"}
+                        initial={{ scale: 0.8 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                      >
+                        <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+                      </motion.div>
+                    </motion.button>
                   </div>
 
-                  <div className="p-4 pt-0 border-t border-neutral-50 flex items-center justify-between text-left mt-2">
-                    <div>
-                      {p.originalPrice && (
-                        <span className="text-xs text-neutral-400 line-through block font-mono">
-                          {formatNaira(p.originalPrice)}
+                  {/* Right Side: Detailed Info Area */}
+                  <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between text-left min-w-0">
+                    <div className="space-y-1 sm:space-y-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[8px] sm:text-[9px] font-bold text-orange-500 uppercase tracking-widest block truncate">
+                          {p.vendorName}
                         </span>
-                      )}
-                      <span className="font-black text-neutral-900 text-base block font-mono">
-                        {formatNaira(p.price)}
-                      </span>
+                        {p.isBestSeller && (
+                          <span className="bg-orange-500 text-white font-black text-[7px] sm:text-[8px] uppercase px-1 py-0.5 rounded tracking-wider shrink-0">
+                            Best
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-extrabold text-xs sm:text-sm text-neutral-800 line-clamp-2 leading-tight group-hover:text-orange-500 transition-colors">
+                        {p.title}
+                      </h3>
+                      <div className="flex items-center space-x-1 text-[10px] sm:text-xs text-neutral-500">
+                        <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-400 text-amber-400" />
+                        <span className="font-black text-neutral-800">{p.rating}</span>
+                        <span className="text-[9px] sm:text-[10px]">({p.reviewsCount})</span>
+                      </div>
                     </div>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
-                      className={`px-3 py-1.5 font-bold text-xs rounded-lg shadow-xs transition-all duration-300 ${
-                        isAdded
-                          ? "bg-emerald-600 text-white"
-                          : "bg-orange-500 hover:bg-orange-600 text-white"
-                      }`}
-                    >
-                      {isAdded ? "✓ Added" : "Add Cart"}
-                    </motion.button>
+
+                    <div className="flex items-center justify-between border-t border-neutral-100 pt-2 gap-2 mt-1">
+                      <div className="min-w-0">
+                        {p.originalPrice && (
+                          <span className="text-[10px] sm:text-xs text-neutral-400 line-through block font-mono leading-none mb-0.5">
+                            {formatNaira(p.originalPrice)}
+                          </span>
+                        )}
+                        <span className="font-black text-xs sm:text-sm md:text-base text-neutral-900 block font-mono leading-none">
+                          {formatNaira(p.price)}
+                        </span>
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
+                        className={`px-2 py-1.5 sm:px-3 sm:py-1.5 font-bold text-[9px] sm:text-xs rounded-lg shadow-xs transition-all duration-300 shrink-0 ${
+                          isAdded
+                            ? "bg-emerald-600 text-white"
+                            : "bg-orange-500 hover:bg-orange-600 text-white"
+                        }`}
+                      >
+                        {isAdded ? "✓ Added" : "Add"}
+                      </motion.button>
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -699,26 +725,32 @@ export default function CustomerViews({
             
             {/* Gallery Image block (5 columns) */}
             <div className="lg:col-span-5 space-y-4">
-              <div className="aspect-square bg-neutral-50 border border-neutral-200 rounded-2xl overflow-hidden shadow-ambient relative">
-                <AnimatePresence mode="wait">
-                  <motion.img
-                    key={selectedImageIndex}
-                    src={detailProduct.image}
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.02 }}
-                    transition={{ duration: 0.25, ease: "easeOut" }}
-                    alt={detailProduct.title}
-                    className={`w-full h-full object-cover ${
-                      selectedImageIndex === 1
-                        ? "brightness-105 contrast-105 scale-102"
-                        : selectedImageIndex === 2
-                        ? "contrast-95 saturate-110"
-                        : ""
-                    }`}
-                    referrerPolicy="no-referrer"
-                  />
-                </AnimatePresence>
+              <div className="aspect-square bg-neutral-50 border border-neutral-200 rounded-2xl overflow-hidden shadow-ambient relative flex items-center justify-center">
+                {detailProduct.image ? (
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={selectedImageIndex}
+                      src={detailProduct.image}
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.02 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      alt={detailProduct.title}
+                      className={`w-full h-full object-cover ${
+                        selectedImageIndex === 1
+                          ? "brightness-105 contrast-105 scale-102"
+                          : selectedImageIndex === 2
+                          ? "contrast-95 saturate-110"
+                          : ""
+                      }`}
+                      referrerPolicy="no-referrer"
+                    />
+                  </AnimatePresence>
+                ) : (
+                  <div className="text-neutral-300 font-extrabold uppercase text-xs tracking-widest text-center px-4">
+                    ₦ Product Designed Image-Free
+                  </div>
+                )}
                 
                 {detailProduct.isBestSeller && (
                   <span className="absolute top-4 left-4 bg-orange-500 text-white font-extrabold text-[10px] uppercase px-2.5 py-1 rounded-md tracking-wider">
@@ -728,38 +760,40 @@ export default function CustomerViews({
               </div>
 
               {/* Thumbnails Selection Panel */}
-              <div className="flex items-center gap-3 justify-center pt-1">
-                {[0, 1, 2].map((idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setSelectedImageIndex(idx)}
-                    className="relative w-16 h-16 rounded-xl bg-neutral-50 border overflow-hidden cursor-pointer focus:outline-none flex-shrink-0"
-                    style={{
-                      borderColor: selectedImageIndex === idx ? "#f97316" : "#e5e5e5"
-                    }}
-                  >
-                    {selectedImageIndex === idx && (
-                      <motion.div
-                        layoutId="activeThumbRing"
-                        className="absolute inset-0 border-2 border-orange-500 rounded-xl z-10 pointer-events-none"
-                        transition={{ type: "spring", stiffness: 350, damping: 25 }}
+              {detailProduct.image && (
+                <div className="flex items-center gap-3 justify-center pt-1">
+                  {[0, 1, 2].map((idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedImageIndex(idx)}
+                      className="relative w-16 h-16 rounded-xl bg-neutral-50 border overflow-hidden cursor-pointer focus:outline-none flex-shrink-0"
+                      style={{
+                        borderColor: selectedImageIndex === idx ? "#f97316" : "#e5e5e5"
+                      }}
+                    >
+                      {selectedImageIndex === idx && (
+                        <motion.div
+                          layoutId="activeThumbRing"
+                          className="absolute inset-0 border-2 border-orange-500 rounded-xl z-10 pointer-events-none"
+                          transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                        />
+                      )}
+                      <img
+                        src={detailProduct.image}
+                        alt="Product thumbnail view"
+                        className={`w-full h-full object-cover transition-all duration-300 ${
+                          idx === 1
+                            ? "brightness-105 contrast-105 scale-110"
+                            : idx === 2
+                            ? "contrast-95 saturate-110"
+                            : ""
+                        } ${selectedImageIndex !== idx ? "opacity-70 hover:opacity-100" : ""}`}
                       />
-                    )}
-                    <img
-                      src={detailProduct.image}
-                      alt="Product thumbnail view"
-                      className={`w-full h-full object-cover transition-all duration-300 ${
-                        idx === 1
-                          ? "brightness-105 contrast-105 scale-110"
-                          : idx === 2
-                          ? "contrast-95 saturate-110"
-                          : ""
-                      } ${selectedImageIndex !== idx ? "opacity-70 hover:opacity-100" : ""}`}
-                    />
-                  </button>
-                ))}
-              </div>
+                    </button>
+                  ))}
+                </div>
+              )}
               
               <div className="p-4 bg-neutral-50 border border-neutral-100 rounded-2xl flex items-center justify-between">
                 <div className="flex items-center space-x-3.5">
@@ -873,7 +907,7 @@ export default function CustomerViews({
                   <span className="text-neutral-300">|</span>
                   <span className="text-emerald-600 font-bold flex items-center space-x-1">
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block mr-1.5" />
-                    In Escrow Safe Guard
+                    Verified Direct Order
                   </span>
                 </div>
               </div>
@@ -1002,7 +1036,7 @@ export default function CustomerViews({
                       id="add-to-cart-action"
                     >
                       {detailIsAdded ? <Check className="w-5 h-5 animate-bounce" /> : <ShoppingCart className="w-5 h-5" />}
-                      <span>{detailIsAdded ? "Added to Cart!" : "Secure Escrow Purchase"}</span>
+                      <span>{detailIsAdded ? "Added to Cart!" : "Secure Purchase"}</span>
                     </motion.button>
                   );
                 })()}
@@ -1017,7 +1051,7 @@ export default function CustomerViews({
                     <motion.div
                       key={wishlist.includes(detailProduct.id) ? "liked" : "unliked"}
                       initial={{ scale: 0.6, rotate: -25, opacity: 0 }}
-                      animate={{ scale: [0.6, 1.35, 1], rotate: 0, opacity: 1 }}
+                      animate={{ scale: 1, rotate: 0, opacity: 1 }}
                       exit={{ scale: 0.6, opacity: 0 }}
                       transition={{ type: "spring", stiffness: 350, damping: 15 }}
                     >
@@ -1055,7 +1089,7 @@ export default function CustomerViews({
                     <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                <p className="text-xs text-neutral-450 font-bold uppercase tracking-wider mt-1">Naija Escrow Protected Reviews</p>
+                <p className="text-xs text-neutral-405 font-bold uppercase tracking-wider mt-1 text-emerald-600">Verified Shopper Reviews</p>
               </div>
               
               {/* Form to leave a review */}
@@ -1131,7 +1165,7 @@ export default function CustomerViews({
           className="space-y-6"
         >
           <div className="text-left pb-4 border-b border-neutral-100">
-            <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">Your Escrow Shopping Basket</h1>
+            <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">Your Shopping Basket</h1>
             <p className="text-xs text-neutral-400 font-semibold mt-1">Verify cart configurations and secure shipment details before gateway routing</p>
           </div>
 
@@ -1167,8 +1201,12 @@ export default function CustomerViews({
                       className="p-4 sm:p-5 bg-white border border-neutral-150 rounded-2xl flex flex-col sm:flex-row items-center gap-4 text-left shadow-xs justify-between"
                     >
                       <div className="flex items-center space-x-4 w-full sm:w-auto">
-                        <div className="w-16 h-16 bg-neutral-50 rounded-xl overflow-hidden border border-neutral-100 flex-shrink-0">
-                          <img src={item.product.image} alt={item.product.title} className="w-full h-full object-cover pointer-events-none" />
+                        <div className="w-16 h-16 bg-neutral-50 rounded-xl overflow-hidden border border-neutral-100 flex-shrink-0 flex items-center justify-center">
+                          {item.product.image ? (
+                            <img src={item.product.image} alt={item.product.title} className="w-full h-full object-cover pointer-events-none" />
+                          ) : (
+                            <ShoppingCart className="w-5 h-5 text-neutral-300" />
+                          )}
                         </div>
                         <div className="min-w-0">
                           <h3 className="font-extrabold text-sm text-neutral-800 truncate max-w-[280px]">
@@ -1312,7 +1350,7 @@ export default function CustomerViews({
                     </span>
                   </div>
                   <div className="flex justify-between items-center h-5">
-                    <span>Escrow Service & VAT (7.5% Nigeria tax)</span>
+                    <span>Service Charge & VAT (7.5% Nigeria tax)</span>
                     <span className="font-mono text-neutral-800 relative block min-w-[80px] text-right overflow-hidden">
                       <AnimatePresence mode="popLayout" initial={false}>
                         <motion.span
@@ -1352,7 +1390,7 @@ export default function CustomerViews({
                   id="checkout-trigger-btn"
                 >
                   <ShieldCheck className="w-4.5 h-4.5 text-white" />
-                  <span>Secure Escrow Gateway</span>
+                  <span>Secure Direct Gateway</span>
                 </button>
 
                 <div className="p-3 bg-cyan-50/50 rounded-xl flex items-start space-x-2 text-[10px] border border-cyan-100 tracking-wide">

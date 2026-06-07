@@ -3,7 +3,33 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || "https://jmmfogjefenmjqspspyg.supabase.co";
 const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptbWZvZ2plZmVubWpxc3BzcHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NjkwODEsImV4cCI6MjA5NjI0NTA4MX0.ah-wpbhIJKcF9fs4UVpXCAVwq5Bw10aTNPdtJxyPg3M";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+  global: {
+    fetch: async (url, options) => {
+      try {
+        const res = await window.fetch(url, options);
+        return res;
+      } catch (err: any) {
+        console.warn("[SUPABASE FETCH SHIELD] Intercepted and blocked uncaught fetch crash:", err.message || err);
+        // Create a fake HTTP 502 Bad Gateway response so that the client library handles it gracefully as database offline status
+        return new Response(JSON.stringify({
+          error: {
+            message: "Database offline state. Operating in high fidelity offline-first simulation",
+            code: "DATABASE_OFFLINE",
+            details: err.message || "Failed to fetch"
+          }
+        }), {
+          status: 502,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
+  }
+});
 
 // Helper to check if tables exist and fetch data, or return initial state
 export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): Promise<{ data: T[]; synced: boolean; error?: string }> {
@@ -16,12 +42,55 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
     if (data && data.length > 0) {
       const parsedData = data.map((item: any) => {
         if (tableName === "products") {
+          const title = item.title || item.name || "Naija Choice Product";
+          const description = item.description || "";
+          const price = Number(item.price || 0);
+          const originalPrice = Number(item.originalPrice || item.discount_price || price);
+          const image = item.image || item.image_url || "";
+          const rating = Number(item.rating || 4.5);
+          const reviewsCount = Number(item.reviewsCount || 0);
+          const category = item.category || "General";
+          const vendorId = item.vendorId || item.vendor_id || "v_heritage";
+          const vendorName = item.vendorName || "Eko Heritage Weavers";
+          const stock = Number(item.stock !== undefined ? item.stock : (item.stock_quantity !== undefined ? item.stock_quantity : 10));
+
           return {
             ...item,
+            title,
+            description,
+            price,
+            originalPrice,
+            image,
+            rating,
+            reviewsCount,
+            category,
+            vendorId,
+            vendorName,
+            stock,
             sizes: typeof item.sizes === "string" ? (item.sizes ? item.sizes.split(",") : []) : (Array.isArray(item.sizes) ? item.sizes : []),
             colors: typeof item.colors === "string" ? (item.colors ? item.colors.split(",") : []) : (Array.isArray(item.colors) ? item.colors : []),
             highlights: typeof item.highlights === "string" ? (item.highlights ? item.highlights.split(",") : []) : (Array.isArray(item.highlights) ? item.highlights : []),
             whatsInTheBox: typeof item.whatsInTheBox === "string" ? (item.whatsInTheBox ? item.whatsInTheBox.split(",") : []) : (Array.isArray(item.whatsInTheBox) ? item.whatsInTheBox : [])
+          };
+        }
+        if (tableName === "vendors") {
+          const name = item.name || item.business_name || "Naija Store Merchant";
+          const avatar = item.avatar || item.logo_url || "";
+          return {
+            ...item,
+            name,
+            avatar
+          };
+        }
+        if (tableName === "orders") {
+          const customerName = item.customerName || "Adebayo Alao";
+          const value = Number(item.value || item.total_amount || 0);
+          const status = item.status || item.order_status || "Processing";
+          return {
+            ...item,
+            customerName,
+            value,
+            status
           };
         }
         return item;
@@ -83,16 +152,54 @@ export const PROVISION_SQL_SCRIPT = `-- SQL DB Script for NaijaStores Setup in S
 -- Open your Supabase Dashboard -> SQL Editor and paste/run this code to provision tables!
 
 -- Drop existing tables to ensure a clean slate and recreate with actual data dependencies
-drop table if exists public.profiles cascade;
-drop table if exists public.products cascade;
+drop table if exists public.admin_commissions cascade;
+drop table if exists public.payments cascade;
+drop table if exists public.reviews cascade;
+drop table if exists public.wishlists cascade;
+drop table if exists public.order_items cascade;
+drop table if exists public.cart_items cascade;
+drop table if exists public.product_images cascade;
 drop table if exists public.orders cascade;
+drop table if exists public.products cascade;
+drop table if exists public.categories cascade;
 drop table if exists public.vendors cascade;
+drop table if exists public.users cascade;
+drop table if exists public.profiles cascade;
 
--- 1. Create Vendors Table
+-- 1. Create Users Table (requested table)
+create table public.users (
+  id text primary key,
+  full_name text,
+  email text not null,
+  role text default 'customer',
+  avatar_url text,
+  created_at timestamp default now()
+);
+
+-- Legacy profiles table
+create table public.profiles (
+  id text primary key,
+  email text not null,
+  role text default 'customer',
+  "fullName" text,
+  "shopName" text,
+  location text,
+  phone text
+);
+
+-- 2. Create Vendors Table (requested table with compatibility columns)
 create table public.vendors (
   id text primary key,
-  name text not null,
-  "ownerName" text not null,
+  user_id text references public.users(id) on delete set null,
+  business_name text,
+  business_description text,
+  logo_url text,
+  approval_status text default 'approved',
+  created_at timestamp default now(),
+  
+  -- Legacy Compatibility Columns
+  name text,
+  "ownerName" text,
   avatar text,
   rating numeric default 4.5,
   "ratingCount" integer default 10,
@@ -104,12 +211,31 @@ create table public.vendors (
   location text
 );
 
--- 2. Create Products Table
+-- 3. Create Categories Table (requested table)
+create table public.categories (
+  id text primary key,
+  name text not null,
+  slug text,
+  image_url text
+);
+
+-- 4. Create Products Table (requested table with compatibility columns)
 create table public.products (
   id text primary key,
-  title text not null,
+  vendor_id text references public.users(id) on delete set null,
+  category_id text references public.categories(id) on delete set null,
+  name text,
+  slug text,
   description text,
   price numeric not null,
+  discount_price numeric,
+  stock_quantity integer default 10,
+  featured boolean default false,
+  status text default 'active',
+  created_at timestamp default now(),
+  
+  -- Legacy Compatibility Columns
+  title text,
   "originalPrice" numeric,
   image text,
   rating numeric default 4.5,
@@ -128,13 +254,36 @@ create table public.products (
   "whatsInTheBox" text  -- stored as comma separated list for simplicity
 );
 
--- 3. Create Orders Table
+-- 5. Create Product Images Table (requested table)
+create table public.product_images (
+  id text primary key,
+  product_id text references public.products(id) on delete cascade,
+  image_url text
+);
+
+-- 6. Create Cart Items Table (requested table)
+create table public.cart_items (
+  id text primary key,
+  user_id text references public.users(id) on delete cascade,
+  product_id text references public.products(id) on delete cascade,
+  quantity integer default 1
+);
+
+-- 7. Create Orders Table (requested table with compatibility columns)
 create table public.orders (
   id text primary key,
-  "customerName" text not null,
-  status text not null,
-  date text not null,
-  value numeric not null,
+  user_id text references public.users(id) on delete set null,
+  total_amount numeric,
+  order_status text default 'processing',
+  payment_status text default 'pending',
+  shipping_address text,
+  created_at timestamp default now(),
+  
+  -- Legacy Compatibility Columns
+  "customerName" text,
+  status text,
+  date text,
+  value numeric,
   "itemsCount" integer default 1,
   "trackingId" text,
   "routeFrom" text,
@@ -143,22 +292,64 @@ create table public.orders (
   "currentCity" text
 );
 
--- 4. Create Profiles Table
-create table public.profiles (
+-- 8. Create Order Items Table (requested table)
+create table public.order_items (
   id text primary key,
-  email text not null,
-  role text default 'customer',
-  "fullName" text,
-  "shopName" text,
-  location text,
-  phone text
+  order_id text references public.orders(id) on delete cascade,
+  product_id text references public.products(id) on delete set null,
+  quantity integer default 1,
+  unit_price numeric not null
+);
+
+-- 9. Create Wishlists Table (requested table)
+create table public.wishlists (
+  id text primary key,
+  user_id text references public.users(id) on delete cascade,
+  product_id text references public.products(id) on delete cascade
+);
+
+-- 10. Create Reviews Table (requested table)
+create table public.reviews (
+  id text primary key,
+  user_id text references public.users(id) on delete cascade,
+  product_id text references public.products(id) on delete cascade,
+  rating integer default 5,
+  review_text text,
+  created_at timestamp default now()
+);
+
+-- 11. Create Payments Table (requested table)
+create table public.payments (
+  id text primary key,
+  order_id text references public.orders(id) on delete cascade,
+  amount numeric not null,
+  status text default 'pending',
+  payment_reference text
+);
+
+-- 12. Create Admin Commissions Table (requested table)
+create table public.admin_commissions (
+  id text primary key,
+  order_id text references public.orders(id) on delete cascade,
+  vendor_id text references public.vendors(id) on delete set null,
+  commission_amount numeric not null,
+  created_at timestamp default now()
 );
 
 -- Enable row-level security but allow all public reads/writes for showcase applet:
-alter table if exists public.vendors disable row level security;
-alter table if exists public.products disable row level security;
-alter table if exists public.orders disable row level security;
+alter table if exists public.users disable row level security;
 alter table if exists public.profiles disable row level security;
+alter table if exists public.vendors disable row level security;
+alter table if exists public.categories disable row level security;
+alter table if exists public.products disable row level security;
+alter table if exists public.product_images disable row level security;
+alter table if exists public.cart_items disable row level security;
+alter table if exists public.orders disable row level security;
+alter table if exists public.order_items disable row level security;
+alter table if exists public.wishlists disable row level security;
+alter table if exists public.reviews disable row level security;
+alter table if exists public.payments disable row level security;
+alter table if exists public.admin_commissions disable row level security;
 
 -- Seed Merchants
 insert into public.vendors (id, name, "ownerName", avatar, rating, "ratingCount", "salesToday", "ordersPending", "stockAlerts", email, phone, location) values

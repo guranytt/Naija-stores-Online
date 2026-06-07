@@ -19,302 +19,231 @@ export const NIGERIAN_CITIES = [
 
 export const MOCK_CATEGORIES: Category[] = [
   {
-    id: "electronics",
-    name: "Electronics",
-    description: "High-performance laptops, noise-cancelling headphones, screens, smart accessories, and developer hardware.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDy5GOD9-1WbSSbfqRQffobk20mSWZoV1dLV1ZXP2lENmb-STvXnzfC8OpXBmqoAF3XKdZ2zr38GMFs2YbrwhOcUFxUSnoNg43X3HRDQSfpFFZlz5_nnk-3iA03XfWQ0-YJA1WS9ytK4nkxFP3l03r7H7qE8KyKRySzJkCv87TXYqTQ90rtN-FZM2ZVh2anbHYhZhE9AkFFy80FOXuRS5RNbYh2R8uwkL7qfCkYf0xy95TZThfgpI4V1Y0uOgZtNp6KWyB0IB6c4ltB",
-    iconName: "devices",
-    itemCount: 154,
-    subcategories: ["Laptops & PCs", "Wireless Audio", "Creatives Tab", "Smart Wearables", "Displays & Accessories"]
-  },
-  {
     id: "fashion",
     name: "Fashion",
-    description: "Premium handcrafted Agbada, Ankara kaftans, Aso-Oke, streetwear, and matching accessories.",
+    description: "Premium Nigerian fashion, traditional designs, apparel, and footwear.",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuA5oKFaFjimFRNiVk4ZskPyQaFdOoNcwqZ5kTVXhQhdFSQwmwThUya_xriBWtqNlsA0tAGEfiOXj40jbXeTeYWNTX0ZXVbm8ZrQ79ghOlxVVjghOVrVtRN5QYsuC2QQwjmFB6HyCoIhHpIuYUgcV1Fi29ryLiY8-gKc6z53SUXNB-kkDKa0qeclc7byrYDhK0gFAdSThBzKmj9oZILEcqvesze3sJwTZ_Ek3C4YdAEM3jgckByMxoiP8LRD_kTwhomV49xmPu-USntl",
-    iconName: "apparel",
-    itemCount: 432,
-    subcategories: ["Men's Traditional Set", "Ankara Gowns", "Aso-Oke Heritage", "Lagos Streetwear", "Kola & Leather Crafts"]
+    iconName: "Shirt",
+    itemCount: 84,
+    subcategories: ["Traditional Sets", "Streetwear", "Footwear", "Accessories"]
+  },
+  {
+    id: "electronics",
+    name: "Electronics",
+    description: "High-fidelity tech, devices, smartphones, headphones, and computer accessories.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDy5GOD9-1WbSSbfqRQffobk20mSWZoV1dLV1ZXP2lENmb-STvXnzfC8OpXBmqoAF3XKdZ2zr38GMFs2YbrwhOcUFxUSnoNg43X3HRDQSfpFFZlz5_nnk-3iA03XfWQ0-YJA1WS9ytK4nkxFP3l03r7H7qE8KyKRySzJkCv87TXYqTQ90rtN-FZM2ZVh2anbHYhZhE9AkFFy80FOXuRS5RNbYh2R8uwkL7qfCkYf0xy95TZThfgpI4V1Y0uOgZtNp6KWyB0IB6c4ltB",
+    iconName: "Laptop",
+    itemCount: 84,
+    subcategories: ["Wireless Audio", "Laptops & PCs", "Fast Chargers", "Smart Accessories"]
+  },
+  {
+    id: "home-kitchen",
+    name: "Home and Kitchen",
+    description: "Modern cookware, household essentials, appliances, and kitchen helpers.",
+    image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=500&q=80",
+    iconName: "Home",
+    itemCount: 83,
+    subcategories: ["Cooking Utensils", "Appliances", "Accent Lighting", "Dining Ware"]
   },
   {
     id: "beauty",
     name: "Beauty",
-    description: "Premium organic cosmetic formulations, locally processed shea butter, herbal soaps, and wellness oils.",
+    description: "Natural Nigerian body oils, organic cosmetics, skincare routines, and wellness products.",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCXcNrYLLAD2B0Jdg4rSvx49n-hyrX2ZsfZjp4ynE8d3wKmxxRMEnWCEEBvxLSrFsmC0yJEgYZoqlEThCW48fz8y5D9b_XcW76yxnNBILOQ8TVr_YWBdpMRY72JdwHF8hWs_Wnhopje6KR-bWZH9mReWxQBBMDHvLo_NIUEeY5m-Z4KLRfd9QpVuLlrLWUIakCKJu3nWjrEfH9y3QX-b_A6-M5izgMKDxoLc-hNpbqTHH_uP8TdLh-AdBfTzE0GPql74NRa6pIyvGxG",
-    iconName: "self_care",
-    itemCount: 94,
-    subcategories: ["Body Creams", "Black Soaps", "Hair Cleansers", "Natural Serums", "Aromas & Incense"]
+    iconName: "Sparkles",
+    itemCount: 83,
+    subcategories: ["Skincare", "Body Oils", "Hair Care", "African Black Soaps"]
   },
   {
-    id: "home-living",
-    name: "Home & Living",
-    description: "Elegant handcrafted furniture, woven rugs, ambient lighting, and art pieces for your home space.",
-    image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=500&q=80",
-    iconName: "home",
-    itemCount: 112,
-    subcategories: ["Wooden Living Set", "Aesthetic Lights", "Woven Carpets", "Terracotta Vases"]
-  },
-  {
-    id: "groceries",
-    name: "Groceries",
-    description: "Fresh farm produce, processed Nigerian food items, chin-chin snacks, plantain chips, and regional commodities.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAu683NWIz41rf9BrFcqAl9nUQGkGXSJnWAws_BUjK-cHIRa7BmKNrrx0q03hMwVFCyfW9_JhFD0AGtZfw1f9b9xyea7gNryucoXeCll39GbyowyFVPtKthcjfwD-eWJ5kifJrVU26WPp4WMoUcCgCb2IRpedtK5MrngzO08UHXByPr6S1qpY0uk6EunXxc8M9N7ym1mF7PldkseWVx_KHgtueakc9-NxIAlfj52hLPsfPBq11FiQyddU58uyOfHwJiekvXimImHQyA",
-    iconName: "shopping_bag",
-    itemCount: 228,
-    subcategories: ["Snacks & Sweets", "Flour & Grains", "Palm Oils & Spices", "Dried Proteins", "Cocoa & Coffees"]
-  },
-  {
-    id: "health-wellness",
-    name: "Health & Wellness",
-    description: "Natural herbal extracts, vitamins, modern fitness accessories, wellness supplements, and healing tea packs.",
-    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=500&q=80",
-    iconName: "heart",
-    itemCount: 85,
-    subcategories: ["Herbal Teas", "Vitamins & Minerals", "Essential Oils", "Fitness Accessories"]
-  },
-  {
-    id: "baby-kids",
-    name: "Baby & Kids",
-    description: "Organic baby foods, soft pure cotton clothing, handcrafted wood toys, and standard kids learning tools.",
-    image: "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&w=500&q=80",
-    iconName: "baby",
-    itemCount: 78,
-    subcategories: ["Pure Cotton Clothes", "Baby Foods", "Educational Wooden Toys"]
-  },
-  {
-    id: "sports-outdoors",
-    name: "Sports & Outdoors",
-    description: "Excellent athletic wears, dynamic custom football jerseys, tracking compasses, and outdoor styling gear.",
+    id: "sports",
+    name: "Sports",
+    description: "Athletic wear, native football jerseys, outdoor gear, and fitness accessories.",
     image: "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=500&q=80",
-    iconName: "trophy",
-    itemCount: 63,
-    subcategories: ["Naija Jerseys", "Athletic Activewear", "Outdoor Running Accessories"]
+    iconName: "Trophy",
+    itemCount: 83,
+    subcategories: ["Activewear", "Naija Jerseys", "Fitness Accessories", "Outdoor Gear"]
   },
   {
-    id: "automotive",
-    name: "Automotive",
-    description: "Smart car diagnostics tools, dashboard cameras, heavy-duty emergency kits, and detailing products.",
-    image: "https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=500&q=80",
-    iconName: "truck",
-    itemCount: 52,
-    subcategories: ["OBD2 Scanners", "Dash Cameras", "Detailing Solutions"]
-  },
-  {
-    id: "agriculture",
-    name: "Agriculture",
-    description: "Organic heirloom crop seeds, safe biostimulants, mini farm-monitoring sensors, and eco tools.",
-    image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=500&q=80",
-    iconName: "sprout",
-    itemCount: 110,
-    subcategories: ["Organic Seeds", "Soil Diagnostics Helpers", "Eco Farmers Accents"]
+    id: "grocery",
+    name: "Grocery",
+    description: "Fresh locally processed Nigerian foods, spices, raw provisions, daily snacks, and flours.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAu683NWIz41rf9BrFcqAl9nUQGkGXSJnWAws_BUjK-cHIRa7BmKNrrx0q03hMwVFCyfW9_JhFD0AGtZfw1f9b9xyea7gNryucoXeCll39GbyowyFVPtKthcjfwD-eWJ5kifJrVU26WPp4WMoUcCgCb2IRpedtK5MrngzO08UHXByPr6S1qpY0uk6EunXxc8M9N7ym1mF7PldkseWVx_KHgtueakc9-NxIAlfj52hLPsfPBq11FiQyddU58uyOfHwJiekvXimImHQyA",
+    iconName: "ShoppingBag",
+    itemCount: 83,
+    subcategories: ["Local Snacks", "Nigerian Staples", "Oils & Spices", "Cocoas & Teas"]
   }
 ];
 
-export const MOCK_PRODUCTS: Product[] = [
-  {
-    id: "p1",
-    title: "Presidential Royal Handwoven Agbada Set",
-    description: "A breathtaking Presidential Agbada constructed of masterfully handwoven Aso-Oke by Yoruba heritage weavers. Heavy structural elegance featuring custom embroidery lines. This set comes complete with matching trousers, inner tunic (Buba & Sokoto), and prestige cap (Fila). Expresses ultimate nobility for weddings, kingship titles, and sovereign occasions.",
-    price: 185000,
-    originalPrice: 220000,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuA5oKFaFjimFRNiVk4ZskPyQaFdOoNcwqZ5kTVXhQhdFSQwmwThUya_xriBWtqNlsA0tAGEfiOXj40jbXeTeYWNTX0ZXVbm8ZrQ79ghOlxVVjghOVrVtRN5QYsuC2QQwjmFB6HyCoIhHpIuYUgcV1Fi29ryLiY8-gKc6z53SUXNB-kkDKa0qeclc7byrYDhK0gFAdSThBzKmj9oZILEcqvesze3sJwTZ_Ek3C4YdAEM3jgckByMxoiP8LRD_kTwhomV49xmPu-USntl",
-    rating: 4.9,
-    reviewsCount: 124,
-    category: "Fashion",
-    vendorId: "v_heritage",
-    vendorName: "Eko Heritage Weavers",
-    sizes: ["Medium", "Large", "X-Large"],
-    colors: ["Koli Royal Blue", "Alabaster White", "Prestige Black"],
-    stock: 8,
-    isBestSeller: true,
-    highlights: [
-      "100% Cotton-Silk blended handspun thread",
-      "Traditional 'Asaro' hand-embroidery patterns on chest piece",
-      "Breathtaking weight and formal traditional fall",
-      "Crafted inside Ibadan heritage hubs"
-    ],
-    whatsInTheBox: [
-      "Outside Agbada Robe",
-      "Inner Tunics (Top & Trouser)",
-      "Traditional Prestige Fila Cap",
-      "Velvet-lined Storage Bag"
-    ]
-  },
-  {
-    id: "p2",
-    title: "Precision Pro Wireless ANC Headphones (Classic)",
-    description: "Next Generation high fidelity over-ear headphones customized with deep noise isolation up to 35dB. Outfitted with 40mm premium drivers tuned for bass and instrumental precision. Features modern dual devices pairing, fast charger with quick 10-minute top-ups for 4 hours playback, and full leather padding for a highly enjoyable wear.",
-    price: 135000,
-    originalPrice: 180000,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDDYPqYFkjaKdJ3qcGBKO6_Re4LJQhmYSE6kb2HIuIatWoHdHbwSUURYQ1ee05rL4KDv0ZrCYz0HQGFZUpjx5nL8TKNngTvTbZeO2l9efvd3jh14TWcjrlPJqU-5dsg7l6iqZBy-dOdePCJ9W-STY63egQRP70UBdmK8yjiaUjnp3jY-VbnLOgC87pSiXke7xrmDD4eLZUWKT-I607K82i12F8xBkcT4WbnsFyby4hivF13tFwbtMgqa6WsEJlucO3EZ1l_zLsCMpN3",
-    rating: 4.8,
-    reviewsCount: 1248,
-    category: "Electronics",
-    vendorId: "v_alaba",
-    vendorName: "Alaba Digital Hub",
-    colors: ["Slate Charcoal", "Silver Satin", "Lagoon Green"],
-    stock: 45,
-    isBestSeller: true,
-    highlights: [
-      "Hybrid Active Noise Isolation technology",
-      "Full 40-Hour listening lifespan",
-      "Sweat and splash rating of IPX4",
-      "Built-in 4-mic configuration for crystal calls"
-    ],
-    whatsInTheBox: [
-      "Precision Pro Headphones",
-      "Zip-up Hard Travel Case",
-      "Type-C Rapid Cord",
-      "3.5mm Aux Adapter Cords",
-      "Full Operating Guides"
-    ]
-  },
-  {
-    id: "p3",
-    title: "ProStation X1 Ultra Laptop - 32GB RAM",
-    description: "The ultimate computing workstation engineered for Nigerian creatives and software engineers. Empowered with massive 32GB LPDDR5 system RAM and a ultra-fast 1TB NVMe Solid State Drive. It features a bright, eye-safe 16-inch displays and a modern aluminum build designed to withstand heat and fast-paced usage. Supports supercharging so you are never left offline in blackouts.",
-    price: 849000,
-    originalPrice: 999000,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCbYcKlR0YosM9ximABFoaiSUDMUrUEv5BcUy6aTHGt59PRX17YBnWoLZbRDI56hq1D2Eyl50EEP4j6J6WujpXV9F13MJYvlfYPIDZwdfvCGAxbvtPNR2wjJ17h4Xls3Uqu5Tkot1sk678S9ezX5uIPaBbnVAQljNJtW8HgLk4wUOZ5hRUa_41TIDdR-P3N2FpAK6EHgGGQWnj3ApljvB67Rf00q1xoM9SLfm5DOsbrbZgRmKHYRXJxXw9XskjNr9b-8SxnqLDAq_Hm",
-    rating: 4.9,
-    reviewsCount: 76,
-    category: "Electronics",
-    vendorId: "v_compvillage",
-    vendorName: "Computer Village Depot",
-    stock: 4,
-    isTrending: true,
-    highlights: [
-      "Latest Core Processor with peak turbo boots",
-      "Immersive 120Hz display refresh rate",
-      "Industrial aluminum structural layout",
-      "Backlit silent keyboard with spill drainage"
-    ],
-    whatsInTheBox: [
-      "ProStation Laptop workstation",
-      "Multi-port Fast Power Adaptor",
-      "User Instructions brochure",
-      "Velvet Sleeve"
-    ]
-  },
-  {
-    id: "p4",
-    title: "Handcrafted Eko Calfskin Leather Slides",
-    description: "Engineered from exceptionally supple premium Nigerian calfskin, these slides are entirely hand-shaped in the Balogun artisans' quarters. Outfitted with an elegant dual-cross strap with metal rivets and a contoured cushioned cork footbed. Perfect for daily luxury walks through the islands or warm weather styling around Lekki.",
-    price: 32000,
-    originalPrice: 45000,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBXHHRDhnfXAPzOsfwJAJsaalg4cWfRii5vBleuGOxKrptM-qmw3JgFBhmDSeXClxBlfi3YbQJiQs13dl3CJxFMTrEsoeKAI1JkXEckU88mcDf64zuwrUdWJW8NNuhXEbmbimeAKXSCpzoTENrA7IaXi3jzD_WCPb-on3IiWMAikNItCyKkPDuCIxGIIFS30rf-qvm-aGDzOiKqproxCid4Yu_VB_ycleJTW0iXWyz1WZUzAk_v-gZdvKW2YKJet89-kA4ee4AC0u9d",
-    rating: 4.7,
-    reviewsCount: 88,
-    category: "Fashion",
-    vendorId: "v_balogun",
-    vendorName: "Balogun Leather Craft",
-    sizes: ["41", "42", "43", "44", "45"],
-    colors: ["Classic Mahogany", "Ebony Black"],
-    stock: 12,
-    isTrending: true,
-    highlights: [
-      "100% sourced Nigerian genuine leather",
-      "Moisture-wicking contoured footbeds",
-      "Reinforced heavy stitching for ultimate longevity",
-      "Non-skid flexible rubber outside soles"
-    ]
-  },
-  {
-    id: "p5",
-    title: "100% Organic Raw Okene Shea Butter (2kg)",
-    description: "Pure, grade-A unrefined shea butter sourced directly from local cooperatives in Nigeria. Hand-extracted using age-old organic warm pressing methods that lock in vitamins A, E, and therapeutic skin-loving lipids. Smooth, creamy texture with a natural nutty aroma, perfect for locking in glow, nourishing curls, and treating eczema.",
-    price: 14500,
-    originalPrice: 18000,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCXcNrYLLAD2B0Jdg4rSvx49n-hyrX2ZsfZjp4ynE8d3wKmxxRMEnWCEEBvxLSrFsmC0yJEgYZoqlEThCW48fz8y5D9b_XcW76yxnNBILOQ8TVr_YWBdpMRY72JdwHF8hWs_Wnhopje6KR-bWZH9mReWxQBBMDHvLo_NIUEeY5m-Z4KLRfd9QpVuLlrLWUIakCKJu3nWjrEfH9y3QX-b_A6-M5izgMKDxoLc-hNpbqTHH_uP8TdLh-AdBfTzE0GPql74NRa6pIyvGxG",
-    rating: 4.8,
-    reviewsCount: 312,
-    category: "Beauty",
-    vendorId: "v_sheabeauty",
-    vendorName: "Shea & Beauty Enugu",
-    stock: 200,
-    isBestSeller: true,
-    highlights: [
-      "No added mineral oils, chemicals or synthetic perfume",
-      "Extremely light structural fall on hair and skin pores",
-      "Rich in raw anti-inflammatory agents",
-      "Packed inside reusable ecological containers"
-    ],
-    whatsInTheBox: [
-      "2kg Tub Unrefined Shea Butter",
-      "Mini wooden scoops",
-      "Recipe card booklet for DIY hair masques"
-    ]
-  },
-  {
-    id: "p6",
-    title: "Chin Chin Gourmet Celebration Tub (5kg)",
-    description: "Indulge in Naija's most beloved snack! This giant luxury bucket contains 5kg of extremely crunchy, delicious golden chin-chin bites made in a strictly organic bakery in Lagos. Crafted with a premium vanilla-nutmeg infusion, it offers the ultimate high-spirit crunch without greasy residues. Perfect for sharing inside home gatherings, office desks, or child birthday bashes.",
-    price: 18000,
-    originalPrice: 22000,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAu683NWIz41rf9BrFcqAl9nUQGkGXSJnWAws_BUjK-cHIRa7BmKNrrx0q03hMwVFCyfW9_JhFD0AGtZfw1f9b9xyea7gNryucoXeCll39GbyowyFVPtKthcjfwD-eWJ5kifJrVU26WPp4WMoUcCgCb2IRpedtK5MrngzO08UHXByPr6S1qpY0uk6EunXxc8M9N7ym1mF7PldkseWVx_KHgtueakc9-NxIAlfj52hLPsfPBq11FiQyddU58uyOfHwJiekvXimImHQyA",
-    rating: 4.9,
-    reviewsCount: 450,
-    category: "Groceries",
-    vendorId: "v_snacks",
-    vendorName: "Naija Sweet Treats",
-    stock: 80,
-    isNew: true,
-    highlights: [
-      "No added chemical preservatives",
-      "Baked using zero trans-fat high-melting oils",
-      "Extremely long three-month crispness lifespan",
-      "Airtight handle bucket for absolute safety"
-    ]
-  },
-  {
-    id: "p7",
-    title: "Aero Shades Pro - Lekki Aviator Edition",
-    description: "Turn heads at any island social! Styled with high-performance dark lenses offering total UV shielding. Framed in high-quality tortoise acetate shell with metal accents for absolute strength and lightness. Represents elegant, luxury status for beaches, street walks, and sunset beach parties.",
-    price: 45000,
-    originalPrice: 65000,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDoArHt2XxArub18bK8PZP0et2kHIVpWH-xP9IFqsowANLgLNqGG3HrSgME17kXvoSzm6cKDRlGg1k2b43xQod7CRvDKu5j5xFRCE1ScPm9ZW3eMvNVWHpATIztNqLeCRsbQp8RdC4L7wW7epyGZJ8DmrIFH09ZpCPzlmXKnAFtvH8VppIoXipnocOYNiki2LHWQg6kl-fyC6gjlGST-vHBXYymZQIZ3nJ8mpKOlCvM8u0szv6xxAnRPcTvY2_P28GIBDoXlUJgAyZm",
-    rating: 4.6,
-    reviewsCount: 94,
-    category: "Fashion",
-    vendorId: "v_lekki",
-    vendorName: "Lekki Elite Optics",
-    stock: 22,
-    isTrending: true,
-    highlights: [
-      "Polarized anti-glare shielding",
-      "Breakproof lightweight structural acetate",
-      "Premium stainless hinges with smooth pivots"
-    ]
-  },
-  {
-    id: "p8",
-    title: "Yaba Streetwear Premium Heavyweight Hoodie",
-    description: "An incredibly thick, luxury graphic streetwear hoodie printed right inside Yaba's creative art centers. Features a massive 450GSM cotton fleece with dropped shoulders, roomy side pouch, and custom Lagos typography across the chest. Combines modern comfort with high-fashion streetwear energy.",
-    price: 38000,
-    originalPrice: 50000,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCcLaXCLsW43s98ybP73OCEvgJ9RE0FJfsB7gq1pYSS1RNbemeXv2r4tI-NbsnnphK4NE_-6ZZkv7hM0dws1vCm2AP-9YFu-EsLl7nUpPyS5YH6Nkbbjc6TNcl-KKzmYG9VCEde0WxXCNuCHrlh-AaC-eMGEfOqJ_Y-YPpkbNTCF8ysjQe0ny1b6s9Of_uf0MitHtymBND4HNMP_EUCwW6GNfssHw6HefGEl-C7S8GsT_1TaMCqufEuMrgl2MYYbnxKntqqQA0H6Vh9",
-    rating: 4.7,
-    reviewsCount: 104,
-    category: "Fashion",
-    vendorId: "v_yaba",
-    vendorName: "Yaba Streetwear",
-    sizes: ["Small", "Medium", "Large", "X-Large"],
-    colors: ["Cyber Charcoal", "Abuja Sand"],
-    stock: 18,
-    isNew: true,
-    highlights: [
-      "Hyper-dense 450GSM organic brushed cotton",
-      "Thick puff printing graphics",
-      "Shrinkproof warm washing resistance"
-    ]
-  }
+// Helper to generate consistent deterministic values
+function getDeterministicValue(index: number, min: number, max: number): number {
+  const seed = (index * 9301 + 49297) % 233280;
+  const random = seed / 233280;
+  return Math.floor(min + random * (max - min));
+}
+
+const fashionItems = [
+  "Men's Cotton Shirt",
+  "Slim Fit Chinos Trousers",
+  "Classic Leather Belt",
+  "Unisex Denim Jacket",
+  "Ankara Canvas Sneakers",
+  "Premium Leather Slides",
+  "Casual Summer Shorts",
+  "Linen Short Sleeve Shirt",
+  "Running Athletic Socks",
+  "Kaftan Traditional Attire",
+  "Cozy Knit Sweater",
+  "Aviator UV Sunglasses",
+  "Cotton Polo T-Shirt",
+  "Waterproof Sport Watch"
 ];
+
+const electronicsItems = [
+  "Bluetooth Earbuds",
+  "Wireless Charging Pad",
+  "Smart Fitness Tracker",
+  "Portable Power Bank 20k",
+  "Noise Cancelling Headphones",
+  "LED Desk Lamp USB",
+  "Mechanical Gaming Keyboard",
+  "Ergonomic Wireless Mouse",
+  "Mini Bluetooth Speaker",
+  "4K Ultra HD Dashcam",
+  "USB-C Multi-Port Adapter",
+  "Smart Home Plug Wi-Fi",
+  "LCD Writing Tablet",
+  "Dual Port Fast Charger"
+];
+
+const homeItems = [
+  "Rice Cooker 2L",
+  "Electric Kettle 1.8L",
+  "Non-Stick Fry Pan 26cm",
+  "Stainless Steel Cutleries",
+  "Personal Blender 500W",
+  "Ceramic Coffee Mug Set",
+  "LED Ambient Strip Lights",
+  "Storage Container Set",
+  "Digital Kitchen Scale",
+  "Memory Foam Pillow",
+  "Silicone Cooking Utensils",
+  "Manual Citrus Juicer",
+  "Microfiber Cleaning Cloths",
+  "Wall Mounted Key Holder"
+];
+
+const beautyItems = [
+  "Pure Organic Shea Butter",
+  "Hydrating Coconut Body Oil",
+  "Natural Herbal Face Wash",
+  "Moisturizing Lip Balm",
+  "Aloe Vera Soothing Gel",
+  "Gentle Exfoliating Scrub",
+  "Teatree Acne Clarifier",
+  "Nourishing Hair Serum",
+  "African Black Soap Liquid",
+  "Rosewater Face Toner Spray",
+  "Vitamin C Glow Serum",
+  "Moisturizing Face Cream",
+  "Peppermint Foot Scrub",
+  "Lavender Essential Oil"
+];
+
+const sportsItems = [
+  "Premium Football Jersey",
+  "Resistance Bands Set",
+  "High Density Yoga Mat",
+  "Stainless Steel Flask 1L",
+  "Digital Jump Rope",
+  "Sports Gym Duffle Bag",
+  "Breathable Running Hat",
+  "Compression Knee Sleeve",
+  "Adjustable Hand Grip",
+  "Lightweight Workout Gloves",
+  "Speed Agility Ladder",
+  "Microfiber Sports Towel",
+  "Elastic Waist Trimmer",
+  "Athletic Running Shoes"
+];
+
+const groceryItems = [
+  "Crunchy Chin Chin Tub 1kg",
+  "Premium Long Grain Rice",
+  "Whole Wheat Flour 2kg",
+  "Organic Palm Oil 1L",
+  "Pure Blossom Honey 500g",
+  "Gourmet Suya Spice Blend",
+  "Dried Plantain Chips Bag",
+  "Roasted Cashew Nuts Pack",
+  "Rich Cocoa Powder 400g",
+  "Instant Custard Powder",
+  "Aromatic Camomile Tea",
+  "Premium Iodized Salt Bag",
+  "Ground Nutmeg Powder",
+  "Natural Coconut Flakes"
+];
+
+const categoriesInfo = [
+  { id: "fashion", name: "Fashion", minPrice: 5000, maxPrice: 35000, items: fashionItems },
+  { id: "electronics", name: "Electronics", minPrice: 10000, maxPrice: 250000, items: electronicsItems },
+  { id: "home-kitchen", name: "Home and Kitchen", minPrice: 3000, maxPrice: 80000, items: homeItems },
+  { id: "beauty", name: "Beauty", minPrice: 2000, maxPrice: 45000, items: beautyItems },
+  { id: "sports", name: "Sports", minPrice: 4000, maxPrice: 60000, items: sportsItems },
+  { id: "grocery", name: "Grocery", minPrice: 1000, maxPrice: 25000, items: groceryItems }
+];
+
+export const MOCK_PRODUCTS: Product[] = [];
+
+let idCounter = 1;
+categoriesInfo.forEach((catInfo, catIdx) => {
+  const count = (catIdx < 2) ? 84 : 83; // 84 + 84 + 83 + 83 + 83 + 83 = 500
+  for (let i = 0; i < count; i++) {
+    const baseItemIndex = i % catInfo.items.length;
+    const baseItem = catInfo.items[baseItemIndex];
+    const variationNum = Math.floor(i / catInfo.items.length) + 1;
+    let title = baseItem;
+    if (variationNum > 1) {
+      const extraSpecifiers = [
+        "Pro Edition", "Premium Brand", "Eco Selection", "Classic Fit", "New Edition",
+        "Ultra Durable", "Smart Comfort", "Export Quality", "Home Choice", "Special Blend"
+      ];
+      const specifier = extraSpecifiers[i % extraSpecifiers.length];
+      title = `${baseItem} (${specifier} #${variationNum})`;
+    }
+
+    const price = getDeterministicValue(idCounter, catInfo.minPrice, catInfo.maxPrice);
+    const stock = getDeterministicValue(idCounter + 200, 5, 200);
+    const ratingRaw = 4 + (getDeterministicValue(idCounter + 400, 4, 9) / 10);
+    const reviewsCount = getDeterministicValue(idCounter + 600, 10, 350);
+
+    // Keep product cards image-free and leave image slots empty
+    const image = "";
+
+    MOCK_PRODUCTS.push({
+      id: `p${idCounter}`,
+      title,
+      description: `A reliable and highly rated ${title.toLowerCase()} from our premium ${catInfo.name} line. Offers exceptional durability, high utility, and superior local quality. Designed for performance.`,
+      price,
+      image,
+      rating: Number(ratingRaw.toFixed(1)),
+      reviewsCount,
+      category: catInfo.name,
+      vendorId: i % 3 === 0 ? "v_heritage" : i % 3 === 1 ? "v_alaba" : "v_compvillage",
+      vendorName: i % 3 === 0 ? "Eko Heritage Weavers" : i % 3 === 1 ? "Alaba Digital Hub" : "Computer Village Depot",
+      stock,
+      isBestSeller: idCounter % 15 === 0,
+      isTrending: idCounter % 17 === 0,
+      isNew: idCounter % 19 === 0,
+    });
+    idCounter++;
+  }
+});
 
 export const MOCK_REVIEWS = [
   {
     id: "r1",
     author: "Fatima Abubakar",
-    text: "The fabric of the Aso-Oke was incredibly supple. Standard local designs don't match the weave luxury Eko heritage delivered on this cap! Highly recommended for wedding guests.",
+    text: "Excellent product quality. Fast delivery and exactly what was described. Highly recommended!",
     stars: 5,
     date: "2 days ago",
     isVerified: true,
@@ -323,7 +252,7 @@ export const MOCK_REVIEWS = [
   {
     id: "r2",
     author: "Chinedu Okafor",
-    text: "Ordered this Prostation laptop to Enugu. I was skeptical about fast courier routing, but the live map map was very accurate. Got it in exactly 48 hours without a single scratch!",
+    text: "Fast logistics to Enugu, got it within 48 hours in perfect condition! Excellent support.",
     stars: 5,
     date: "1 week ago",
     isVerified: true,
@@ -332,7 +261,7 @@ export const MOCK_REVIEWS = [
   {
     id: "r3",
     author: "Olumide Johnson",
-    text: "The vanilla nutmeg crunch of these snacks is phenomenal. My children cleared almost 1kg during our weekend party. Perfect replacement for overseas sweets.",
+    text: "Perfect purchase. Unbeatable value and exceptional quality. Will definitely order again.",
     stars: 4,
     date: "3 weeks ago",
     isVerified: true,
@@ -400,7 +329,7 @@ export const MOCK_VENDORS: Vendor[] = [
     id: "v_heritage",
     name: "Eko Heritage Weavers",
     ownerName: "Alimi Oladipupo",
-    avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuDyn4B2-V84MePwupfbwkEKhLQZdlL8hNqvy5gdSuuvV5AgNj9_X14xepvm-f6gD-UQQkZeGOYZZEdxKw_OzZojynwLNP9KTtmR-KshlkTAA277e5ltFM8DPGOB0e3XkA2kytARxY1sWjIdPMDcbSru9Prlk3t_P4AF3yHOpEtReItGD1Wm70oBCTEHv04sGxj5gyqoj7PpLIn1fhYHleiFWwqdhGHYt42VwVCVtTTxlNsuctVA5fTkegBH5d48Uxnq7-E3cxEZ7mQR",
+    avatar: "https://lh3.googleusercontent.com/v_heritage",
     rating: 4.9,
     ratingCount: 145,
     salesToday: 342050,

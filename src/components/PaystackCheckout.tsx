@@ -31,7 +31,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
       const messages = [
         "Verifying secure pipeline...",
         "Connecting Direct Bank Gateway...",
-        "Authenticating Escrow Settlement...",
+        "Authenticating Direct Checkout Settlement...",
         "Resolving Cryptographic Handshake...",
         "Finalizing Ledger Registry holds..."
       ];
@@ -463,7 +463,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
                         
                         <div className="border-t border-neutral-100 pt-3">
                           <p className="text-xs text-neutral-400 font-bold tracking-wider">BANK NAME</p>
-                          <p className="text-sm font-extrabold text-neutral-800">Providus Bank (NaijaStores Escrow)</p>
+                          <p className="text-sm font-extrabold text-neutral-800">Providus Bank (Naija Online Stores)</p>
                         </div>
 
                         <div>

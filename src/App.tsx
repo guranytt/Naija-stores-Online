@@ -194,7 +194,7 @@ export default function App() {
           { name: "Eko Calfskin slides", qty: 1, price: 32000 }
         ],
         actionUrl: window.location.origin,
-        alertReason: "Standard compliance check has triggered validation verification holds on the escrow network."
+        alertReason: "Standard compliance check has triggered validation verification holds on our automated order dispatch queue."
       }
     };
     const response = await sendResendEmail(payload);
@@ -709,7 +709,7 @@ export default function App() {
                 <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
                   <p className="font-bold text-emerald-950 flex items-center space-x-1">
                     <Sparkles className="w-4 h-4 text-orange-400" />
-                    <span>NaijaStores Escrow Protocol</span>
+                    <span>Naija Online Stores Protocol</span>
                   </p>
                   <p className="text-emerald-800 leading-normal font-semibold">
                     The platform coordinates e-commerce metrics in Nigerian Naira (₦). Customers, vendors and platform leads can swap, mock, and simulate live triggers seamlessly.
@@ -800,14 +800,14 @@ export default function App() {
       </AnimatePresence>
 
       {/* Custom Global Footer */}
-      <footer className="bg-emerald-950 text-white/50 py-8 border-t border-emerald-900 text-center text-xs select-none mt-auto">
+      <footer className="bg-emerald-950 text-white/50 py-8 border-t border-emerald-900 text-center text-xs select-none mt-auto animate-fade-in">
         <div className="max-w-7xl mx-auto px-4 space-y-2">
-          <p className="font-bold text-emerald-300 tracking-wide">₦ NaijaStores Online Plaza Limited</p>
+          <p className="font-bold text-emerald-300 tracking-wide">₦ Naija Online Stores Limited</p>
           <p className="leading-relaxed max-w-md mx-auto">
             A high-fidelity sandbox demonstrating real-time Nigerian vendor marketplaces, Paystack payment validations, and animated interstate logistics tracing.
           </p>
           <div className="pt-4 text-[10px] uppercase font-bold tracking-widest border-t border-emerald-900 max-w-xs mx-auto flex justify-between">
-            <span>Escrow Guarantee</span>
+            <span>Direct Purchase Flow</span>
             <span>&bull;</span>
             <span>Paystack Secured</span>
             <span>&bull;</span>
