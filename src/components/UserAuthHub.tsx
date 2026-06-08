@@ -84,23 +84,6 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
     onUpdateEmail(user.email || "");
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    setFeedback(null);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      setFeedback({ type: "error", msg: err.message || "Failed to initiate Google authentication" });
-      setIsLoading(false);
-    }
-  };
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -160,10 +143,10 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
           redirectTo: window.location.origin
         });
         if (error) throw error;
-        setFeedback({ type: "success", msg: "Password recovery link dispatched successfully via our verified mail servers." });
+        setFeedback({ type: "success", msg: "Password reset link sent to your email." });
       }
     } catch (err: any) {
-      setFeedback({ type: "error", msg: err.message || "Auth processing error" });
+      setFeedback({ type: "error", msg: err.message || "Login error" });
     } finally {
       setIsLoading(false);
     }
@@ -201,9 +184,9 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
         }
       }
 
-      setFeedback({ type: "success", msg: "Profile synchronized with cloud ledger successfully!" });
+      setFeedback({ type: "success", msg: "Profile saved successfully!" });
     } catch (err: any) {
-      setFeedback({ type: "error", msg: err.message || "Failure to update metadata credentials" });
+      setFeedback({ type: "error", msg: err.message || "Could not update profile" });
     } finally {
       setIsLoading(false);
     }
@@ -221,9 +204,9 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
       });
       if (error) throw error;
       setNewPassword("");
-      setFeedback({ type: "success", msg: "Security credentials updated! Your password has been hardened." });
+      setFeedback({ type: "success", msg: "Password updated successfully!" });
     } catch (err: any) {
-      setFeedback({ type: "error", msg: err.message || "Could not update credentials" });
+      setFeedback({ type: "error", msg: err.message || "Could not update password" });
     } finally {
       setIsLoading(false);
     }
@@ -286,11 +269,11 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
               </div>
             </div>
 
-            {/* Profile Modification Ledger Form */}
+            {/* Profile Modification Form */}
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 flex items-center space-x-2">
                 <Edit3 className="w-3.5 h-3.5 text-orange-400" />
-                <span>Update Account Ledger metadata</span>
+                <span>Update Account Information</span>
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -318,7 +301,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Settlement State Region</label>
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">State Region</label>
                 <select
                   value={profile.location}
                   onChange={(e) => setProfile(prev => ({ ...prev, location: e.target.value }))}
@@ -352,21 +335,21 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                 disabled={isLoading}
                 className="px-5 py-2.5 bg-neutral-900 text-white rounded-xl font-bold text-xs hover:bg-neutral-800 disabled:opacity-50 transition-all cursor-pointer shadow-sm active:scale-95"
               >
-                {isLoading ? "Synchronizing ledger..." : "Update Profile Ledger"}
+                {isLoading ? "Saving..." : "Save Profile"}
               </button>
             </form>
 
             <hr className="border-neutral-100" />
 
-            {/* Hardening password credentials */}
+            {/* Change password */}
             <form onSubmit={handleUpdateCredentials} className="space-y-4">
               <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 flex items-center space-x-2">
                 <Key className="w-3.5 h-3.5 text-orange-400" />
-                <span>Harden account credentials</span>
+                <span>Change password</span>
               </p>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">New Secure Password</label>
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">New Password</label>
                 <input
                   type="password"
                   placeholder="Minimum 6 characters long"
@@ -402,7 +385,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                 className="flex items-center space-x-1.5 text-xs font-bold text-red-550 hover:text-red-700 hover:underline cursor-pointer text-red-600"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Terminate Session (Sign Out)</span>
+                <span>Sign Out</span>
               </button>
             </div>
           </div>
@@ -412,14 +395,14 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
             <div className="text-center space-y-2">
               <div className="w-14 h-14 bg-orange-100/70 border border-orange-200 text-orange-600 rounded-2xl flex items-center justify-center font-black text-2xl mx-auto shadow-md">₦</div>
               <h2 className="text-2xl font-black text-neutral-905 text-neutral-900 tracking-tight">
-                {authMode === "login" && "Shopper Authentication"}
-                {authMode === "register" && "Create Shopper Account"}
-                {authMode === "forgot" && "Recover Security Credentials"}
+                {authMode === "login" && "Log In"}
+                {authMode === "register" && "Sign Up"}
+                {authMode === "forgot" && "Reset Password"}
               </h2>
               <p className="text-xs text-neutral-400">
-                {authMode === "login" && "Specify email and password to securely authorize your Paystack merchant checkout"}
-                {authMode === "register" && "Join millions of shoppers and vendors across Lagos and all of Nigeria."}
-                {authMode === "forgot" && "Input registering email. A recovery security hash will be compiled."}
+                {authMode === "login" && "Enter your email and password to log in to your account."}
+                {authMode === "register" && "Create an account to start shopping."}
+                {authMode === "forgot" && "Enter your email to receive a password reset link."}
               </p>
             </div>
 
@@ -449,7 +432,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                         onChange={(e) => setRole(e.target.value)}
                         className="w-full px-3 py-3 text-xs border border-neutral-200 rounded-xl outline-none bg-white font-bold"
                       >
-                        <option value="customer">Shopper / Customer</option>
+                        <option value="customer">Customer</option>
                         <option value="vendor">Merchant / Vendor</option>
                         <option value="admin">Platform Admin</option>
                       </select>
@@ -516,7 +499,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
 
               {authMode !== "forgot" && (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">Secure Password</label>
+                  <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">Password</label>
                   <div className="relative">
                     <input
                       type="password"
@@ -553,45 +536,19 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
               >
                 {isLoading && <RefreshCw className="w-4 h-4 animate-spin mr-1.5" />}
                 <span>
-                  {authMode === "login" && "Authorize Secure Session"}
-                  {authMode === "register" && "Complete Sign Up Ledger"}
-                  {authMode === "forgot" && "Dispatch Recovery Mail"}
+                  {authMode === "login" && "Log In"}
+                  {authMode === "register" && "Sign Up"}
+                  {authMode === "forgot" && "Send Reset Link"}
                 </span>
               </button>
             </form>
 
-            {authMode !== "forgot" && (
-              <>
-                <div className="relative my-4 flex items-center justify-center">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-neutral-100"></div>
-                  </div>
-                  <span className="relative bg-white px-3 text-[10px] font-black uppercase tracking-widest text-neutral-400">or</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={isLoading}
-                  className="w-full py-3.5 border border-neutral-200 hover:bg-neutral-50/50 bg-white font-extrabold text-xs tracking-wider uppercase text-neutral-800 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center space-x-2"
-                >
-                  <span className="font-sans font-black text-sm tracking-normal capitalize flex items-center space-x-0.5">
-                    <span className="text-blue-500">G</span>
-                    <span className="text-red-500">o</span>
-                    <span className="text-yellow-500">o</span>
-                    <span className="text-blue-500">g</span>
-                    <span className="text-green-500">l</span>
-                    <span className="text-red-500">e</span>
-                  </span>
-                  <span>Continue with Google</span>
-                </button>
-              </>
-            )}
+            {/* Removed Google Sign In */}
 
             <div className="text-center border-t border-neutral-100 pt-5 flex flex-col gap-2.5">
               {authMode === "login" && (
                 <p className="text-xs text-neutral-500 font-medium">
-                  New to NaijaStores online plazas?
+                  New here?
                   <button
                     onClick={() => {
                       setFeedback(null);
@@ -599,14 +556,14 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                     }}
                     className="ml-1.5 font-bold text-neutral-900 hover:underline text-orange-600 transition-colors cursor-pointer"
                   >
-                    Register an Account
+                    Sign Up
                   </button>
                 </p>
               )}
 
               {authMode === "register" && (
                 <p className="text-xs text-neutral-500 font-medium">
-                  Already have a shopper account?
+                  Already have an account?
                   <button
                     onClick={() => {
                       setFeedback(null);
@@ -614,14 +571,14 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                     }}
                     className="ml-1.5 font-bold text-neutral-900 hover:underline text-orange-600 transition-colors cursor-pointer"
                   >
-                    Log In Here
+                    Log In
                   </button>
                 </p>
               )}
 
               {authMode === "forgot" && (
                 <p className="text-xs text-neutral-500 font-medium">
-                  Remembered credentials?
+                  Remembered your password?
                   <button
                     onClick={() => {
                       setFeedback(null);

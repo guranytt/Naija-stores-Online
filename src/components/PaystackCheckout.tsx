@@ -23,17 +23,17 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
   const [otp, setOtp] = useState("");
   const [selectedBank, setSelectedBank] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loaderMessage, setLoaderMessage] = useState("Verifying secure pipeline...");
+  const [loaderMessage, setLoaderMessage] = useState("Verifying connection...");
 
-  // Rotate secure pipeline loading checkpoints to enhance professional feel
+  // Rotate secure pipeline loading checkpoints
   useEffect(() => {
     if (loading) {
       const messages = [
-        "Verifying secure pipeline...",
-        "Connecting Direct Bank Gateway...",
-        "Authenticating Direct Checkout Settlement...",
-        "Resolving Cryptographic Handshake...",
-        "Finalizing Ledger Registry holds..."
+        "Verifying connection...",
+        "Connecting to bank...",
+        "Processing payment...",
+        "Securing transaction...",
+        "Finalizing payment..."
       ];
       let msgIndex = 0;
       setLoaderMessage(messages[0]);

@@ -23,6 +23,9 @@ export interface Product {
   rating: number;
   reviewsCount: number;
   category: string;
+  subCategory?: string;
+  condition?: "New" | "Fairly Used";
+  commissionPercentage?: number;
   vendorId: string;
   vendorName: string;
   sizes?: string[];
@@ -44,6 +47,22 @@ export interface Category {
   iconName: string; // lucide icon name representation
   itemCount: number;
   subcategories: string[];
+}
+
+export interface Advertisement {
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string;
+  position: 'homepage' | 'category' | 'product' | 'search';
+  targetCategory?: string;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'scheduled' | 'paused';
+  metrics: {
+    impressions: number;
+    clicks: number;
+  };
 }
 
 export interface CartItem {

@@ -6,8 +6,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home } from "lucide-react";
-import { Product, Category, CartItem, Vendor } from "../types";
-import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS } from "../data/mockData";
+import { Product, Category, CartItem, Vendor, Advertisement } from "../types";
+import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_ADS, FLASH_SALE_PRODUCTS } from "../data/mockData";
 
 // Naira formatter helper
 export const formatNaira = (value: number) => {
@@ -53,6 +53,31 @@ export default function CustomerViews({
   const [sortOption, setSortOption] = useState<string>("recommended");
   const [selectedStateForShipping, setSelectedStateForShipping] = useState<string>("Lagos");
   const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [flashSaleTime, setFlashSaleTime] = useState({ h: 2, m: 21, s: 6 });
+  
+  const homepageAds = MOCK_ADS.filter(ad => ad.position === "homepage" && ad.status === "active");
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setFlashSaleTime((prev) => {
+        let { h, m, s } = prev;
+        if (s > 0) return { h, m, s: s - 1 };
+        if (m > 0) return { h, m: m - 1, s: 59 };
+        if (h > 0) return { h: h - 1, m: 59, s: 59 };
+        return { h: 2, m: 21, s: 6 }; // loop back for demo
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  React.useEffect(() => {
+    if (homepageAds.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentAdIndex((prev) => (prev + 1) % homepageAds.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [homepageAds.length]);
 
   React.useEffect(() => {
     setIsSearchLoading(true);
@@ -183,7 +208,46 @@ export default function CustomerViews({
             className="space-y-8"
           >
             
-            {/* Animated Hero Mega Banner */}
+            {/* Animated Hero Mega Banner Carousel */}
+            {homepageAds.length > 0 && (
+              <div className="relative w-full h-32 sm:h-48 rounded-2xl overflow-hidden shadow-md mb-6 group cursor-pointer" onClick={() => onNavigate("shop")}>
+                <AnimatePresence initial={false} mode="wait">
+                  <motion.div
+                    key={homepageAds[currentAdIndex].id}
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                    className="absolute inset-0 w-full h-full"
+                  >
+                    <img 
+                      src={homepageAds[currentAdIndex].imageUrl} 
+                      alt={homepageAds[currentAdIndex].title} 
+                      className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110 ease-out" 
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
+                      <span className="text-[10px] text-orange-400 font-extrabold uppercase tracking-widest mb-1 bg-black/50 backdrop-blur-sm w-fit px-2 py-0.5 rounded">Sponsored</span>
+                      <h3 className="text-white font-black text-xl sm:text-2xl drop-shadow-md">{homepageAds[currentAdIndex].title}</h3>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+                
+                {/* Carousel Indicators */}
+                {homepageAds.length > 1 && (
+                  <div className="absolute bottom-4 right-4 flex space-x-1.5 z-10">
+                    {homepageAds.map((_, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`transition-all duration-300 rounded-full h-1.5 ${idx === currentAdIndex ? 'w-4 bg-orange-400' : 'w-1.5 bg-white/50'}`}
+                        onClick={(e) => { e.stopPropagation(); setCurrentAdIndex(idx); }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <motion.section
               initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -226,7 +290,7 @@ export default function CustomerViews({
                   transition={{ duration: 0.4, delay: 0.3 }}
                   className="text-sm text-emerald-100/90 leading-relaxed max-w-md"
                 >
-                  Connecting top-tier local artisans, electronic vendors and raw organic cooperatives directly to your doorstep with secure direct checkout.
+                  Connecting local vendors to your doorstep with direct checkout.
                 </motion.p>
                 
                 <motion.div
@@ -329,6 +393,163 @@ export default function CustomerViews({
             </motion.div>
           </section>
 
+          {/* Flash Sales Section */}
+          <section className="space-y-4 bg-orange-50/50 p-4 rounded-2xl border border-orange-100">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between pb-3 border-b border-orange-200/60 gap-3">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-xl sm:text-2xl font-black text-orange-600 tracking-tight flex items-center">
+                    <Sparkles className="w-5 h-5 mr-2 fill-orange-500" />
+                    Flash Sales
+                  </h2>
+                </div>
+                <div className="flex items-center space-x-2 mt-2">
+                  <span className="text-xs text-neutral-500 font-bold uppercase tracking-wider">Time Left:</span>
+                  <div className="flex items-center space-x-1.5 text-orange-600 font-black text-sm">
+                    <div className="bg-orange-100 px-2 py-0.5 rounded">{flashSaleTime.h.toString().padStart(2, '0')}h</div>
+                    <span>:</span>
+                    <div className="bg-orange-100 px-2 py-0.5 rounded">{flashSaleTime.m.toString().padStart(2, '0')}m</div>
+                    <span>:</span>
+                    <div className="bg-orange-100 px-2 py-0.5 rounded">{flashSaleTime.s.toString().padStart(2, '0')}s</div>
+                  </div>
+                </div>
+              </div>
+              <button className="text-sm font-bold text-orange-500 hover:text-orange-600 transition-colors uppercase tracking-widest self-start sm:self-auto flex items-center">
+                See All <ChevronRight className="w-4 h-4 ml-0.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {FLASH_SALE_PRODUCTS.map((p, idx) => {
+                const isAdded = !!justAddedProducts[p.id];
+                const stockLeft = p.stock;
+                return (
+                  <motion.div
+                    key={`fs-${p.id}`}
+                    onClick={() => {
+                      onSelectProduct(p.id);
+                      onNavigate("details");
+                    }}
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                    whileHover={{ y: -4, scale: 1.01 }}
+                    className="bg-white rounded-2xl border border-orange-100 p-3 flex flex-row h-40 shadow-sm hover:shadow-md cursor-pointer transition-all relative overflow-hidden"
+                  >
+                    {/* Left: Image */}
+                    <div className="w-[35%] h-full bg-neutral-50 rounded-xl overflow-hidden relative shrink-0">
+                      {p.image ? (
+                        <img src={p.image} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="flex w-full h-full items-center justify-center text-[9px] uppercase font-bold text-neutral-300">No Img</div>
+                      )}
+                      {p.salePercentage && (
+                        <span className="absolute top-2 left-2 bg-red-600 text-white font-extrabold text-[9px] uppercase px-2 py-1 rounded shadow-sm z-10">
+                          -{p.salePercentage}%
+                        </span>
+                      )}
+                    </div>
+                    {/* Right: Info */}
+                    <div className="flex-1 pl-4 py-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-2 leading-snug">{p.title}</h3>
+                        <div className="flex items-end space-x-2 mt-1">
+                          <p className="font-black text-lg text-neutral-900 leading-none">{formatNaira(p.price)}</p>
+                          {p.originalPrice && <p className="text-[10px] text-neutral-400 line-through leading-none mb-1">{formatNaira(p.originalPrice)}</p>}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 mt-2">
+                        <div className="w-full bg-neutral-100 rounded-full h-1.5 overflow-hidden">
+                          <div className="bg-orange-500 h-full rounded-full" style={{ width: `${(stockLeft / (stockLeft + 50)) * 100}%` }} />
+                        </div>
+                        <div className="flex items-end justify-between">
+                          <span className="text-[10px] text-neutral-500 font-bold">{stockLeft} items left</span>
+                          <button 
+                            onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
+                            className={`text-[10px] font-bold px-3 py-1.5 rounded transition-all ${isAdded ? "bg-emerald-600 text-white" : "bg-orange-500 hover:bg-orange-600 text-white"}`}
+                          >
+                            {isAdded ? "Added" : "Add to Cart"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Featured Rectangular Products (Added to Homepage) */}
+          <section className="space-y-4">
+            <div className="text-left pb-2 border-b border-neutral-100 flex justify-between items-end">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">Featured Selections</h2>
+                <p className="text-xs text-neutral-400 font-semibold mt-1">Handpicked quality items delivered fast</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {MOCK_PRODUCTS.slice(4, 8).map((p, idx) => {
+                const isAdded = !!justAddedProducts[p.id];
+                return (
+                  <motion.div
+                    key={`feat-rect-${p.id}`}
+                    onClick={() => {
+                      onSelectProduct(p.id);
+                      onNavigate("details");
+                    }}
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                    whileHover={{ y: -4, scale: 1.01 }}
+                    className="bg-white rounded-2xl border border-neutral-150 p-3 flex flex-row h-36 shadow-sm hover:shadow-md cursor-pointer transition-all"
+                  >
+                    {/* Left: Image */}
+                    <div className="w-[35%] h-full bg-neutral-50 rounded-xl overflow-hidden relative shrink-0">
+                      {p.image ? (
+                        <img src={p.image} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} />
+                      ) : (
+                        <div className="flex w-full h-full items-center justify-center text-[9px] uppercase font-bold text-neutral-300">No Img</div>
+                      )}
+                      {p.salePercentage && (
+                        <span className="absolute top-2 left-2 bg-red-600 text-white font-extrabold text-[8px] uppercase px-1.5 py-0.5 rounded shadow-sm z-10">
+                          -{p.salePercentage}%
+                        </span>
+                      )}
+                    </div>
+                    {/* Right: Info */}
+                    <div className="flex-1 pl-4 py-1 flex flex-col justify-between">
+                      <div>
+                        <p className="text-[9px] font-extrabold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
+                        <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-2 leading-snug mt-1">{p.title}</h3>
+                        <div className="flex items-center space-x-1 text-[10px] text-neutral-500 mt-1">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          <span className="font-bold">{p.rating}</span>
+                          <span>({p.reviewsCount})</span>
+                        </div>
+                      </div>
+                      <div className="flex items-end justify-between">
+                        <div>
+                          {p.originalPrice && <p className="text-[10px] text-neutral-400 line-through leading-none">{formatNaira(p.originalPrice)}</p>}
+                          <p className="font-black text-sm text-neutral-900 leading-none">{formatNaira(p.price)}</p>
+                        </div>
+                        <button 
+                          onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
+                          className={`text-[9px] font-bold px-2 py-1 rounded transition-all ${isAdded ? "bg-emerald-600 text-white" : "bg-neutral-100 hover:bg-orange-500 text-neutral-700 hover:text-white"}`}
+                        >
+                          {isAdded ? "Added" : "Buy Now"}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </section>
+
           {/* Trending Deals of the week (Asymmetric Bento layout) */}
           <section className="space-y-4">
             <div className="text-left pb-2 border-b border-neutral-100">
@@ -400,7 +621,12 @@ export default function CustomerViews({
 
                     <div className="p-4 flex-1 flex flex-col justify-between text-left space-y-2">
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
+                        <div className="flex items-center space-x-1">
+                          <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
+                          {p.condition === "Fairly Used" && (
+                            <span className="text-[8px] uppercase tracking-wider bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap">Fairly Used</span>
+                          )}
+                        </div>
                         <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-1 truncate group-hover:text-orange-500 transition-colors">
                           {p.title}
                         </h3>
@@ -458,7 +684,7 @@ export default function CustomerViews({
               <div className="text-left">
                 <h4 className="font-extrabold text-neutral-900">100% Secure Direct Checkout</h4>
                 <p className="text-xs text-neutral-500 mt-1">
-                  Naija Online Stores processes shopper payments securely. Purchases are routed directly to vendors for rapid dispatch.
+                  Naija Online Stores processes payments securely. Purchases are sent directly to vendors for quick delivery.
                 </p>
               </div>
             </div>
@@ -484,6 +710,26 @@ export default function CustomerViews({
           transition={pageTransition}
           className="space-y-6"
         >
+        
+          {/* Ad Banner for Category / Search Results */}
+          {MOCK_ADS.filter(ad => (ad.position === "category" || ad.position === "search") && ad.status === "active").map((ad, idx) => (
+             <motion.div
+               key={ad.id}
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.1 * idx }}
+               className="w-full h-24 sm:h-32 rounded-2xl overflow-hidden relative group cursor-pointer shadow-sm mb-4"
+               onClick={() => {
+                  // Tracking logic
+               }}
+             >
+               <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-4">
+                 <span className="text-[9px] text-orange-400 font-extrabold uppercase tracking-widest mb-1 bg-black/50 w-fit px-1.5 py-0.5 rounded">Promoted</span>
+                 <h3 className="text-white font-black text-lg sm:text-xl">{ad.title}</h3>
+               </div>
+             </motion.div>
+          ))}
           
           {/* Filters Bar Row */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-4 border border-neutral-200 rounded-2xl shadow-xs">
@@ -546,15 +792,15 @@ export default function CustomerViews({
             </div>
           </div>
 
-          {/* Main Catalog Grid - Styled exactly to display horizontal rectangular cards two per line downwards */}
-          <div className="grid grid-cols-2 gap-4 md:gap-6">
+          {/* Main Catalog Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {isSearchLoading ? (
               Array.from({ length: 8 }).map((_, skeletonIdx) => (
                 <div
                   key={`skeleton-card-${skeletonIdx}`}
-                  className="bg-white rounded-2xl border border-neutral-150 p-3 flex flex-row h-36 sm:h-44 shadow-ambient select-none text-left gap-3"
+                  className="bg-white rounded-2xl border border-neutral-150 p-3 flex flex-col h-72 sm:h-80 shadow-ambient select-none text-left gap-3"
                 >
-                  <div className="w-[35%] h-full shimmer-bg rounded-xl shrink-0" />
+                  <div className="w-full h-32 sm:h-40 shimmer-bg rounded-xl shrink-0" />
                   <div className="flex-1 flex flex-col justify-between py-1">
                     <div className="space-y-2">
                       <div className="h-3 shimmer-bg rounded-md w-1/3" />
@@ -583,11 +829,11 @@ export default function CustomerViews({
                   viewport={{ once: true, margin: "-10px" }}
                   transition={{ duration: 0.35, delay: Math.min(idx * 0.04, 0.3) }}
                   whileHover={shouldReduceMotion ? {} : { y: -5, scale: 1.01, boxShadow: "0 12px 20px -8px rgba(0,0,0,0.06)" }}
-                  className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-sm hover:shadow-md group cursor-pointer transition-all flex flex-row h-36 sm:h-44 md:h-48"
+                  className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-sm hover:shadow-md group cursor-pointer transition-all flex flex-col justify-between h-auto"
                   id={`product-cell-${p.id}`}
                 >
-                  {/* Left Side: Rectangular Image Area (35% width, horizontal rectangular ratio context) */}
-                  <div className="relative w-[35%] h-full bg-neutral-50 overflow-hidden shrink-0 border-r border-neutral-100 flex items-center justify-center">
+                  {/* Top Side: Square Image Area (Vertical layout context) */}
+                  <div className="relative w-full aspect-square bg-neutral-50 overflow-hidden flex flex-col items-center justify-center border-b border-neutral-100/60">
                     {p.image ? (
                       <img
                         src={p.image}
@@ -630,9 +876,14 @@ export default function CustomerViews({
                   <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between text-left min-w-0">
                     <div className="space-y-1 sm:space-y-1.5">
                       <div className="flex items-center justify-between gap-1">
-                        <span className="text-[8px] sm:text-[9px] font-bold text-orange-500 uppercase tracking-widest block truncate">
-                          {p.vendorName}
-                        </span>
+                        <div className="flex items-center space-x-1.5 min-w-0">
+                          <span className="text-[8px] sm:text-[9px] font-bold text-orange-500 uppercase tracking-widest block truncate">
+                            {p.vendorName}
+                          </span>
+                          {p.condition === "Fairly Used" && (
+                            <span className="text-[7px] sm:text-[8px] uppercase tracking-wider bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap">Pre-Owned</span>
+                          )}
+                        </div>
                         {p.isBestSeller && (
                           <span className="bg-orange-500 text-white font-black text-[7px] sm:text-[8px] uppercase px-1 py-0.5 rounded tracking-wider shrink-0">
                             Best
@@ -891,9 +1142,14 @@ export default function CustomerViews({
             {/* Product Configuration Details (7 columns) */}
             <div className="lg:col-span-7 space-y-6">
               <div className="space-y-2 pb-4 border-b border-neutral-100">
-                <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight">
-                  {detailProduct.title}
-                </h1>
+                <div className="flex items-center space-x-2">
+                  <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight">
+                    {detailProduct.title}
+                  </h1>
+                  {detailProduct.condition === "Fairly Used" && (
+                    <span className="px-2 py-1 bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-widest rounded-md border border-amber-200">Fairly Used</span>
+                  )}
+                </div>
                 
                 <div className="flex flex-wrap items-center gap-4 text-sm pt-1">
                   <div className="flex items-center space-x-1">
@@ -1166,7 +1422,7 @@ export default function CustomerViews({
         >
           <div className="text-left pb-4 border-b border-neutral-100">
             <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">Your Shopping Basket</h1>
-            <p className="text-xs text-neutral-400 font-semibold mt-1">Verify cart configurations and secure shipment details before gateway routing</p>
+            <p className="text-xs text-neutral-400 font-semibold mt-1">Review your cart and shipping details before payment</p>
           </div>
 
           {cart.length === 0 ? (
@@ -1396,7 +1652,7 @@ export default function CustomerViews({
                 <div className="p-3 bg-cyan-50/50 rounded-xl flex items-start space-x-2 text-[10px] border border-cyan-100 tracking-wide">
                   <ShieldCheck className="w-4 h-4 text-cyan-600 flex-shrink-0 mt-0.5" />
                   <p className="text-cyan-800 font-medium">
-                    Secure verification handled by Paystack. Card details are fully tokenized. Shopper security guaranteed.
+                  Secure verification handled by Paystack. Your details are safe.
                   </p>
                 </div>
               </div>

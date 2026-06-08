@@ -20,7 +20,7 @@ import PaystackCheckout from "./components/PaystackCheckout";
 import { Product, CartItem, Order, Vendor } from "./types";
 import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS } from "./data/mockData";
 import { formatNaira } from "./components/CustomerViews";
-import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText } from "lucide-react";
+import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText, Store } from "lucide-react";
 import { supabase, getSupabaseData, saveSupabaseRecord, PROVISION_SQL_SCRIPT } from "./supabase";
 import { sendResendEmail, fetchEmailLogs, MailLogEntry } from "./emailService";
 
@@ -800,18 +800,76 @@ export default function App() {
       </AnimatePresence>
 
       {/* Custom Global Footer */}
-      <footer className="bg-emerald-950 text-white/50 py-8 border-t border-emerald-900 text-center text-xs select-none mt-auto animate-fade-in">
-        <div className="max-w-7xl mx-auto px-4 space-y-2">
-          <p className="font-bold text-emerald-300 tracking-wide">₦ Naija Online Stores Limited</p>
-          <p className="leading-relaxed max-w-md mx-auto">
-            A high-fidelity sandbox demonstrating real-time Nigerian vendor marketplaces, Paystack payment validations, and animated interstate logistics tracing.
-          </p>
-          <div className="pt-4 text-[10px] uppercase font-bold tracking-widest border-t border-emerald-900 max-w-xs mx-auto flex justify-between">
-            <span>Direct Purchase Flow</span>
-            <span>&bull;</span>
-            <span>Paystack Secured</span>
-            <span>&bull;</span>
-            <span>State Tracking</span>
+      <footer className="bg-neutral-950 py-12 border-t border-neutral-900 border-opacity-50 mt-auto animate-fade-in relative z-10 w-full overflow-hidden text-neutral-400">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12 pb-10 border-b border-neutral-800/50">
+            {/* Brand Logo/Info */}
+            <div className="lg:col-span-2 space-y-4">
+              <h2 className="text-xl font-black tracking-tight text-white leading-none flex items-center">
+                <span className="text-emerald-400">Naija</span><span className="text-orange-400 ml-1">Online Store</span>
+              </h2>
+              <p className="text-xs text-neutral-500 font-medium leading-relaxed max-w-sm">
+                Naija Online Store is a trusted Nigerian multi-vendor ecommerce marketplace connecting buyers with verified vendors nationwide through secure payments, fast delivery, and quality products.
+              </p>
+              
+              <div className="pt-2">
+                <h3 className="text-white font-bold text-[10px] uppercase tracking-widest mb-3">We Accept</h3>
+                <div className="flex flex-wrap gap-2 text-[10px] font-bold text-neutral-400 uppercase">
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">Paystack</span>
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">Visa</span>
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">Mastercard</span>
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">Bank Transfer</span>
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">USSD</span>
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">Pay on Delivery</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Useful Links */}
+            <div className="space-y-4">
+              <h3 className="text-white font-bold text-xs uppercase tracking-widest mb-4">Useful Links</h3>
+              <div className="flex flex-col space-y-3 text-[11px] font-semibold">
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Shop</a>
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">About Us</a>
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Contact Us</a>
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">FAQs</a>
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Track Order</a>
+              </div>
+            </div>
+
+            {/* Policies */}
+            <div className="space-y-4">
+              <h3 className="text-white font-bold text-xs uppercase tracking-widest mb-4">Policies</h3>
+              <div className="flex flex-col space-y-3 text-[11px] font-semibold">
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Privacy Policy</a>
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Terms & Conditions</a>
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Shipping & Delivery</a>
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Refund & Return Policy</a>
+              </div>
+            </div>
+
+            {/* Sell With Us */}
+            <div className="space-y-4">
+              <h3 className="text-white font-bold text-xs uppercase tracking-widest mb-4">Sell With Us</h3>
+              <p className="text-[11px] text-neutral-500 font-medium leading-relaxed mb-4">
+                Start selling to customers nationwide through our trusted marketplace.
+              </p>
+              <div className="flex flex-col space-y-3 text-[11px] font-semibold">
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit flex items-center text-orange-400"><Store className="w-3 h-3 mr-1.5" /> Vendor Dashboard</a>
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Become a Vendor</a>
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Vendor Guide</a>
+                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Store Listing</a>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <p className="text-[10px] text-neutral-500 font-medium tracking-wide">
+              &copy; 2026 Naija Online Store. All Rights Reserved.
+            </p>
+            <p className="text-[10px] text-emerald-600/50 font-bold tracking-wide">
+              Powered by Dickson Greatman
+            </p>
           </div>
         </div>
       </footer>

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Product, Category, Vendor, Order, AdminTeamMember } from "../types";
+import { Product, Category, Vendor, Order, AdminTeamMember, Advertisement } from "../types";
 
 export const NIGERIAN_CITIES = [
   { name: "Lagos", x: 120, y: 480, labelPos: "bottom" },
@@ -34,7 +34,34 @@ export const MOCK_CATEGORIES: Category[] = [
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDy5GOD9-1WbSSbfqRQffobk20mSWZoV1dLV1ZXP2lENmb-STvXnzfC8OpXBmqoAF3XKdZ2zr38GMFs2YbrwhOcUFxUSnoNg43X3HRDQSfpFFZlz5_nnk-3iA03XfWQ0-YJA1WS9ytK4nkxFP3l03r7H7qE8KyKRySzJkCv87TXYqTQ90rtN-FZM2ZVh2anbHYhZhE9AkFFy80FOXuRS5RNbYh2R8uwkL7qfCkYf0xy95TZThfgpI4V1Y0uOgZtNp6KWyB0IB6c4ltB",
     iconName: "Laptop",
     itemCount: 84,
-    subcategories: ["Wireless Audio", "Laptops & PCs", "Fast Chargers", "Smart Accessories"]
+    subcategories: ["Wireless Audio", "Laptops & PCs", "Fast Chargers", "Smart Accessories", "Fairly Used Electronics"]
+  },
+  {
+    id: "phones",
+    name: "Phones",
+    description: "Latest smartphones and fairly used mobile devices.",
+    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=500&q=80",
+    iconName: "Smartphone",
+    itemCount: 120,
+    subcategories: ["Smartphones", "Fairly Used Phones", "New Phones"]
+  },
+  {
+    id: "cars",
+    name: "Cars",
+    description: "New and fairly used cars from trusted dealers.",
+    image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=500&q=80",
+    iconName: "Car",
+    itemCount: 50,
+    subcategories: ["New Cars", "Fairly Used Cars"]
+  },
+  {
+    id: "phone-accessories",
+    name: "Phone Accessories",
+    description: "Essential accessories for your mobile devices.",
+    image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=500&q=80",
+    iconName: "Headphones",
+    itemCount: 200,
+    subcategories: ["Chargers", "Power Banks", "Earbuds", "Phone Cases", "Screen Protectors", "Cables"]
   },
   {
     id: "home-kitchen",
@@ -183,9 +210,37 @@ const groceryItems = [
   "Natural Coconut Flakes"
 ];
 
+const phonesItems = [
+  "Latest Smartphone Pro",
+  "Budget Android Phone",
+  "Business Enterprise Phone",
+  "Photography Centric Device"
+];
+
+const carsItems = [
+  "Luxury Executive Sedan",
+  "Compact Family SUV",
+  "Economy Daily Hatchback",
+  "Premium Hybrid Auto"
+];
+
+const accessoriesItems = [
+  "Super Fast Charger 20W",
+  "High Capacity 10000mAh Power Bank",
+  "True Wireless Stereo Earbuds",
+  "Shockproof Silicone Phone Case",
+  "Tempered Glass Screen Protector",
+  "Durable Braided USB-C Cable",
+  "Magnetic Car Mount Holder",
+  "Bluetooth Audio Receiver"
+];
+
 const categoriesInfo = [
   { id: "fashion", name: "Fashion", minPrice: 5000, maxPrice: 35000, items: fashionItems },
   { id: "electronics", name: "Electronics", minPrice: 10000, maxPrice: 250000, items: electronicsItems },
+  { id: "phones", name: "Phones", minPrice: 50000, maxPrice: 1500000, items: phonesItems },
+  { id: "cars", name: "Cars", minPrice: 2000000, maxPrice: 45000000, items: carsItems },
+  { id: "phone-accessories", name: "Phone Accessories", minPrice: 1500, maxPrice: 25000, items: accessoriesItems },
   { id: "home-kitchen", name: "Home and Kitchen", minPrice: 3000, maxPrice: 80000, items: homeItems },
   { id: "beauty", name: "Beauty", minPrice: 2000, maxPrice: 45000, items: beautyItems },
   { id: "sports", name: "Sports", minPrice: 4000, maxPrice: 60000, items: sportsItems },
@@ -196,7 +251,7 @@ export const MOCK_PRODUCTS: Product[] = [];
 
 let idCounter = 1;
 categoriesInfo.forEach((catInfo, catIdx) => {
-  const count = (catIdx < 2) ? 84 : 83; // 84 + 84 + 83 + 83 + 83 + 83 = 500
+  const count = (catIdx < 2) ? 60 : 40; // Reduced count to keep overall realistic
   for (let i = 0; i < count; i++) {
     const baseItemIndex = i % catInfo.items.length;
     const baseItem = catInfo.items[baseItemIndex];
@@ -215,6 +270,30 @@ categoriesInfo.forEach((catInfo, catIdx) => {
     const stock = getDeterministicValue(idCounter + 200, 5, 200);
     const ratingRaw = 4 + (getDeterministicValue(idCounter + 400, 4, 9) / 10);
     const reviewsCount = getDeterministicValue(idCounter + 600, 10, 350);
+    
+    // Add fairly used and commission logic
+    let condition: "New" | "Fairly Used" = "New";
+    let subCategory = "Miscellaneous";
+
+    if (catInfo.id === "phones") {
+      condition = i % 2 === 0 ? "New" : "Fairly Used";
+      subCategory = condition === "New" ? "New Phones" : "Fairly Used Phones";
+    } else if (catInfo.id === "cars") {
+      condition = i % 3 === 0 ? "New" : "Fairly Used";
+      subCategory = condition === "New" ? "New Cars" : "Fairly Used Cars";
+    } else if (catInfo.id === "phone-accessories") {
+      subCategory = "Chargers"; 
+      if (title.includes("Power Bank")) subCategory = "Power Banks";
+      if (title.includes("Earbuds")) subCategory = "Earbuds";
+      if (title.includes("Case")) subCategory = "Phone Cases";
+      if (title.includes("Protector")) subCategory = "Screen Protectors";
+      if (title.includes("Cable")) subCategory = "Cables";
+    } else if (catInfo.id === "electronics" && i % 4 === 0) {
+       condition = "Fairly Used";
+       subCategory = "Fairly Used Electronics";
+    }
+
+    const commissionPercentage = getDeterministicValue(idCounter + 800, 5, 20); // 5% to 20% commission
 
     // Keep product cards image-free and leave image slots empty
     const image = "";
@@ -228,6 +307,9 @@ categoriesInfo.forEach((catInfo, catIdx) => {
       rating: Number(ratingRaw.toFixed(1)),
       reviewsCount,
       category: catInfo.name,
+      subCategory,
+      condition,
+      commissionPercentage,
       vendorId: i % 3 === 0 ? "v_heritage" : i % 3 === 1 ? "v_alaba" : "v_compvillage",
       vendorName: i % 3 === 0 ? "Eko Heritage Weavers" : i % 3 === 1 ? "Alaba Digital Hub" : "Computer Village Depot",
       stock,
@@ -238,6 +320,74 @@ categoriesInfo.forEach((catInfo, catIdx) => {
     idCounter++;
   }
 });
+
+export const FLASH_SALE_PRODUCTS: Product[] = [
+  {
+    id: "fs1",
+    title: "Zealot 80W Super Bass Bluetooth Speaker With 16000mAh Battery S97",
+    description: "Experience premium super bass sound with the Zealot 80W Bluetooth Speaker. Comes with massive 16000mAh battery for extended playback.",
+    price: 98490,
+    originalPrice: 120109, // ~18% off
+    salePercentage: 18,
+    image: "https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&w=500&q=80",
+    rating: 4.8,
+    reviewsCount: 324,
+    category: "Electronics",
+    subCategory: "Wireless Audio",
+    condition: "New",
+    commissionPercentage: 10,
+    vendorId: "v_alaba",
+    vendorName: "Alaba Digital Hub",
+    stock: 37,
+    isBestSeller: true,
+    isTrending: true,
+    isNew: false
+  },
+  {
+    id: "fs2",
+    title: "itel 100,000mAh 320Wh Power Go Portable Power Station 130W, LiFePO4 Battery IESS-320T",
+    description: "Never run out of power with the massive 100,000mAh portable power station. Reliable, durable LiFePO4 battery perfect for emergencies.",
+    price: 108990,
+    originalPrice: 160279, // ~32% off
+    salePercentage: 32,
+    image: "https://images.unsplash.com/photo-1619642055663-aa248380e2d3?auto=format&fit=crop&w=500&q=80",
+    rating: 4.9,
+    reviewsCount: 156,
+    category: "Electronics",
+    subCategory: "Power Banks",
+    condition: "New",
+    commissionPercentage: 8,
+    vendorId: "v_compvillage",
+    vendorName: "Computer Village Depot",
+    stock: 34,
+    isBestSeller: true,
+    isTrending: true,
+    isNew: true
+  },
+  {
+    id: "fs3",
+    title: 'Binatone 18" Rechargeable Fan With Lithium-Ion Batteries (RCF-1865)_2',
+    description: "Stay cool during power outages with the original Binatone 18-inch rechargeable fan. Long-lasting lithium-ion batteries included.",
+    price: 45000,
+    originalPrice: 55000,
+    salePercentage: 18,
+    image: "https://images.unsplash.com/photo-1549281899-7f9e8020e544?auto=format&fit=crop&w=500&q=80",
+    rating: 4.6,
+    reviewsCount: 89,
+    category: "Home and Kitchen",
+    subCategory: "Appliances",
+    condition: "New",
+    commissionPercentage: 12,
+    vendorId: "v_heritage",
+    vendorName: "Eko Heritage Weavers",
+    stock: 15,
+    isBestSeller: false,
+    isTrending: true,
+    isNew: false
+  }
+];
+
+MOCK_PRODUCTS.push(...FLASH_SALE_PRODUCTS);
 
 export const MOCK_REVIEWS = [
   {
@@ -437,6 +587,12 @@ export const MOCK_VENDORS: Vendor[] = [
     phone: "+234 818 444 3322",
     location: "Herbert Macaulay Way, Yaba"
   }
+];
+
+export const MOCK_ADS: Advertisement[] = [
+  { id: "a1", title: "Summer iPhone Splash", imageUrl: "https://images.unsplash.com/photo-1605236453806-6ff368528bb7?auto=format&fit=crop&w=1200&q=80", linkUrl: "/", position: "homepage", status: "active", metrics: { impressions: 45000, clicks: 1240 }, startDate: "2026-06-01", endDate: "2026-06-30" },
+  { id: "a3", title: "Fashion Week Promo", imageUrl: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80", linkUrl: "/", position: "homepage", status: "active", metrics: { impressions: 120000, clicks: 4320 }, startDate: "2026-06-01", endDate: "2026-06-30" },
+  { id: "a2", title: "Fairly Used Cars Expo", imageUrl: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=1200&q=80", linkUrl: "/", position: "category", targetCategory: "Cars", status: "scheduled", metrics: { impressions: 0, clicks: 0 }, startDate: "2026-07-01", endDate: "2026-07-15" }
 ];
 
 export const MOCK_TEAM_MEMBERS: AdminTeamMember[] = [

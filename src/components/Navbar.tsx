@@ -65,7 +65,7 @@ export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch,
               className="lg:hidden p-2 rounded-full hover:bg-emerald-800 transition-colors"
               id="mobile-menu-toggle"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-6 h-6 text-emerald-500" /> : <Menu className="w-6 h-6 text-emerald-500" />}
             </button>
             <div
               onClick={() => onNavigate("home")}
@@ -80,11 +80,8 @@ export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch,
                 />
               </div>
               <div className="text-left leading-none">
-                <span className="font-extrabold text-lg sm:text-xl tracking-tight block text-white animate-fade-in">
-                  Naija<span className="text-orange-400"> Online Stores</span>
-                </span>
-                <span className="text-[9px] font-bold text-emerald-300 uppercase tracking-widest block">
-                  Marketplace Hub
+                <span className="font-extrabold text-sm sm:text-base tracking-tight block animate-fade-in">
+                  <span className="text-emerald-400">Naija</span><span className="text-orange-400"> Online Stores</span>
                 </span>
               </div>
             </div>
@@ -266,8 +263,15 @@ export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch,
               </AnimatePresence>
             </motion.button>
 
-            {/* Profile Avatar widget */}
+            {/* Profile Avatar widget and Sign Up */}
             <div className="flex items-center space-x-2 pl-2 border-l border-emerald-800">
+              <button
+                onClick={() => onNavigate("auth")}
+                className="inline-flex items-center justify-center px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[10px] sm:text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
+                id="header-signup-btn"
+              >
+                Sign Up
+              </button>
               <span className="hidden xl:inline text-xs text-emerald-100 truncate max-w-32">{userEmail}</span>
               <button
                 onClick={() => onNavigate("auth")}
@@ -317,7 +321,7 @@ export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch,
                       referrerPolicy="no-referrer"
                     />
                   </div>
-                  <span className="font-extrabold text-lg tracking-tight">Naija Online Stores</span>
+                  <span className="font-extrabold text-sm tracking-tight text-white">Naija Online Stores</span>
                 </div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-1 rounded-full hover:bg-emerald-800">
                   <X className="w-5 h-5 text-neutral-400" />

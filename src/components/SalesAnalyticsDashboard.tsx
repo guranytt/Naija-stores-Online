@@ -711,7 +711,7 @@ export default function SalesAnalyticsDashboard({ orders }: SalesAnalyticsDashbo
         <div className="lg:col-span-7 bg-white border border-neutral-150 rounded-2xl p-6 shadow-xs space-y-4">
           <div className="border-b border-neutral-100 pb-3">
             <h3 className="font-extrabold text-neutral-900 text-sm tracking-tight flex items-center justify-between">
-              <span>Order Ledger Feed Synchronization (Live)</span>
+              <span>Order Activity (Live)</span>
               <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded text-[9px] uppercase font-mono font-bold tracking-widest inline-flex items-center space-x-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>DYNAMIC</span>
@@ -762,7 +762,7 @@ function CustomChartTooltip({ active, payload, label }: any) {
       <div className="bg-neutral-900/95 backdrop-blur-md text-white p-4 rounded-2xl border border-neutral-800 shadow-xl font-sans text-left space-y-2.5 max-w-xs leading-none">
         <div className="border-b border-neutral-800 pb-1.5 flex justify-between items-center gap-4">
           <p className="text-[10px] font-black tracking-wider uppercase text-neutral-400">Month: {label}</p>
-          <span className="text-[8px] bg-indigo-500/20 text-indigo-300 font-bold px-1.5 py-0.5 rounded uppercase font-mono">Recharts Ledger</span>
+          <span className="text-[8px] bg-indigo-500/20 text-indigo-300 font-bold px-1.5 py-0.5 rounded uppercase font-mono">Chart Data</span>
         </div>
         <div className="space-y-2">
           {payload.map((entry: any, idx: number) => (

@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud, BarChart2 } from "lucide-react";
+import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud, BarChart2, PieChart, Megaphone } from "lucide-react";
 import { Vendor, Order, AdminTeamMember, Product } from "../types";
 import { MOCK_VENDORS, MOCK_ORDERS, MOCK_TEAM_MEMBERS, MOCK_PRODUCTS } from "../data/mockData";
 import { formatNaira } from "./CustomerViews";
@@ -70,6 +70,8 @@ export default function VendorAdmin({
   const [newStock, setNewStock] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newImage, setNewImage] = useState("");
+  const [newCondition, setNewCondition] = useState<"New" | "Fairly Used">("New");
+  const [newCommissionPercent, setNewCommissionPercent] = useState<string>("5");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
@@ -124,6 +126,8 @@ export default function VendorAdmin({
         price: Number(newPrice),
         stock: Number(newStock),
         category: newCategory,
+        condition: newCondition,
+        commissionPercentage: Number(newCommissionPercent),
         image: newImage || "https://lh3.googleusercontent.com/aida-public/AB6AXuBXHHRDhnfXAPzOsfwJAJsaalg4cWfRii5vBleuGOxKrptM-qmw3JgFBhmDSeXClxBlfi3YbQJiQs13dl3CJxFMTrEsoeKAI1JkXEckU88mcDf64zuwrUdWJW8NNuhXEbmbimeAKXSCpzoTENrA7IaXi3jzD_WCPb-on3IiWMAikNItCyKkPDuCIxGIIFS30rf-qvm-aGDzOiKqproxCid4Yu_VB_ycleJTW0iXWyz1WZUzAk_v-gZdvKW2YKJet89-kA4ee4AC0u9d",
         vendorId: activeVendor.id,
         vendorName: activeVendor.name,
@@ -139,6 +143,8 @@ export default function VendorAdmin({
     setNewStock("");
     setNewDesc("");
     setNewImage("");
+    setNewCondition("New");
+    setNewCommissionPercent("5");
     setUploadError("");
     setShowAddProductModal(false);
   };
@@ -183,6 +189,30 @@ export default function VendorAdmin({
           >
             <ShieldPlus className="w-4 h-4 text-emerald-600" />
             <span>Master Administrator Admin Console</span>
+          </button>
+
+          <button
+            onClick={() => setAdminTab("commissions")}
+            className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              adminTab === "commissions"
+                ? "bg-white text-neutral-900 shadow-sm font-extrabold"
+                : "text-neutral-500 hover:text-neutral-900"
+            }`}
+          >
+            <PieChart className="w-4 h-4 text-purple-500" />
+            <span>Commission & Payouts</span>
+          </button>
+
+          <button
+            onClick={() => setAdminTab("ads")}
+            className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              adminTab === "ads"
+                ? "bg-white text-neutral-900 shadow-sm font-extrabold"
+                : "text-neutral-500 hover:text-neutral-900"
+            }`}
+          >
+            <Megaphone className="w-4 h-4 text-pink-500" />
+            <span>Ad Campaigns</span>
           </button>
 
           <button
@@ -411,6 +441,9 @@ export default function VendorAdmin({
                       onChange={(e) => setNewCategory(e.target.value)}
                       className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-bold text-neutral-700"
                     >
+                      <option value="Phones">Phones</option>
+                      <option value="Cars">Cars</option>
+                      <option value="Phone Accessories">Phone Accessories</option>
                       <option value="Fashion">Fashion</option>
                       <option value="Electronics">Electronics</option>
                       <option value="Home and Kitchen">Home and Kitchen</option>
@@ -419,6 +452,42 @@ export default function VendorAdmin({
                       <option value="Grocery">Grocery</option>
                     </select>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Condition</label>
+                      <select
+                        value={newCondition}
+                        onChange={(e: any) => setNewCondition(e.target.value)}
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-bold text-neutral-700"
+                      >
+                        <option value="New">New</option>
+                        <option value="Fairly Used">Fairly Used</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Commission (%)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        required
+                        value={newCommissionPercent}
+                        onChange={(e) => setNewCommissionPercent(e.target.value)}
+                        placeholder="5"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+                  
+                  {newPrice && newCommissionPercent && (
+                    <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl flex justify-between items-center text-xs">
+                      <span className="font-bold text-neutral-600">Expected Earnings:</span>
+                      <span className="font-black text-emerald-800 font-mono">
+                        {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(Number(newPrice) * (1 - Number(newCommissionPercent) / 100))}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Cloudinary CDN Image Upload Asset Manager */}
                   <div className="space-y-1.5 p-3.5 bg-neutral-50/70 border border-neutral-150 rounded-2xl">
@@ -660,7 +729,7 @@ export default function VendorAdmin({
             </div>
           </div>
 
-          {/* Active Vendor Reputation Ledger Section */}
+          {/* Active Vendor Reputation Section */}
           <div className="bg-white border border-neutral-200 rounded-2xl shadow-xs overflow-hidden">
             <div className="px-6 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/55 select-none animate-fade-in">
               <p className="font-extrabold text-sm text-neutral-800 tracking-tight">Active Vendor Trust Indexes & Completed Dispatches</p>
@@ -787,6 +856,16 @@ export default function VendorAdmin({
             userEmail={userEmail}
           />
         </React.Fragment>
+      )}
+
+      {/* ---------------- D. COMMISSION TAB ---------------- */}
+      {adminTab === "commissions" && (
+        <CommissionAnalyticsTab products={products} vendors={vendorsList} orders={orders} />
+      )}
+
+      {/* ---------------- E. ADS TAB ---------------- */}
+      {adminTab === "ads" && (
+        <AdsManagementTab />
       )}
 
     </div>
@@ -1295,5 +1374,180 @@ function PlusIcon({ className }: { className?: string }) {
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
     </svg>
+  );
+}
+
+function CommissionAnalyticsTab({ products, vendors, orders }: { products: Product[], vendors: Vendor[], orders: Order[] }) {
+  const [filterCategory, setFilterCategory] = useState("All");
+
+  const totalSales = orders.reduce((acc, order) => acc + order.value, 0);
+
+  // Derive commissions from products linked to orders, using a mock average if exact linking is missing
+  // Because our mock data structure limits how granular orders align with products, we generate aggregated estimates
+  const totalCommission = Math.floor(products.reduce((acc, p) => acc + (p.price * (p.commissionPercentage || 5) / 100), 0) * (totalSales / Math.max(1, products.reduce((acc, p) => acc + p.price, 0))));
+  const vendorEarnings = totalSales - totalCommission;
+  const pendingPayouts = totalSales * 0.15; // Mock pending
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-black text-neutral-900 tracking-tight">Commission & Earnings Dashboard</h2>
+        <p className="text-xs text-neutral-500 font-semibold">Monitor vendor performance, commission cuts, and outstanding funds</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs">
+          <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Total Sales Volume</p>
+          <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1">{formatNaira(totalSales)}</h3>
+        </div>
+        <div className="bg-emerald-50 p-5 border border-emerald-100 rounded-2xl shadow-xs">
+          <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Vendor Net Earnings</p>
+          <h3 className="text-2xl font-black text-emerald-900 tracking-tight mt-1">{formatNaira(vendorEarnings)}</h3>
+        </div>
+        <div className="bg-orange-50 p-5 border border-orange-100 rounded-2xl shadow-xs">
+          <p className="text-xs font-bold text-orange-600 uppercase tracking-wider">Platform Commission</p>
+          <h3 className="text-2xl font-black text-orange-900 tracking-tight mt-1">{formatNaira(totalCommission)}</h3>
+        </div>
+        <div className="bg-neutral-50 p-5 border border-neutral-150 rounded-2xl shadow-xs">
+          <p className="text-xs font-bold text-neutral-600 uppercase tracking-wider">Pending Payouts</p>
+          <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1">{formatNaira(pendingPayouts)}</h3>
+        </div>
+      </div>
+      
+      <div className="bg-white border border-neutral-150 rounded-2xl p-5 shadow-xs">
+        <div className="flex items-center space-x-4 mb-4">
+           <h3 className="text-sm font-bold text-neutral-800">Product Level Commissions</h3>
+           <select 
+             value={filterCategory} 
+             onChange={(e) => setFilterCategory(e.target.value)}
+             className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg outline-none font-bold"
+           >
+             <option value="All">All Categories</option>
+             <option value="Phones">Phones</option>
+             <option value="Cars">Cars</option>
+             <option value="Phone Accessories">Phone Accessories</option>
+             <option value="Fashion">Fashion</option>
+           </select>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs whitespace-nowrap">
+            <thead className="bg-neutral-50 text-neutral-500 font-bold uppercase tracking-widest text-[9px]">
+              <tr>
+                <th className="px-4 py-3 rounded-l-xl">Product</th>
+                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Seller</th>
+                <th className="px-4 py-3">Price</th>
+                <th className="px-4 py-3">Comm. %</th>
+                <th className="px-4 py-3 rounded-r-xl text-right">Sys. Split</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {products
+                .filter(p => filterCategory === "All" || p.category === filterCategory)
+                .slice(0, 8)
+                .map(product => {
+                const commission = product.commissionPercentage || 5;
+                const value = Math.floor(product.price * (commission / 100));
+                return (
+                  <tr key={product.id} className="hover:bg-neutral-50/50 transition-colors">
+                    <td className="px-4 py-3 font-bold text-neutral-800 max-w-[200px] truncate">{product.title}</td>
+                    <td className="px-4 py-3 text-neutral-600">{product.category}</td>
+                    <td className="px-4 py-3 text-neutral-600">{product.vendorName}</td>
+                    <td className="px-4 py-3 font-mono">{formatNaira(product.price)}</td>
+                    <td className="px-4 py-3 text-emerald-600 font-bold font-mono">{commission}%</td>
+                    <td className="px-4 py-3 text-right font-black text-neutral-800 font-mono">{formatNaira(value)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdsManagementTab() {
+  const [ads] = useState([
+    { id: "a1", name: "Summer iPhone Splash", status: "Active", clicks: 1240, impressions: 45000, position: "Homepage", type: "Banner" },
+    { id: "a2", name: "Fairly Used Cars Expo", status: "Scheduled", clicks: 0, impressions: 0, position: "Category: Cars", type: "Sidebar" },
+    { id: "a3", name: "Fashion Week Promo", status: "Active", clicks: 4320, impressions: 120000, position: "Homepage", type: "Hero" },
+    { id: "a4", name: "Phone Accessories Bundle", status: "Paused", clicks: 890, impressions: 15000, position: "Search Results", type: "Inline" }
+  ]);
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="text-xl font-black text-neutral-900 tracking-tight">Advertisement Placement System</h2>
+          <p className="text-xs text-neutral-500 font-semibold">Organize and monitor cross-platform marketing campaigns</p>
+        </div>
+        <button className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md">
+          <PlusIcon className="w-4 h-4" />
+          <span>New Ad Campaign</span>
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs flex items-center justify-between">
+           <div>
+             <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Active Campaigns</p>
+             <h3 className="text-2xl font-black text-emerald-600 tracking-tight">2</h3>
+           </div>
+           <Megaphone className="w-8 h-8 text-neutral-200" />
+        </div>
+        <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs flex items-center justify-between">
+           <div>
+             <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Total Impressions</p>
+             <h3 className="text-2xl font-black text-neutral-900 tracking-tight font-mono">180,000</h3>
+           </div>
+           <Eye className="w-8 h-8 text-neutral-200" />
+        </div>
+        <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs flex items-center justify-between">
+           <div>
+             <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Click Through (Avg)</p>
+             <h3 className="text-2xl font-black text-neutral-900 tracking-tight font-mono">3.8%</h3>
+           </div>
+           <PieChart className="w-8 h-8 text-neutral-200" />
+        </div>
+      </div>
+      
+      <div className="bg-white border border-neutral-150 rounded-2xl p-5 shadow-xs">
+        <h3 className="text-sm font-bold text-neutral-800 mb-4">Ad Placement Roster</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs whitespace-nowrap">
+             <thead className="bg-neutral-50 text-neutral-500 font-bold uppercase tracking-widest text-[9px]">
+               <tr>
+                 <th className="px-4 py-3 rounded-l-xl">Campaign Name</th>
+                 <th className="px-4 py-3">Location / Type</th>
+                 <th className="px-4 py-3">Status</th>
+                 <th className="px-4 py-3">Impressions</th>
+                 <th className="px-4 py-3 rounded-r-xl text-right">Clicks</th>
+               </tr>
+             </thead>
+             <tbody className="divide-y divide-neutral-100">
+               {ads.map(ad => (
+                 <tr key={ad.id} className="hover:bg-neutral-50 transition-colors">
+                   <td className="px-4 py-3 font-bold text-neutral-800">{ad.name}</td>
+                   <td className="px-4 py-3 text-neutral-600 font-semibold">{ad.position} <span className="text-neutral-300 mx-1">|</span> {ad.type}</td>
+                   <td className="px-4 py-3">
+                     <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
+                        ad.status === 'Active' ? 'bg-emerald-100 text-emerald-700' :
+                        ad.status === 'Scheduled' ? 'bg-amber-100 text-amber-700' : 
+                        'bg-neutral-100 text-neutral-600'
+                     }`}>
+                       {ad.status}
+                     </span>
+                   </td>
+                   <td className="px-4 py-3 font-mono">{ad.impressions.toLocaleString()}</td>
+                   <td className="px-4 py-3 text-right font-bold text-orange-500 font-mono">{ad.clicks.toLocaleString()}</td>
+                 </tr>
+               ))}
+             </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }
