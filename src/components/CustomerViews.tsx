@@ -31,6 +31,8 @@ interface CustomerViewsProps {
   searchFilter: string;
   vendors?: Vendor[];
   onRateVendor?: (vendorId: string, rating: number) => void;
+  products?: Product[];
+  categories?: Category[];
 }
 
 export default function CustomerViews({
@@ -45,11 +47,14 @@ export default function CustomerViews({
   onCheckout,
   searchFilter,
   vendors = [],
-  onRateVendor
+  onRateVendor,
+  products = MOCK_PRODUCTS,
+  categories = MOCK_CATEGORIES
 }: CustomerViewsProps) {
   
   // States for Category Filter inside shop view
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [sortOption, setSortOption] = useState<string>("recommended");
   const [selectedStateForShipping, setSelectedStateForShipping] = useState<string>("Lagos");
   const [isSearchLoading, setIsSearchLoading] = useState(false);
@@ -174,8 +179,13 @@ export default function CustomerViews({
     setCommentInput("");
   };
 
+  // Reset page when filtering or searching
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategoryTab, searchFilter]);
+
   // Dynamic products filtering logic
-  const filteredProducts = MOCK_PRODUCTS.filter((product) => {
+  const filteredProducts = products.filter((product) => {
     const matchesCategory = activeCategoryTab === "all" || product.category.toLowerCase().includes(activeCategoryTab.toLowerCase()) || activeCategoryTab.toLowerCase().includes(product.category.toLowerCase());
     const matchesSearch = product.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
                           product.category.toLowerCase().includes(searchFilter.toLowerCase()) ||
@@ -192,11 +202,16 @@ export default function CustomerViews({
     return 0; // standard mock recommended
   });
 
+  const PRODUCTS_PER_PAGE = 30;
+  const totalPages = Math.ceil(sortedProducts.length / PRODUCTS_PER_PAGE);
+  const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+  const paginatedProducts = sortedProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
+
   const recentlyViewedProducts = recentlyViewedIds
-    .map((id) => MOCK_PRODUCTS.find((p) => p.id === id))
+    .map((id) => products.find((p) => p.id === id))
     .filter((p): p is Product => !!p);
 
-  const detailProduct = MOCK_PRODUCTS.find((p) => p.id === selectedProductId) || MOCK_PRODUCTS[0];
+  const detailProduct = products.find((p) => p.id === selectedProductId) || products[0];
 
   // Initialize selected values for detail screen when product changes
   React.useEffect(() => {
@@ -854,7 +869,7 @@ export default function CustomerViews({
                 )}
                 All Categories
               </button>
-              {MOCK_CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setActiveCategoryTab(c.id)}
@@ -915,7 +930,7 @@ export default function CustomerViews({
                   </div>
                 </div>
               ))
-            ) : sortedProducts.map((p, idx) => {
+            ) : paginatedProducts.map((p, idx) => {
               const isAdded = !!justAddedProducts[p.id];
               const isLiked = wishlist.includes(p.id);
               return (
@@ -1029,6 +1044,52 @@ export default function CustomerViews({
                 </motion.div>
               );
             })}
+
+            {/* Dynamic Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="col-span-full mt-8 flex flex-wrap items-center justify-center gap-1.5 bg-neutral-100/60 border border-neutral-200 p-3.5 rounded-2xl max-w-lg mx-auto shadow-xs select-none">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.max(prev - 1, 1));
+                    window.scrollTo({ top: 300, behavior: "smooth" });
+                  }}
+                  className="px-3.5 py-2 border border-neutral-200 bg-white hover:bg-neutral-50 rounded-xl text-xs font-bold text-neutral-600 disabled:opacity-40 select-none transition-all cursor-pointer"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const pageNum = i + 1;
+                  const isCurrent = pageNum === currentPage;
+                  return (
+                    <button
+                      key={`page-btn-${pageNum}`}
+                      onClick={() => {
+                        setCurrentPage(pageNum);
+                        window.scrollTo({ top: 300, behavior: "smooth" });
+                      }}
+                      className={`w-9 h-9 rounded-xl text-xs font-bold select-none transition-all flex items-center justify-center cursor-pointer ${
+                        isCurrent
+                          ? "bg-emerald-800 text-white font-extrabold shadow-sm scale-102"
+                          : "border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                    window.scrollTo({ top: 300, behavior: "smooth" });
+                  }}
+                  className="px-3.5 py-2 border border-neutral-200 bg-white hover:bg-neutral-50 rounded-xl text-xs font-bold text-neutral-600 disabled:opacity-40 select-none transition-all cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
+            )}
 
             {sortedProducts.length === 0 && !isSearchLoading && (
               <div className="col-span-full py-16 text-center space-y-2">

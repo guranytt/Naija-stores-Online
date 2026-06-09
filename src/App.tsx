@@ -17,8 +17,8 @@ import VendorAdmin from "./components/VendorAdmin";
 import VendorAuth from "./components/VendorAuth";
 import UserAuthHub from "./components/UserAuthHub";
 import PaystackCheckout from "./components/PaystackCheckout";
-import { Product, CartItem, Order, Vendor } from "./types";
-import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS } from "./data/mockData";
+import { Product, CartItem, Order, Vendor, Category } from "./types";
+import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS, MOCK_CATEGORIES } from "./data/mockData";
 import { formatNaira } from "./components/CustomerViews";
 import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText, Store, Bug } from "lucide-react";
 import { supabase, getSupabaseData, saveSupabaseRecord, PROVISION_SQL_SCRIPT } from "./supabase";
@@ -32,6 +32,24 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
+  const [categories, setCategories] = useState<Category[]>(() => {
+    try {
+      const saved = localStorage.getItem("NAIJA_CATEGORIES_STATE");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return MOCK_CATEGORIES;
+  });
+
+  const handleUpdateCategories = (newCats: Category[]) => {
+    setCategories(newCats);
+    try {
+      localStorage.setItem("NAIJA_CATEGORIES_STATE", JSON.stringify(newCats));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Supabase Sync States
   const [dbSyncStatus, setDbSyncStatus] = useState<{
@@ -481,7 +499,7 @@ export default function App() {
         cartCount={cart.reduce((acc, curr) => acc + curr.quantity, 0)}
         onSearch={(query) => setSearchFilter(query)}
         userEmail={userEmail}
-        onToggleDevConfig={() => setSettingsDrawerOpen(true)}
+        categories={categories}
       />
 
        {/* Main Container Workspace layout */}
@@ -513,6 +531,8 @@ export default function App() {
                 searchFilter={searchFilter}
                 vendors={vendors}
                 onRateVendor={handleRateVendor}
+                categories={categories}
+                products={products}
               />
             </motion.div>
           )}
@@ -564,6 +584,8 @@ export default function App() {
                 vendors={vendors}
                 onReviewOrderFlag={handleReviewOrderFlag}
                 onAddNewProduct={handleAddNewProduct}
+                categories={categories}
+                onUpdateCategories={handleUpdateCategories}
                 
                 // Email Automation Props
                 mailLogs={mailLogs}
@@ -607,7 +629,7 @@ export default function App() {
 
       {/* Stylized custom Settings drawer/overlay */}
       <AnimatePresence>
-        {settingsDrawerOpen && (
+        {false && (
           <div className="fixed inset-0 z-100 flex justify-end">
             <motion.div
               initial={{ opacity: 0 }}

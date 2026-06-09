@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { ShoppingCart, Search, Store, Map, LayoutDashboard, UserCircle, Menu, X, Landmark, BadgeCheck } from "lucide-react";
+import { ShoppingCart, Search, Store, Map, LayoutDashboard, UserCircle, Menu, X, Landmark, BadgeCheck, ChevronDown, ChevronUp } from "lucide-react";
 import { Category } from "../types";
 import { MOCK_PRODUCTS, MOCK_CATEGORIES } from "../data/mockData";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
@@ -15,15 +15,30 @@ interface NavbarProps {
   cartCount: number;
   onSearch: (query: string) => void;
   userEmail: string;
-  onToggleDevConfig?: () => void;
+  categories?: Category[];
 }
 
-export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch, userEmail, onToggleDevConfig }: NavbarProps) {
+export default function Navbar({ 
+  currentScreen, 
+  onNavigate, 
+  cartCount, 
+  onSearch, 
+  userEmail, 
+  categories = MOCK_CATEGORIES
+}: NavbarProps) {
   const [searchVal, setSearchVal] = useState("");
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [cartBounced, setCartBounced] = useState(false);
   const shouldReduceMotion = useReducedMotion();
+
+  const toggleCategoryExpand = (catId: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [catId]: !prev[catId]
+    }));
+  };
 
   // Wiggle / bounce search/cart updates
   useEffect(() => {
@@ -224,17 +239,9 @@ export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch,
             })}
           </nav>
 
-          {/* Action widgets (Cart, Auth, Dev trigger) */}
+          {/* Action widgets (Cart, Auth) */}
           <div className="flex items-center space-x-2 select-none">
-            {/* Quick Dev Toggle info */}
-            {onToggleDevConfig && (
-              <button
-                onClick={onToggleDevConfig}
-                className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 bg-neutral-900/35 hover:bg-neutral-900/50 text-[10px] font-bold tracking-widest uppercase rounded-md border border-neutral-700/20 text-orange-300 mr-2 active:scale-95"
-              >
-                <span>⚙ Settings</span>
-              </button>
-            )}            {/* Shopping Cart Button */}
+            {/* Shopping Cart Button */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -369,24 +376,68 @@ export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch,
               {/* Shopping Categories List inside Hamburger Menu */}
               <div className="mt-6 flex-1 flex flex-col min-h-0 overflow-hidden">
                 <h3 className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-3 text-left shrink-0">Shop by Category</h3>
-                <div className="space-y-1.5 overflow-y-auto pr-1 flex-grow">
-                  {MOCK_CATEGORIES.map((cat) => {
+                <div className="space-y-2 overflow-y-auto pr-1 flex-grow">
+                  {categories.map((cat) => {
+                    const isExpanded = !!expandedCategories[cat.id];
                     return (
-                      <button
-                        key={cat.id}
-                        onClick={() => {
-                          onSearch(cat.name);
-                          setSearchVal(cat.name);
-                          onNavigate("shop");
-                          setMobileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center justify-between px-3 py-2 bg-white/5 hover:bg-orange-500 hover:text-white text-xs font-semibold text-emerald-100 rounded-lg transition-all text-left"
-                      >
-                        <span className="truncate">{cat.name}</span>
-                        <span className="text-[9px] bg-emerald-900/60 text-orange-400 font-bold px-2 py-0.5 rounded-full shrink-0">
-                          {cat.itemCount} items
-                        </span>
-                      </button>
+                      <div key={cat.id} className="bg-white/5 rounded-xl border border-white/5 overflow-hidden transition-all">
+                        <button
+                          onClick={() => toggleCategoryExpand(cat.id)}
+                          className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-bold text-emerald-100 hover:bg-white/5 hover:text-white transition-all text-left"
+                        >
+                          <span className="truncate mr-2">{cat.name}</span>
+                          <span className="flex items-center space-x-1.5 shrink-0">
+                            <span className="text-[9px] bg-emerald-950 text-orange-400 font-black px-1.5 py-0.5 rounded-full">
+                              {cat.itemCount || 0}
+                            </span>
+                            {isExpanded ? (
+                              <ChevronUp className="w-3.5 h-3.5 text-emerald-300" />
+                            ) : (
+                              <ChevronDown className="w-3.5 h-3.5 text-emerald-400/80" />
+                            )}
+                          </span>
+                        </button>
+
+                        <AnimatePresence initial={false}>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="bg-emerald-950/45 px-2 pb-2 space-y-1 text-left border-t border-white/5"
+                            >
+                              {/* "Show All in Category" header link */}
+                              <button
+                                onClick={() => {
+                                  onSearch(cat.name);
+                                  setSearchVal(cat.name);
+                                  onNavigate("shop");
+                                  setMobileMenuOpen(false);
+                                }}
+                                className="w-full text-left px-2 py-1.5 text-[10px] text-orange-400 font-extrabold hover:text-white select-none block transition-colors"
+                              >
+                                ⚡ ALL {cat.name.toUpperCase()} PRODUCTS
+                              </button>
+                              
+                              {cat.subcategories && cat.subcategories.map((subcat) => (
+                                <button
+                                  key={subcat}
+                                  onClick={() => {
+                                    onSearch(subcat);
+                                    setSearchVal(subcat);
+                                    onNavigate("shop");
+                                    setMobileMenuOpen(false);
+                                  }}
+                                  className="w-full text-left px-2 py-1.5 text-[11px] text-emerald-200/90 hover:text-white hover:bg-white/5 rounded transition-colors block"
+                                >
+                                  • {subcat}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     );
                   })}
                 </div>

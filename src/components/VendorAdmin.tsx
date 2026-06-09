@@ -5,8 +5,8 @@
 
 import React, { useState } from "react";
 import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud, BarChart2, PieChart, Megaphone } from "lucide-react";
-import { Vendor, Order, AdminTeamMember, Product } from "../types";
-import { MOCK_VENDORS, MOCK_ORDERS, MOCK_TEAM_MEMBERS, MOCK_PRODUCTS } from "../data/mockData";
+import { Vendor, Order, AdminTeamMember, Product, Category } from "../types";
+import { MOCK_VENDORS, MOCK_ORDERS, MOCK_TEAM_MEMBERS, MOCK_PRODUCTS, MOCK_CATEGORIES } from "../data/mockData";
 import { formatNaira } from "./CustomerViews";
 import { uploadToCloudinary, convertFileToBase64 } from "../cloudinaryService";
 import SalesAnalyticsDashboard from "./SalesAnalyticsDashboard";
@@ -19,6 +19,8 @@ interface VendorAdminProps {
   products: Product[];
   onAddNewProduct?: (product: Product) => void;
   vendors?: Vendor[];
+  categories?: Category[];
+  onUpdateCategories?: (categories: Category[]) => void;
   
   // Resend Email Integration supporting controls
   mailLogs?: any[];
@@ -40,10 +42,103 @@ export default function VendorAdmin({
   autoSendEmails = true,
   onToggleAutoSend = () => {},
   onRefreshMailLogs = () => {},
-  userEmail = "nigerian.developer@gmail.com"
+  userEmail = "nigerian.developer@gmail.com",
+  categories = [],
+  onUpdateCategories
 }: VendorAdminProps) {
-  const [adminTab, setAdminTab] = useState<"vendor" | "dashboard" | "platform" | "emails">("vendor");
+  const [adminTab, setAdminTab] = useState<"vendor" | "dashboard" | "platform" | "emails" >("vendor");
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
+
+  // Categories Master Admin Control block states
+  const [localCategories, setLocalCategories] = useState<Category[]>(categories.length ? categories : MOCK_CATEGORIES);
+
+  React.useEffect(() => {
+    if (categories && categories.length) {
+      setLocalCategories(categories);
+    }
+  }, [categories]);
+
+  const handleUpdateCategoriesState = (updated: Category[]) => {
+    setLocalCategories(updated);
+    if (onUpdateCategories) {
+      onUpdateCategories(updated);
+    }
+  };
+
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatDesc, setNewCatDesc] = useState("");
+  const [newCatIcon, setNewCatIcon] = useState("Package");
+  
+  const [selectedParentId, setSelectedParentId] = useState("");
+  const [newSubcatName, setNewSubcatName] = useState("");
+
+  const handleAddCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    const newId = newCatName.toLowerCase().trim().replace(/[^a-z0-9]/g, "-");
+    
+    if (localCategories.some((c) => c.id === newId)) {
+      alert("A category with this name already exists!");
+      return;
+    }
+
+    const newCat: Category = {
+      id: newId,
+      name: newCatName.trim(),
+      description: newCatDesc.trim() || `${newCatName.trim()} description`,
+      image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600",
+      iconName: newCatIcon,
+      itemCount: 0,
+      subcategories: []
+    };
+
+    const updated = [...localCategories, newCat];
+    handleUpdateCategoriesState(updated);
+    
+    setNewCatName("");
+    setNewCatDesc("");
+    setNewCatIcon("Package");
+  };
+
+  const handleAddSubcategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedParentId || !newSubcatName.trim()) return;
+    
+    const updated = localCategories.map((c) => {
+      if (c.id === selectedParentId) {
+        const trimmedSub = newSubcatName.trim();
+        if (c.subcategories.some(s => s.toLowerCase() === trimmedSub.toLowerCase())) {
+          return c;
+        }
+        return {
+          ...c,
+          subcategories: [...c.subcategories, trimmedSub]
+        };
+      }
+      return c;
+    });
+
+    handleUpdateCategoriesState(updated);
+    setNewSubcatName("");
+  };
+
+  const handleDeleteCategory = (catId: string) => {
+    const updated = localCategories.filter(c => c.id !== catId);
+    handleUpdateCategoriesState(updated);
+  };
+
+  const handleDeleteSubcategory = (catId: string, subcatToDelete: string) => {
+    const updated = localCategories.map(c => {
+      if (c.id === catId) {
+        return {
+          ...c,
+          subcategories: c.subcategories.filter(s => s !== subcatToDelete)
+        };
+      }
+      return c;
+    });
+    handleUpdateCategoriesState(updated);
+  };
 
   const handleSendVendorApprovalEmail = async (email: string, businessName: string) => {
     setApprovalFeedback(null);
@@ -836,6 +931,189 @@ export default function VendorAdmin({
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Taxonomy Manager: Categories & Subcategories Administration */}
+          <div className="bg-white border border-neutral-200 rounded-2xl shadow-sm overflow-hidden animate-fade-in">
+            <div className="px-6 py-4.5 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/55 select-none">
+              <div>
+                <p className="font-extrabold text-sm text-neutral-800 tracking-tight text-left">Category & Subcategory Taxonomy Management</p>
+                <p className="text-[10px] text-neutral-450 mt-0.5 text-left font-semibold">Define core marketplace categories, icons, and nested brand or variant subcategories</p>
+              </div>
+              <span className="text-[9px] bg-emerald-900 font-extrabold text-white px-2.5 py-1 rounded uppercase tracking-wider">Marketplace Schema</span>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+              
+              {/* Left Column: Form builders */}
+              <div className="lg:col-span-5 space-y-6">
+                
+                {/* Form 1: Add Category */}
+                <form onSubmit={handleAddCategory} className="bg-neutral-50 p-4 border border-neutral-150 rounded-xl space-y-3 text-left">
+                  <h4 className="text-xs font-extrabold uppercase text-neutral-500 tracking-wider flex items-center space-x-1.5 mb-2">
+                    <Database className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Create Parent Category</span>
+                  </h4>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-450 block">Category Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newCatName}
+                      onChange={(e) => setNewCatName(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-xs bg-white outline-none focus:ring-1.5 focus:ring-neutral-900 font-semibold"
+                      placeholder="e.g. Computers"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-450 block">Short Description</label>
+                    <input
+                      type="text"
+                      value={newCatDesc}
+                      onChange={(e) => setNewCatDesc(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-xs bg-white outline-none focus:ring-1.5 focus:ring-neutral-900 font-medium"
+                      placeholder="e.g. Laptops, desktops and accessories"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-450 block">Lucide Icon Representation</label>
+                    <select
+                      value={newCatIcon}
+                      onChange={(e) => setNewCatIcon(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 bg-white rounded-lg text-xs outline-none focus:ring-1.5 focus:ring-neutral-900 font-bold"
+                    >
+                      <option value="Package">Package</option>
+                      <option value="Laptop">Laptop</option>
+                      <option value="Shirt">Shirt</option>
+                      <option value="Home">Home</option>
+                      <option value="Sparkles">Sparkles</option>
+                      <option value="Sliders">Sliders</option>
+                      <option value="Megaphone">Megaphone</option>
+                    </select>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer text-center"
+                  >
+                    + Create Category
+                  </button>
+                </form>
+
+                {/* Form 2: Add Subcategory */}
+                <form onSubmit={handleAddSubcategory} className="bg-neutral-50 p-4 border border-neutral-150 rounded-xl space-y-3 text-left">
+                  <h4 className="text-xs font-extrabold uppercase text-neutral-500 tracking-wider flex items-center space-x-1.5 mb-2">
+                    <Sliders className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Add nested subcategory</span>
+                  </h4>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-450 block">Select Parent Category *</label>
+                    <select
+                      required
+                      value={selectedParentId}
+                      onChange={(e) => setSelectedParentId(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 bg-white rounded-lg text-xs outline-none focus:ring-1.5 focus:ring-neutral-900 font-bold"
+                    >
+                      <option value="">-- Choose Category --</option>
+                      {localCategories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-450 block">Subcategory Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newSubcatName}
+                      onChange={(e) => setNewSubcatName(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-xs bg-white outline-none focus:ring-1.5 focus:ring-neutral-900 font-semibold"
+                      placeholder="e.g. Dell (for laptops) or iPhone (for phones)"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer text-center"
+                  >
+                    + Nest Subcategory
+                  </button>
+                </form>
+
+              </div>
+
+              {/* Right Column: Taxonomy Grid mapping with delete actions */}
+              <div className="lg:col-span-7 space-y-4">
+                <h4 className="text-xs font-extrabold uppercase text-neutral-400 tracking-wider text-left pl-1">
+                  Active Marketplace schema tree ({localCategories.length})
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {localCategories.map((cat) => (
+                    <div key={cat.id} className="border border-neutral-150 rounded-xl p-4 bg-white shadow-xs flex flex-col justify-between text-left relative min-h-[140px]">
+                      
+                      {/* Delete parent action */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to delete "${cat.name}" category and all its nested subcategories?`)) {
+                            handleDeleteCategory(cat.id);
+                          }
+                        }}
+                        className="absolute top-3 right-3 text-neutral-350 hover:text-red-500 transition-colors w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-50 cursor-pointer"
+                        title="Delete category"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+
+                      <div className="space-y-1.5">
+                        <div className="flex items-center space-x-1.5">
+                          <span className="text-[10px] uppercase font-black tracking-widest bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-100">
+                            {cat.iconName}
+                          </span>
+                        </div>
+                        <h5 className="font-extrabold text-xs text-neutral-900 pr-5">{cat.name}</h5>
+                        <p className="text-[10px] text-neutral-400 leading-normal line-clamp-2">{cat.description}</p>
+                      </div>
+
+                      {/* Subcategories bullet pills block */}
+                      <div className="mt-4 pt-3 border-t border-neutral-105">
+                        <p className="text-[9px] font-black uppercase text-neutral-400 tracking-wider mb-2">Nested Subcategories:</p>
+                        {cat.subcategories && cat.subcategories.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {cat.subcategories.map((sub) => (
+                              <span
+                                key={sub}
+                                className="inline-flex items-center bg-neutral-100 text-neutral-700 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-neutral-150 hover:border-red-200 hover:bg-red-50/50 group cursor-pointer transition-colors"
+                                onClick={() => {
+                                  if (confirm(`Remove subcategory "${sub}" from "${cat.name}"?`)) {
+                                    handleDeleteSubcategory(cat.id, sub);
+                                  }
+                                }}
+                                title="Click to remove subcategory"
+                              >
+                                <span>{sub}</span>
+                                <span className="ml-1 text-[8px] text-neutral-400 hover:text-red-500 font-extrabold">&times;</span>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[9px] text-neutral-400 italic font-medium">No nested subcategories defined yet.</p>
+                        )}
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+              
             </div>
           </div>
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Store, Mail, Lock, ChevronRight, Package, TrendingUp, ShieldCheck, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Store, Mail, Lock, ChevronRight, Package, TrendingUp, ShieldCheck, Sparkles, AlertCircle, CheckCircle2, Landmark } from "lucide-react";
 import { supabase } from "../supabase";
 
 interface VendorAuthProps {
@@ -12,6 +12,8 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [shopName, setShopName] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -33,7 +35,9 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
               role: "vendor",
               shopName: shopName,
               fullName: shopName,
-              location: "Lagos Mainland, Lagos"
+              location: "Lagos Mainland, Lagos",
+              bankName: bankName,
+              accountNumber: accountNumber
             }
           }
         });
@@ -58,7 +62,9 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
             stockAlerts: 0,
             email: email,
             phone: "+234 800 000 0000",
-            location: "Lagos Mainland, Lagos"
+            location: "Lagos Mainland, Lagos",
+            bankName: bankName,
+            accountNumber: accountNumber
           };
           
           await supabase.from("vendors").insert(newVendorEntry);
@@ -149,22 +155,70 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
 
         <form className="mt-8 space-y-5 relative" onSubmit={handleSubmit}>
           {isSignUp && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Shop Name</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Package className="h-4 w-4 text-neutral-400" />
+            <>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Shop Name</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Package className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={shopName}
+                    onChange={(e) => setShopName(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-3 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all"
+                    placeholder="e.g. Lagos Tech Hub"
+                  />
                 </div>
-                <input
-                  type="text"
-                  required
-                  value={shopName}
-                  onChange={(e) => setShopName(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all"
-                  placeholder="e.g. Lagos Tech Hub"
-                />
               </div>
-            </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Settlement Bank</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Landmark className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <select
+                    required
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-3 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-950 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all font-bold"
+                  >
+                    <option value="">-- Select Bank --</option>
+                    <option value="Access Bank">Access Bank</option>
+                    <option value="Guaranty Trust Bank">Guaranty Trust Bank (GTB)</option>
+                    <option value="Zenith Bank">Zenith Bank</option>
+                    <option value="United Bank for Africa">United Bank for Africa (UBA)</option>
+                    <option value="Kuda MFB">Kuda Microfinance Bank</option>
+                    <option value="Moniepoint MFB">Moniepoint MFB</option>
+                    <option value="OPay">OPay</option>
+                    <option value="Wema Bank">Wema Bank (ALAT)</option>
+                    <option value="Fidelity Bank">Fidelity Bank</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Settlement Account (NUBAN)</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-xs text-neutral-400 font-bold font-mono">₦</span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    maxLength={10}
+                    minLength={10}
+                    pattern="[0-9]{10}"
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value.replace(/[^0-9]/g, ""))}
+                    className="block w-full pl-10 pr-3 py-3 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all font-mono"
+                    placeholder="10 digit account number"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           <div className="space-y-1.5">
