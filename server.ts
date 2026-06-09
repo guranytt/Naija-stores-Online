@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
@@ -5,6 +6,11 @@ import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+Sentry.init({
+  dsn: "https://a68848c350e9185df733bf879936e1a9@o4511534518435840.ingest.de.sentry.io/4511534529183824",
+  tracesSampleRate: 1.0,
+});
 
 // Create an in-memory storage for server-side email logs to survive across pages
 interface BackendMailLog {
@@ -166,6 +172,9 @@ async function startServer() {
   app.get("/api/resend/logs", (req, res) => {
     res.json({ logs: serverMailLogs });
   });
+
+  // Register Sentry express error handler
+  Sentry.setupExpressErrorHandler(app);
 
   // Create Vite middleware in development context
   if (process.env.NODE_ENV !== "production") {

@@ -430,6 +430,47 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans select-none antialiased">
       
+      {/* Animated Green Call To Order Banner */}
+      <motion.div
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: "auto", opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="bg-emerald-600 text-white text-[11px] sm:text-xs py-2 px-4 shadow-sm flex items-center justify-center relative overflow-hidden z-25 border-b border-emerald-500/25"
+      >
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-x-4 gap-y-1.5 w-full text-center">
+          <div className="flex items-center space-x-1.5 justify-center">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-100 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+            </span>
+            <span className="font-extrabold uppercase tracking-widest text-[9px] bg-emerald-800/40 px-2 py-0.5 rounded text-emerald-300">Fast Call to Order</span>
+          </div>
+          
+          <p className="font-semibold tracking-wide text-white/95">
+            Place your order directly via call or WhatsApp! Instant delivery setup nationwide.
+          </p>
+
+          <div className="flex items-center space-x-2 mt-0.5 sm:mt-0">
+            <a 
+              href="tel:+2348123456789" 
+              className="bg-white text-emerald-800 hover:bg-emerald-50 px-2.5 py-1 rounded-lg font-bold shadow-xs transition-all hover:scale-105 inline-flex items-center space-x-1 text-[11px]"
+            >
+              <span>📞</span>
+              <span>0812 345 6789</span>
+            </a>
+            <a 
+              href="https://wa.me/2348123456789?text=Hello%20Naija%20Online%20Store%2C%20I%20want%20to%20place%20an%20order" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="bg-emerald-950 text-white hover:bg-emerald-900 border border-emerald-800 px-2.5 py-1 rounded-lg font-bold shadow-xs transition-all hover:scale-105 inline-flex items-center space-x-1 text-[11px]"
+            >
+              <span className="w-3.5 h-3.5 inline-block text-[11px]">💬</span>
+              <span>WhatsApp Order</span>
+            </a>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Prime Header */}
       <Navbar
         currentScreen={currentScreen}

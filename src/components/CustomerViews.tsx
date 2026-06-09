@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home } from "lucide-react";
+import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home, Eye } from "lucide-react";
 import { Product, Category, CartItem, Vendor, Advertisement } from "../types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_ADS, FLASH_SALE_PRODUCTS } from "../data/mockData";
 
@@ -70,6 +70,31 @@ export default function CustomerViews({
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Tracking recently viewed items
+  const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem("recentlyViewed");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  React.useEffect(() => {
+    if (screen === "details" && selectedProductId) {
+      setRecentlyViewedIds((prev) => {
+        const filtered = prev.filter((id) => id !== selectedProductId);
+        const updated = [selectedProductId, ...filtered].slice(0, 8); // Hold up to 8 items
+        try {
+          localStorage.setItem("recentlyViewed", JSON.stringify(updated));
+        } catch (e) {
+          console.error(e);
+        }
+        return updated;
+      });
+    }
+  }, [screen, selectedProductId]);
 
   React.useEffect(() => {
     if (homepageAds.length <= 1) return;
@@ -166,6 +191,10 @@ export default function CustomerViews({
     if (sortOption === "rating") return b.rating - a.rating;
     return 0; // standard mock recommended
   });
+
+  const recentlyViewedProducts = recentlyViewedIds
+    .map((id) => MOCK_PRODUCTS.find((p) => p.id === id))
+    .filter((p): p is Product => !!p);
 
   const detailProduct = MOCK_PRODUCTS.find((p) => p.id === selectedProductId) || MOCK_PRODUCTS[0];
 
@@ -549,6 +578,78 @@ export default function CustomerViews({
               })}
             </div>
           </section>
+
+          {/* Recently Viewed Products Section */}
+          {recentlyViewedProducts.length > 0 && (
+            <section className="space-y-4">
+              <div className="text-left pb-2 border-b border-neutral-100 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight flex items-center">
+                    <Eye className="w-5 h-5 mr-2 text-orange-500 animate-pulse" />
+                    Recently Viewed
+                  </h2>
+                  <p className="text-xs text-neutral-400 font-semibold mt-1">Pick up right where you left off in your shopping trip</p>
+                </div>
+                {recentlyViewedProducts.length > 1 && (
+                  <button 
+                    onClick={() => {
+                      localStorage.removeItem("recentlyViewed");
+                      setRecentlyViewedIds([]);
+                    }}
+                    className="text-[10px] text-neutral-400 font-bold hover:text-red-500 uppercase tracking-widest transition-colors cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+
+              <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-thin snap-x snap-mandatory">
+                {recentlyViewedProducts.map((p, idx) => {
+                  const isAdded = !!justAddedProducts[p.id];
+                  return (
+                    <motion.div
+                      key={`recent-${p.id}`}
+                      onClick={() => {
+                        onSelectProduct(p.id);
+                        onNavigate("details");
+                      }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: idx * 0.05 }}
+                      whileHover={{ y: -4 }}
+                      className="bg-white rounded-2xl border border-neutral-150 p-3 flex flex-row h-28 w-72 shrink-0 shadow-xs hover:shadow-md cursor-pointer transition-all snap-start"
+                    >
+                      {/* Left: Image */}
+                      <div className="w-[30%] h-full bg-neutral-50 rounded-xl overflow-hidden relative shrink-0">
+                        {p.image ? (
+                          <img src={p.image} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="flex w-full h-full items-center justify-center text-[9px] uppercase font-bold text-neutral-300">No Img</div>
+                        )}
+                      </div>
+                      {/* Right: Info */}
+                      <div className="flex-1 pl-3 py-0.5 flex flex-col justify-between min-w-0">
+                        <div>
+                          <p className="text-[9px] font-bold text-orange-500 uppercase truncate">{p.vendorName}</p>
+                          <h3 className="font-extrabold text-xs text-neutral-800 line-clamp-2 leading-tight mt-1">{p.title}</h3>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="font-black text-xs text-neutral-900 leading-none">{formatNaira(p.price)}</p>
+                          <button 
+                            onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
+                            className={`text-[9px] font-bold px-2.5 py-1 rounded transition-all shrink-0 ${isAdded ? "bg-emerald-600 text-white" : "bg-neutral-50 hover:bg-orange-500 text-neutral-700 hover:text-white border border-neutral-200"}`}
+                          >
+                            {isAdded ? "Added" : "Buy Now"}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           {/* Trending Deals of the week (Asymmetric Bento layout) */}
           <section className="space-y-4">

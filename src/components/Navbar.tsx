@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { ShoppingCart, Search, Store, Map, LayoutDashboard, UserCircle, Menu, X, Landmark, BadgeCheck } from "lucide-react";
 import { Category } from "../types";
-import { MOCK_PRODUCTS } from "../data/mockData";
+import { MOCK_PRODUCTS, MOCK_CATEGORIES } from "../data/mockData";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 
 interface NavbarProps {
@@ -342,7 +342,7 @@ export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch,
 
               {/* Menu options list */}
               <h3 className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-3 text-left">Main Categories</h3>
-              <div className="space-y-1.5 flex-1 p-0.5">
+              <div className="space-y-1.5 p-0.5">
                 {menuItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = currentScreen === item.id;
@@ -353,17 +353,43 @@ export default function Navbar({ currentScreen, onNavigate, cartCount, onSearch,
                         onNavigate(item.id);
                         setMobileMenuOpen(false);
                       }}
-                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-bold tracking-wide transition-all ${
+                      className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-bold tracking-wide transition-all ${
                         isActive
                           ? "bg-orange-500 text-white shadow-md font-extrabold"
                           : "text-emerald-100 hover:bg-white/5"
                       }`}
                     >
-                      <Icon className="w-5 h-5 text-white/80" />
+                      <Icon className="w-5 h-5 text-white/50" />
                       <span>{item.label}</span>
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Shopping Categories List inside Hamburger Menu */}
+              <div className="mt-6 flex-1 flex flex-col min-h-0 overflow-hidden">
+                <h3 className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-3 text-left shrink-0">Shop by Category</h3>
+                <div className="space-y-1.5 overflow-y-auto pr-1 flex-grow">
+                  {MOCK_CATEGORIES.map((cat) => {
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => {
+                          onSearch(cat.name);
+                          setSearchVal(cat.name);
+                          onNavigate("shop");
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 bg-white/5 hover:bg-orange-500 hover:text-white text-xs font-semibold text-emerald-100 rounded-lg transition-all text-left"
+                      >
+                        <span className="truncate">{cat.name}</span>
+                        <span className="text-[9px] bg-emerald-900/60 text-orange-400 font-bold px-2 py-0.5 rounded-full shrink-0">
+                          {cat.itemCount} items
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* User Session details footer inside mobile panel */}
