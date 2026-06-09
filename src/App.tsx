@@ -20,7 +20,7 @@ import PaystackCheckout from "./components/PaystackCheckout";
 import { Product, CartItem, Order, Vendor } from "./types";
 import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS } from "./data/mockData";
 import { formatNaira } from "./components/CustomerViews";
-import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText, Store } from "lucide-react";
+import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText, Store, Bug } from "lucide-react";
 import { supabase, getSupabaseData, saveSupabaseRecord, PROVISION_SQL_SCRIPT } from "./supabase";
 import { sendResendEmail, fetchEmailLogs, MailLogEntry } from "./emailService";
 
@@ -745,6 +745,58 @@ export default function App() {
                   >
                     Configure Mail Hub ↗
                   </button>
+                </div>
+
+                {/* Sentry System Health & Error Tracking */}
+                <div className="p-4 bg-red-50/70 border border-red-100 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-red-950 flex items-center space-x-1.5">
+                      <Bug className="w-4 h-4 text-red-500" />
+                      <span>Sentry Error Suite</span>
+                    </p>
+                    <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded-full text-[9px] font-extrabold uppercase tracking-wider font-mono border border-red-200">
+                      Live
+                    </span>
+                  </div>
+
+                  <p className="text-neutral-600 text-[11px] leading-relaxed">
+                    Sentry error and session tracking is active for client browser transactions and NodeJS server telemetry.
+                  </p>
+
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Trigger Verification Errors</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          triggerToast("Triggering client-side error... Check Sentry logs!", "info");
+                          setTimeout(() => {
+                            throw new Error("Naija Online Store Sentry Verification Error: Sentry React SDK is alive!");
+                          }, 100);
+                        }}
+                        className="p-2 bg-white hover:bg-red-50 border border-red-200 text-red-700 text-[10px] font-bold rounded-xl transition-all shadow-2xs text-center cursor-pointer"
+                      >
+                        Client Error
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            triggerToast("Calling server-side test endpoint...");
+                            const res = await fetch("/api/sentry-error-test");
+                            if (!res.ok) {
+                              triggerToast("Backend error successfully routed & caught!", "success");
+                            } else {
+                              triggerToast("Server response OK", "info");
+                            }
+                          } catch (err: any) {
+                            triggerToast("Failed to connect to backend", "info");
+                          }
+                        }}
+                        className="p-2 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold rounded-xl transition-all shadow-xs text-center cursor-pointer"
+                      >
+                        Backend Error
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">

@@ -173,6 +173,11 @@ async function startServer() {
     res.json({ logs: serverMailLogs });
   });
 
+  // 4. Sentry express test error trigger endpoint
+  app.get("/api/sentry-error-test", (req, res) => {
+    throw new Error("Sentry Express Backend Test Error: Sentry is fully configured!");
+  });
+
   // Register Sentry express error handler
   Sentry.setupExpressErrorHandler(app);
 
