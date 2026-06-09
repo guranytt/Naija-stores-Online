@@ -18,6 +18,74 @@ export const formatNaira = (value: number) => {
   }).format(value);
 };
 
+export const sponsoredBrandAds = [
+  {
+    id: "mtn",
+    brand: "MTN",
+    bgClass: "bg-amber-450 bg-amber-400 text-neutral-900 border-amber-300",
+    badgeBg: "bg-neutral-900 text-amber-400 font-extrabold",
+    title: "Everywhere You Go — Turn on MTN 5G Fast Speed!",
+    description: "Nigeria's custom connectivity network. Recharge now to unlock standard 10x high data bonus instantly.",
+    ctaText: "⚡ Get 10x Offer",
+    ctaUrl: "https://wa.me/2348138575869?text=Hello+I+want+to+order+MTN+data+bundle",
+    tagline: "Sponsored Spark",
+    badgeLabel: "MTN 5G",
+    waveColor: "border-neutral-900/10"
+  },
+  {
+    id: "apple",
+    brand: "Apple",
+    bgClass: "bg-neutral-900 text-white border-neutral-800",
+    badgeBg: "bg-white text-neutral-950 font-black",
+    title: "iPhone 15 Pro — Titanium Space Design",
+    description: "Experience the pinnacle of standard Apple hardware with the lightweight Aerospace-grade titanium chassis.",
+    ctaText: "⚡ Buy Apple iPhone",
+    ctaUrl: "https://wa.me/2348138575869?text=Hello+I+want+to+order+Apple+iPhone",
+    tagline: "Official Sponsor",
+    badgeLabel: " Apple",
+    waveColor: "border-white/10"
+  },
+  {
+    id: "nestle",
+    brand: "Nestlé",
+    bgClass: "bg-teal-850 bg-teal-800 text-white border-teal-700",
+    badgeBg: "bg-amber-400 text-neutral-900 font-black",
+    title: "Nestlé Milo — Active Brain & Body Energy",
+    description: "Start each morning with the nutritious malt goodness of vitamins, minerals, and chocolatey Milo.",
+    ctaText: "⚡ Order Nestle Milo",
+    ctaUrl: "https://wa.me/2348138575869?text=Hello+I+want+to+order+Milo",
+    tagline: "Plaza Partner",
+    badgeLabel: "Milo",
+    waveColor: "border-teal-900/10"
+  },
+  {
+    id: "nike",
+    brand: "Nike",
+    bgClass: "bg-orange-600 text-white border-orange-500",
+    badgeBg: "bg-neutral-950 text-white font-black",
+    title: "Nike Air Max Flyknit — Just Do It",
+    description: "Engineered with targeted zones of support, exceptional breathability, and cloud-like cushioned heels.",
+    ctaText: "⚡ Order Nike Air Max",
+    ctaUrl: "https://wa.me/2348138575869?text=Hello+I+want+to+order+Nike+sneakers",
+    tagline: "Fashion Partner",
+    badgeLabel: "Nike Air",
+    waveColor: "border-orange-200/5"
+  },
+  {
+    id: "pepsi",
+    brand: "Pepsi",
+    bgClass: "bg-blue-650 bg-blue-600 text-white border-blue-500",
+    badgeBg: "bg-white text-blue-700 font-black",
+    title: "Pepsi Confam Naija — Max Taste, Zero Sugar",
+    description: "Keep the beautiful Naija culture alive! Crack open Pepsi for maximum chill, fizz, and refreshment.",
+    ctaText: "⚡ Get Pepsi Chill",
+    ctaUrl: "https://wa.me/2348138575869?text=Hello+I+want+to+order+Pepsi",
+    tagline: "Youth Sponsor",
+    badgeLabel: "Pepsi Max",
+    waveColor: "border-blue-200/5"
+  }
+];
+
 interface CustomerViewsProps {
   screen: "home" | "shop" | "cart" | "details";
   onNavigate: (screen: string) => void;
@@ -59,6 +127,7 @@ export default function CustomerViews({
   const [selectedStateForShipping, setSelectedStateForShipping] = useState<string>("Lagos");
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [brandAdIndex, setBrandAdIndex] = useState(0);
   const [flashSaleTime, setFlashSaleTime] = useState({ h: 2, m: 21, s: 6 });
   
   const homepageAds = MOCK_ADS.filter(ad => ad.position === "homepage" && ad.status === "active");
@@ -108,6 +177,13 @@ export default function CustomerViews({
     }, 5000);
     return () => clearInterval(interval);
   }, [homepageAds.length]);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setBrandAdIndex((prev) => (prev + 1) % sponsoredBrandAds.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, []);
 
   React.useEffect(() => {
     setIsSearchLoading(true);
@@ -292,49 +368,78 @@ export default function CustomerViews({
               </div>
             )}
 
-            {/* MTN Animated Brand Banner */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25, duration: 0.6 }}
-              className="relative w-full overflow-hidden rounded-2xl bg-amber-400 text-neutral-900 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm border border-amber-300"
-            >
-              {/* Left connectivity waves animation */}
-              <div className="absolute left-0 top-0 h-full w-40 pointer-events-none overflow-hidden opacity-10">
-                <span className="absolute -left-10 -top-10 w-28 h-28 rounded-full border-4 border-neutral-900 animate-ping"></span>
-                <span className="absolute -left-16 -top-16 w-44 h-44 rounded-full border-4 border-neutral-900 animate-pulse"></span>
-              </div>
+            {/* Animated Brand Banner Carousel */}
+            <div className="relative w-full">
+              <AnimatePresence mode="wait">
+                {(() => {
+                  const ad = sponsoredBrandAds[brandAdIndex];
+                  return (
+                    <motion.div
+                      key={ad.id}
+                      initial={{ opacity: 0, scale: 0.99, y: 5 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.99, y: -5 }}
+                      transition={{ duration: 0.35, ease: "easeOut" }}
+                      className={`relative w-full overflow-hidden rounded-2xl ${ad.bgClass} px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm border`}
+                    >
+                      {/* Left connectivity waves animation template */}
+                      <div className="absolute left-0 top-0 h-full w-40 pointer-events-none overflow-hidden opacity-10">
+                        <span className={`absolute -left-10 -top-10 w-28 h-28 rounded-full border-4 ${ad.waveColor} animate-ping`}></span>
+                        <span className={`absolute -left-16 -top-16 w-44 h-44 rounded-full border-4 ${ad.waveColor} animate-pulse`}></span>
+                      </div>
 
-              <div className="flex items-center space-x-4 z-10 w-full md:w-auto">
-                {/* Yellow and Black Oval brand badge */}
-                <div className="w-14 h-10 rounded-full bg-neutral-900 text-amber-400 font-black flex items-center justify-center text-[10px] uppercase tracking-tighter shrink-0 border border-neutral-800 shadow-sm">
-                  MTN
-                </div>
-                <div className="text-left">
-                  <div className="flex items-center space-x-1.5 flex-wrap">
-                    <span className="text-[8px] bg-neutral-900/15 text-neutral-900 font-extrabold uppercase px-1.5 py-0.5 rounded tracking-widest leading-none">Sponsored Offer</span>
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neutral-900 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-600"></span>
-                    </span>
-                  </div>
-                  <h4 className="font-extrabold text-sm sm:text-base text-neutral-900 mt-0.5 leading-tight">
-                    Everywhere You Go — Turn on MTN 5G Fast Speed!
-                  </h4>
-                  <p className="text-[11px] text-neutral-800 font-medium max-w-lg mt-0.5">
-                    Nigeria's premium connectivity network. Recharge now to unlock standard 10x high data bonus instantly.
-                  </p>
-                </div>
-              </div>
+                      <div className="flex items-center space-x-4 z-10 w-full md:w-auto">
+                        {/* Custom Oval brand badge */}
+                        <div className={`w-14 h-10 rounded-full ${ad.badgeBg} flex items-center justify-center text-[10px] uppercase tracking-tighter shrink-0 border border-neutral-800 shadow-sm leading-none`}>
+                          {ad.brand}
+                        </div>
+                        <div className="text-left">
+                          <div className="flex items-center space-x-1.5 flex-wrap">
+                            <span className="text-[8px] bg-black/10 font-bold uppercase px-1.5 py-0.5 rounded tracking-widest leading-none">
+                              {ad.tagline}
+                            </span>
+                            <span className="flex h-2 w-2 relative">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neutral-950 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                          </div>
+                          <h4 className="font-extrabold text-sm sm:text-base mt-1 leading-tight">
+                            {ad.title}
+                          </h4>
+                          <p className="text-[11px] opacity-90 font-medium max-w-lg mt-0.5 leading-normal">
+                            {ad.description}
+                          </p>
+                        </div>
+                      </div>
 
-              {/* Action trigger Call To Order or Promo link */}
-              <a
-                href="tel:08138575869"
-                className="bg-neutral-950 text-amber-400 hover:bg-neutral-900 transition-all font-black text-xs px-4.5 py-2.5 rounded-xl flex items-center space-x-2 shrink-0 z-10 hover:shadow-md hover:scale-105"
-              >
-                <span>⚡ Get Data Bonus</span>
-              </a>
-            </motion.div>
+                      {/* Action trigger call to order or promotion Whatsapp API */}
+                      <a
+                        href={ad.ctaUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="bg-neutral-950 text-white hover:bg-neutral-900 transition-all font-black text-xs px-4.5 py-2.5 rounded-xl flex items-center space-x-2 shrink-0 z-10 hover:shadow-md hover:scale-105 cursor-pointer"
+                      >
+                        <span>{ad.ctaText}</span>
+                      </a>
+                    </motion.div>
+                  );
+                })()}
+              </AnimatePresence>
+
+              {/* Slider Dots */}
+              <div className="absolute right-4 bottom-3 flex space-x-1.5 z-10">
+                {sponsoredBrandAds.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setBrandAdIndex(idx)}
+                    className={`h-1.5 rounded-full transition-all duration-300 outline-none ${
+                      idx === brandAdIndex ? "w-4 bg-neutral-950" : "w-1.5 bg-neutral-950/35"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
 
             <motion.section
               initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
@@ -1254,13 +1359,24 @@ export default function CustomerViews({
               
               <div className="p-4 bg-neutral-50 border border-neutral-100 rounded-2xl flex items-center justify-between">
                 <div className="flex items-center space-x-3.5">
-                  <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold font-mono">
-                    {detailProduct.vendorName.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="text-xs text-neutral-400 font-bold uppercase leading-none">VERIFIED SELLER</p>
-                    <p className="text-sm font-bold text-neutral-800 mt-1">{detailProduct.vendorName}</p>
-                  </div>
+                  {(() => {
+                    const vendorMatch = vendors.find(v => v.id === detailProduct.vendorId);
+                    return (
+                      <>
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-orange-100 text-orange-600 flex items-center justify-center font-bold font-mono shrink-0">
+                          {vendorMatch && vendorMatch.avatar && !vendorMatch.avatar.startsWith("https://lh3.googleusercontent.com/v_") ? (
+                            <img src={vendorMatch.avatar} alt={vendorMatch.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <span>{detailProduct.vendorName.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs text-neutral-400 font-bold uppercase leading-none">VERIFIED SELLER</p>
+                          <p className="text-sm font-bold text-neutral-800 mt-1">{vendorMatch ? vendorMatch.name : detailProduct.vendorName}</p>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full inline-block uppercase font-mono">Verified Plaza Partner</p>

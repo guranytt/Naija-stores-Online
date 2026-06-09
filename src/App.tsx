@@ -171,6 +171,15 @@ export default function App() {
       return updated;
     });
   };
+
+  const handleUpdateVendor = (updatedVendor: Vendor) => {
+    setVendors(prevVendors => {
+      const updated = prevVendors.map(v => v.id === updatedVendor.id ? updatedVendor : v);
+      saveSupabaseRecord("vendors", updatedVendor);
+      triggerToast(`Store profile updated successfully!`, "success");
+      return updated;
+    });
+  };
   const [searchFilter, setSearchFilter] = useState<string>("");
   const shouldReduceMotion = useReducedMotion();
   const [userEmail, setUserEmail] = useState<string>("nigerian.developer@gmail.com");
@@ -582,6 +591,7 @@ export default function App() {
                 orders={orders}
                 products={products}
                 vendors={vendors}
+                onUpdateVendor={handleUpdateVendor}
                 onReviewOrderFlag={handleReviewOrderFlag}
                 onAddNewProduct={handleAddNewProduct}
                 categories={categories}

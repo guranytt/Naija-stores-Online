@@ -19,6 +19,7 @@ interface VendorAdminProps {
   products: Product[];
   onAddNewProduct?: (product: Product) => void;
   vendors?: Vendor[];
+  onUpdateVendor?: (updatedVendor: Vendor) => void;
   categories?: Category[];
   onUpdateCategories?: (categories: Category[]) => void;
   
@@ -37,6 +38,7 @@ export default function VendorAdmin({
   products, 
   onAddNewProduct, 
   vendors = [],
+  onUpdateVendor,
   mailLogs = [],
   onSendTestEmail,
   autoSendEmails = true,
@@ -170,8 +172,69 @@ export default function VendorAdmin({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
+  // States for updating vendor profile and branding picture
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editShopName, setEditShopName] = useState("");
+  const [editOwnerName, setEditOwnerName] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editAvatar, setEditAvatar] = useState("");
+  const [isProfileUploading, setIsProfileUploading] = useState(false);
+  const [profileUploadError, setProfileUploadError] = useState("");
+
   const vendorsList = vendors && vendors.length > 0 ? vendors : MOCK_VENDORS;
   const activeVendor = vendorsList.find(v => v.id === "v_heritage") || vendorsList[0];
+
+  React.useEffect(() => {
+    if (activeVendor) {
+      setEditShopName(activeVendor.name);
+      setEditOwnerName(activeVendor.ownerName || "");
+      setEditLocation(activeVendor.location || "");
+      setEditAvatar(activeVendor.avatar || "");
+    }
+  }, [activeVendor]);
+
+  const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      setProfileUploadError("Store logo image exceeds maximum 8MB file size.");
+      return;
+    }
+
+    setIsProfileUploading(true);
+    setProfileUploadError("");
+
+    try {
+      const base64 = await convertFileToBase64(file);
+      const res = await uploadToCloudinary(base64);
+      if (res.success && res.url) {
+        setEditAvatar(res.url);
+      } else {
+        setProfileUploadError(res.error || "Custom image upload returned an error code.");
+      }
+    } catch (err: any) {
+      setProfileUploadError(err.message || "Failed to parse local image stream.");
+    } finally {
+      setIsProfileUploading(false);
+    }
+  };
+
+  const handleSaveProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editShopName.trim()) return;
+
+    if (onUpdateVendor) {
+      onUpdateVendor({
+        ...activeVendor,
+        name: editShopName,
+        ownerName: editOwnerName,
+        location: editLocation,
+        avatar: editAvatar
+      });
+    }
+    setShowEditProfileModal(false);
+  };
   const averageVendorRating = vendorsList.reduce((acc, curr) => acc + curr.rating, 0) / vendorsList.length;
 
   // Raw mock stats for platform view
@@ -333,13 +396,50 @@ export default function VendorAdmin({
         <div className="space-y-6">
           
           {/* Header context */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">Welcome back, {activeVendor.ownerName}</h2>
-              <p className="text-xs text-neutral-400 font-semibold">{activeVendor.name} &bull; {activeVendor.location}</p>
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs">
+            <div className="flex items-center space-x-4">
+              <div className="relative group cursor-pointer" onClick={() => setShowEditProfileModal(true)}>
+                {activeVendor.avatar ? (
+                  <img 
+                    src={activeVendor.avatar} 
+                    alt={activeVendor.name} 
+                    className="w-14 h-14 rounded-full object-cover border-2 border-orange-500 shadow-sm"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      // fallback if image url is broken or default
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                ) : null}
+                <div className="w-14 h-14 rounded-full bg-orange-100 text-orange-600 font-black text-lg flex items-center justify-center border-2 border-orange-500 shadow-sm uppercase">
+                  {activeVendor.name.charAt(0)}
+                </div>
+                {/* Micro hover interaction badge */}
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-neutral-900 border border-white text-white rounded-full flex items-center justify-center text-[10px] shadow-xs">
+                  ⚙️
+                </div>
+              </div>
+              <div className="text-left">
+                <h2 className="text-lg sm:text-xl font-black text-neutral-900 tracking-tight flex items-center space-x-2">
+                  <span>Welcome back, {activeVendor.ownerName}</span>
+                </h2>
+                <p className="text-xs text-neutral-400 font-bold">{activeVendor.name} &bull; 📍 {activeVendor.location}</p>
+                <button 
+                  onClick={() => setShowEditProfileModal(true)}
+                  className="text-[10px] text-orange-500 hover:text-orange-600 font-black tracking-wider uppercase underline mt-1 block"
+                >
+                  Edit Logo & Shop Details
+                </button>
+              </div>
             </div>
             
             <div className="flex space-x-2">
+              <button
+                onClick={() => setShowEditProfileModal(true)}
+                className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center space-x-1.5 border border-neutral-200"
+              >
+                <span>⚙️ Edit Brand Profile</span>
+              </button>
               <button
                 onClick={() => setShowAddProductModal(true)}
                 className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center space-x-1.5 shadow-xs"
@@ -671,6 +771,136 @@ export default function VendorAdmin({
                       className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow"
                     >
                       Publish Item
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Brand Profile settings modal popup */}
+          {showEditProfileModal && (
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-xs" onClick={() => setShowEditProfileModal(false)} />
+              <div className="relative w-full max-w-md bg-white rounded-3xl shadow-premium p-6 overflow-hidden z-10 border border-neutral-100">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-black text-neutral-900 tracking-tight">Edit Store Brand Profile</h3>
+                  <button onClick={() => setShowEditProfileModal(false)} className="text-neutral-400 hover:text-neutral-600">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Highly simple guidance instructions */}
+                <div className="bg-amber-50 border border-amber-200/60 p-3.5 rounded-2xl text-[11px] text-neutral-800 space-y-1 mb-4 leading-relaxed">
+                  <span className="font-extrabold text-amber-950 uppercase tracking-wider block mb-1">💡 Super Simple Instructions:</span>
+                  <p>1. Tap <strong>Choose Brand File</strong> below to select and upload your brand logo or photo instantly. No complicated crop tools required!</p>
+                  <p>2. Fill out your simple shop name, contact location, and bank credentials.</p>
+                  <p>3. Tap <strong>Save Brand Settings</strong>. The changes propagate live across your custom site pages.</p>
+                </div>
+
+                <form onSubmit={handleSaveProfileSubmit} className="space-y-4">
+                  {/* Brand Profile Pic Upload Input */}
+                  <div className="space-y-1.5 p-3.5 bg-neutral-50 border border-neutral-150 rounded-2xl">
+                    <label className="text-xs font-bold text-neutral-700 uppercase tracking-widest flex items-center gap-1.5">
+                      <ImageIcon className="w-4 h-4 text-orange-500" />
+                      <span>Shop Brand Logo / Picture</span>
+                    </label>
+                    
+                    <div className="flex gap-4 items-center mt-2">
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleProfilePictureUpload}
+                          disabled={isProfileUploading}
+                          className="file:mr-2.5 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-orange-500 file:text-white hover:file:bg-orange-600 text-neutral-500 file:cursor-pointer text-[10px] font-mono cursor-pointer block w-full bg-white border border-neutral-200 p-1 rounded-xl disabled:opacity-45"
+                        />
+                      </div>
+
+                      {editAvatar ? (
+                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500 flex-shrink-0 relative group">
+                          <img src={editAvatar} alt="Store logo preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          <button
+                            type="button"
+                            onClick={() => setEditAvatar("")}
+                            className="absolute inset-0 bg-neutral-900/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
+                          >
+                            <X className="w-3.5 h-3.5 text-white" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-neutral-100 border border-neutral-250 flex items-center justify-center font-bold text-neutral-400 text-xs flex-shrink-0">
+                          No Pic
+                        </div>
+                      )}
+                    </div>
+
+                    {isProfileUploading && (
+                      <div className="flex items-center space-x-1 mt-1 text-[10px] font-bold text-orange-600 animate-pulse">
+                        <RefreshCw className="w-3 animate-spin" />
+                        <span>Uploading logo to cloud...</span>
+                      </div>
+                    )}
+
+                    {profileUploadError && (
+                      <p className="text-[10px] text-red-600 font-bold bg-red-50 p-2 rounded-lg border border-red-100 flex items-center space-x-1 mt-1">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>{profileUploadError}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Store / Shop Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editShopName}
+                      onChange={(e) => setEditShopName(e.target.value)}
+                      placeholder="e.g. Balogun Trendsetters"
+                      className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Owner Full Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={editOwnerName}
+                        onChange={(e) => setEditOwnerName(e.target.value)}
+                        placeholder="Alimi Oladipupo"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Location / Plaza Address</label>
+                      <input
+                        type="text"
+                        required
+                        value={editLocation}
+                        onChange={(e) => setEditLocation(e.target.value)}
+                        placeholder="Balogun Market, Lagos"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex justify-end space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowEditProfileModal(false)}
+                      className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-xl text-neutral-600 text-xs font-bold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isProfileUploading}
+                      className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-sm active:scale-95 transition-transform disabled:opacity-50"
+                    >
+                      Save Brand Settings
                     </button>
                   </div>
                 </form>
