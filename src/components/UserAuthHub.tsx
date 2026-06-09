@@ -17,12 +17,14 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
     location: string;
     shopName: string;
     phone: string;
+    deliveryAddress: string;
   }>({
     fullName: "",
     role: "customer",
     location: "Lagos Mainland, Lagos",
     shopName: "",
-    phone: ""
+    phone: "",
+    deliveryAddress: ""
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +64,8 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
           role: "customer",
           location: "Lagos Mainland, Lagos",
           shopName: "",
-          phone: ""
+          phone: "",
+          deliveryAddress: ""
         });
       }
     });
@@ -79,7 +82,8 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
       role: meta.role || "customer",
       location: meta.location || "Lagos Mainland, Lagos",
       shopName: meta.shopName || "",
-      phone: meta.phone || ""
+      phone: meta.phone || "",
+      deliveryAddress: meta.deliveryAddress || ""
     });
     onUpdateEmail(user.email || "");
   };
@@ -163,7 +167,8 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
           fullName: profile.fullName,
           location: profile.location,
           shopName: profile.shopName,
-          phone: profile.phone
+          phone: profile.phone,
+          deliveryAddress: profile.deliveryAddress
         }
       });
       if (error) throw error;
@@ -314,6 +319,16 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                   <option value="GRA, Port Harcourt (Rivers)">GRA, Port Harcourt (Rivers)</option>
                   <option value="Kano City, Kano">Kano City, Kano</option>
                 </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Delivery Street Address</label>
+                <textarea
+                  placeholder="Enter your complete street door physical address for logistics deliveries"
+                  value={profile.deliveryAddress}
+                  onChange={(e) => setProfile(prev => ({ ...prev, deliveryAddress: e.target.value }))}
+                  className="w-full px-4 py-2 text-xs border border-neutral-200 bg-white rounded-xl outline-none min-h-[60px] font-semibold"
+                />
               </div>
 
               {profile.role === "vendor" && (

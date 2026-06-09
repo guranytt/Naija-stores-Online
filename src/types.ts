@@ -99,6 +99,7 @@ export interface Order {
   routeTo: string;
   deliveryProgress: number; // 0 to 100
   currentCity: string;
+  productIds?: string[];
 }
 
 export interface AdminTeamMember {

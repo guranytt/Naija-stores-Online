@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home, Eye } from "lucide-react";
-import { Product, Category, CartItem, Vendor, Advertisement } from "../types";
+import { Product, Category, CartItem, Vendor, Advertisement, Order } from "../types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_ADS, FLASH_SALE_PRODUCTS } from "../data/mockData";
 
 // Naira formatter helper
@@ -101,6 +101,7 @@ interface CustomerViewsProps {
   onRateVendor?: (vendorId: string, rating: number) => void;
   products?: Product[];
   categories?: Category[];
+  orders?: Order[];
 }
 
 export default function CustomerViews({
@@ -117,7 +118,8 @@ export default function CustomerViews({
   vendors = [],
   onRateVendor,
   products = MOCK_PRODUCTS,
-  categories = MOCK_CATEGORIES
+  categories = MOCK_CATEGORIES,
+  orders = []
 }: CustomerViewsProps) {
   
   // States for Category Filter inside shop view
@@ -242,6 +244,17 @@ export default function CustomerViews({
   const handlePostReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentInput.trim()) return;
+
+    // Verify buyer has purchased the item
+    const hasPurchased = orders.some((order) => {
+      return order.productIds && order.productIds.includes(selectedProductId);
+    });
+
+    if (!hasPurchased) {
+      alert("Verification Error: Only customers who have purchased this particular item can leave a review. Try purchasing it first!");
+      return;
+    }
+
     const newRev = {
       id: "rev_" + Date.now(),
       author: "Local Shopper (Nigeria)",
@@ -1671,22 +1684,34 @@ export default function CustomerViews({
               </div>
               
               {/* Form to leave a review */}
-              <form onSubmit={handlePostReview} className="space-y-3">
-                <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider block">Have this product? Share feedback</label>
-                <textarea
-                  value={commentInput}
-                  onChange={(e) => setCommentInput(e.target.value)}
-                  placeholder="Tell local buyers how the material, weight and delivery felt..."
-                  rows={3}
-                  className="w-full text-xs p-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-neutral-700 bg-white"
-                />
-                <button
-                  type="submit"
-                  className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-xl tracking-wider uppercase transition-colors"
-                >
-                  Publish Verified Review
-                </button>
-              </form>
+              {orders.some((order) => order.productIds && order.productIds.includes(detailProduct.id)) ? (
+                <form onSubmit={handlePostReview} className="space-y-3">
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider block">Have this product? Share feedback</label>
+                  <textarea
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    placeholder="Tell local buyers how the material, weight and delivery felt..."
+                    rows={3}
+                    className="w-full text-xs p-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-neutral-700 bg-white"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-xl tracking-wider uppercase transition-colors cursor-pointer"
+                  >
+                    Publish Verified Review
+                  </button>
+                </form>
+              ) : (
+                <div className="p-4 bg-amber-50/70 border border-amber-200/50 rounded-2xl text-left space-y-2">
+                  <div className="flex items-center space-x-2 text-amber-800 font-extrabold text-[10px] uppercase tracking-wider">
+                    <ShieldCheck className="w-4.5 h-4.5 text-amber-600 shrink-0" />
+                    <span>Review Locked (Verified Buyers Only)</span>
+                  </div>
+                  <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
+                    To maintain standard peer compliance, reviews are locked to verified buyers. Complete checkout for this item to enable reviews.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="lg:col-span-8 space-y-4">

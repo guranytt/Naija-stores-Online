@@ -24,11 +24,60 @@ import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle,
 import { supabase, getSupabaseData, saveSupabaseRecord, PROVISION_SQL_SCRIPT } from "./supabase";
 import { sendResendEmail, fetchEmailLogs, MailLogEntry } from "./emailService";
 
+// Standard browser cookie helper functions
+function getCookie(name: string): string {
+  try {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(";");
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === " ") c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+  } catch (e) {
+    console.error("Fail reading cookie: ", e);
+  }
+  return "";
+}
+
+function setCookie(name: string, value: string, days = 7) {
+  try {
+    let expires = "";
+    if (days) {
+      const date = new Date();
+      date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+      expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+  } catch (e) {
+    console.error("Fail writing cookie: ", e);
+  }
+}
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<string>("home");
   const [vendorAuthenticated, setVendorAuthenticated] = useState<boolean>(false);
   const [selectedProductId, setSelectedProductId] = useState<string>("p1");
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = getCookie("naija_plaza_cart");
+      if (saved) {
+        return JSON.parse(decodeURIComponent(saved));
+      }
+    } catch (e) {
+      console.warn("Could not read cart from cookies: ", e);
+    }
+    return [];
+  });
+
+  // Automated cart-to-cookie synchronization effect
+  useEffect(() => {
+    try {
+      setCookie("naija_plaza_cart", encodeURIComponent(JSON.stringify(cart)), 14);
+    } catch (e) {
+      console.error("Sync error: ", e);
+    }
+  }, [cart]);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
@@ -328,7 +377,8 @@ export default function App() {
       routeFrom: startState,
       routeTo: randomDest,
       deliveryProgress: 0,
-      currentCity: startState
+      currentCity: startState,
+      productIds: cart.map((item) => item.product.id)
     };
 
     const emailItems = cart.map((item) => ({
@@ -542,6 +592,7 @@ export default function App() {
                 onRateVendor={handleRateVendor}
                 categories={categories}
                 products={products}
+                orders={orders}
               />
             </motion.div>
           )}

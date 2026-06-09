@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { ShoppingCart, Search, Store, Map, LayoutDashboard, UserCircle, Menu, X, Landmark, BadgeCheck, ChevronDown, ChevronUp } from "lucide-react";
+import { ShoppingCart, Search, Store, Map, LayoutDashboard, UserCircle, Menu, X, Landmark, BadgeCheck, ChevronDown, ChevronUp, Package, ShoppingBag } from "lucide-react";
 import { Category } from "../types";
 import { MOCK_PRODUCTS, MOCK_CATEGORIES } from "../data/mockData";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
@@ -60,7 +60,7 @@ export default function Navbar({
   const menuItems = [
     { id: "home", label: "Marketplace", icon: Store },
     { id: "shop", label: "Categories", icon: Store },
-    { id: "map", label: "Integrated Map", icon: Map },
+    { id: "map", label: "My Orders", icon: Package },
     { id: "admin", label: "Vendor Admin", icon: LayoutDashboard },
   ];
 
