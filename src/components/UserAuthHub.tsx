@@ -73,10 +73,28 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
     return () => subscription.unsubscribe();
   }, []);
 
-  const syncProfile = (user: any) => {
+  const syncProfile = async (user: any) => {
     const meta = user.user_metadata || {};
     const emailPrefix = user.email ? user.email.split("@")[0].toUpperCase() : "SHOEPPER";
     
+    try {
+      const { data, error } = await supabase.from("users").select("*").eq("id", user.id).single();
+      if (!error && data) {
+        setProfile({
+          fullName: data.full_name || meta.fullName || emailPrefix,
+          role: data.role || meta.role || "customer",
+          location: meta.location || "Lagos Mainland, Lagos",
+          shopName: meta.shopName || "",
+          phone: meta.phone || "",
+          deliveryAddress: meta.deliveryAddress || ""
+        });
+        onUpdateEmail(user.email || "");
+        return;
+      }
+    } catch (e) {
+      console.warn("Table load fail from public users:", e);
+    }
+
     setProfile({
       fullName: meta.fullName || emailPrefix,
       role: meta.role || "customer",
@@ -118,6 +136,21 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
           }
         });
         if (error) throw error;
+
+        // Register a public records entry to trigger Database Webhooks
+        if (data.user) {
+          try {
+            await supabase.from("users").upsert({
+              id: data.user.id,
+              full_name: fullName,
+              email: email,
+              role: role as any,
+              avatar_url: null
+            });
+          } catch (usersErr) {
+            console.warn("Users table trigger sync skipped during signup: ", usersErr);
+          }
+        }
 
         // Optionally, register a public records entry if user is a vendor
         if (role === "vendor" && data.user) {
@@ -172,6 +205,21 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
         }
       });
       if (error) throw error;
+
+      // Update public users table to trigger webhooks
+      if (session?.user) {
+        try {
+          await supabase.from("users").upsert({
+            id: session.user.id,
+            full_name: profile.fullName,
+            email: session.user.email,
+            role: profile.role as any,
+            avatar_url: session.user.user_metadata?.avatar_url || null
+          });
+        } catch (usersErr) {
+          console.warn("Users table trigger sync skipped: ", usersErr);
+        }
+      }
 
       // Update public vendors list too if vendor role
       if (profile.role === "vendor") {

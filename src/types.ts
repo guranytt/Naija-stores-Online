@@ -89,6 +89,7 @@ export interface Vendor {
 
 export interface Order {
   id: string;
+  user_id?: string;
   customerName: string;
   status: "Delivered" | "Processing" | "Shipped" | "Flagged";
   date: string;

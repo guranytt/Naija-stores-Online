@@ -79,7 +79,7 @@ export default function App() {
     }
   }, [cart]);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
   const [categories, setCategories] = useState<Category[]>(() => {
     try {
@@ -125,12 +125,15 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUserEmail(session.user.email || "shopper@example.com");
+        setCurrentUserId(session.user.id);
         const role = session.user.user_metadata?.role || "customer";
         if (role === "vendor" || role === "admin") {
           setVendorAuthenticated(true);
         } else {
           setVendorAuthenticated(false);
         }
+      } else {
+        setCurrentUserId(null);
       }
     });
 
@@ -138,6 +141,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUserEmail(session.user.email || "shopper@example.com");
+        setCurrentUserId(session.user.id);
         const role = session.user.user_metadata?.role || "customer";
         if (role === "vendor" || role === "admin") {
           setVendorAuthenticated(true);
@@ -146,6 +150,7 @@ export default function App() {
         }
       } else {
         setVendorAuthenticated(false);
+        setCurrentUserId(null);
       }
     });
 
@@ -165,7 +170,7 @@ export default function App() {
         if (dbProducts) setProducts(dbProducts);
 
         // Load Orders
-        const { data: dbOrders, synced: oSynced, error: oError } = await getSupabaseData<Order>("orders", MOCK_ORDERS);
+        const { data: dbOrders, synced: oSynced, error: oError } = await getSupabaseData<Order>("orders", []);
         if (dbOrders) setOrders(dbOrders);
 
         const syncedList: string[] = [];
@@ -193,6 +198,35 @@ export default function App() {
       }
     }
     initSupabase();
+  }, []);
+
+  // Set up real-time orders sync subscription
+  useEffect(() => {
+    console.log("[SUPABASE REALTIME] Initializing subscription to public:orders");
+    const channel = supabase
+      .channel("public-orders-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders"
+        },
+        async (payload) => {
+          console.log("[SUPABASE REALTIME] New postgres change received on orders:", payload);
+          const { data: dbOrders, synced } = await getSupabaseData<Order>("orders", []);
+          if (synced && dbOrders) {
+            setOrders(dbOrders);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[SUPABASE REALTIME] Status changed: ${status}`);
+      });
+
+    return () => {
+      channel.unsubscribe();
+    };
   }, []);
 
   const handleRateVendor = (vendorId: string, starRating: number) => {
@@ -232,6 +266,7 @@ export default function App() {
   const [searchFilter, setSearchFilter] = useState<string>("");
   const shouldReduceMotion = useReducedMotion();
   const [userEmail, setUserEmail] = useState<string>("nigerian.developer@gmail.com");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState<boolean>(false);
@@ -368,6 +403,7 @@ export default function App() {
 
     const newOrder: Order = {
       id: "NS-" + Math.floor(Math.random() * 9000 + 1000),
+      user_id: currentUserId || undefined,
       customerName: userEmail.split("@")[0].toUpperCase() || "Shopper",
       status: "Processing",
       date: new Date().toISOString().split("T")[0],
@@ -911,7 +947,7 @@ export default function App() {
                     <button
                       onClick={() => {
                         setProducts(MOCK_PRODUCTS);
-                        setOrders(MOCK_ORDERS);
+                        setOrders([]);
                         setVendors(MOCK_VENDORS);
                         setCart([]);
                         setUserEmail("nigerian.developer@gmail.com");
