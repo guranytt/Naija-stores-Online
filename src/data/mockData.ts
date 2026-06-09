@@ -43,7 +43,7 @@ export const MOCK_CATEGORIES: Category[] = [
     image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=500&q=80",
     iconName: "Smartphone",
     itemCount: 120,
-    subcategories: ["Smartphones", "Fairly Used Phones", "New Phones"]
+    subcategories: ["Xiaomi", "Apple", "Tecno", "Samsung", "Infinix"]
   },
   {
     id: "cars",
@@ -277,7 +277,19 @@ categoriesInfo.forEach((catInfo, catIdx) => {
 
     if (catInfo.id === "phones") {
       condition = i % 2 === 0 ? "New" : "Fairly Used";
-      subCategory = condition === "New" ? "New Phones" : "Fairly Used Phones";
+      const brands = ["Xiaomi", "Apple", "Tecno", "Samsung", "Infinix"];
+      subCategory = brands[i % brands.length];
+      if (title.startsWith("Latest Smartphone Pro")) {
+        title = subCategory === "Apple" ? "Apple iPhone 15 Pro Max" : subCategory === "Samsung" ? "Samsung Galaxy S24 Ultra" : `${subCategory} Premium Flagship 5G`;
+      } else if (title.startsWith("Budget Android Phone")) {
+        title = `${subCategory} Budget Smart Lite`;
+      } else if (title.startsWith("Business Enterprise Phone")) {
+        title = `${subCategory} Enterprise Bold Duo`;
+      } else if (title.startsWith("Photography Centric Device")) {
+        title = `${subCategory} Cinema Zoom Super`;
+      } else {
+        title = `${subCategory} Spark Phone (${condition})`;
+      }
     } else if (catInfo.id === "cars") {
       condition = i % 3 === 0 ? "New" : "Fairly Used";
       subCategory = condition === "New" ? "New Cars" : "Fairly Used Cars";

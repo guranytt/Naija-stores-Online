@@ -60,11 +60,44 @@ export function saveLocalMailLog(entry: MailLogEntry) {
   }
 }
 
+import { sendTransactionalEmailEdge } from "./supabase";
+
 /**
- * Sends transaction emails to Resend server-side API proxy.
+ * Sends transaction emails to Resend server-side API proxy or standard Supabase Edge function.
  * Fallbacks safely to full browser-side simulation if API is unconfigured/offline.
  */
 export async function sendResendEmail(payload: SendEmailPayload): Promise<{ success: boolean; status: string; unconfigured: boolean; error?: string }> {
+  const subjectMap: Record<string, string> = {
+    payment_confirmation: `Receipt for Order #${payload.data.orderId}`,
+    delivery_confirmation: `Delivery Dispatched - Order #${payload.data.orderId}`,
+    status_change: `Order status upgraded - #${payload.data.orderId}`,
+    flagged: `Order Audit - Review Triggered #${payload.data.orderId}`
+  };
+  const subject = subjectMap[payload.type] || `Naija Online Stores: Support Message - #${payload.data.orderId}`;
+
+  try {
+    console.log("[EMAIL SERVICE] Triggering standard Supabase Edge Function to dispatch transactional mail...");
+    const edgeResult = await sendTransactionalEmailEdge(
+      payload.to,
+      subject,
+      `<div style="font-family:sans-serif; padding:24px; max-width:600px; border:1px solid #eaeaea; border-radius:12px;">
+        <h2 style="color:#008751;">Naija Choice Alert 🔔</h2>
+        <p>Hello <strong>${payload.data.customerName || "Patron"}</strong>,</p>
+        <p>Your order <strong>#${payload.data.orderId}</strong> updated state to: <strong>${payload.data.newStatus || payload.type}</strong></p>
+        <p>Amount: <strong>₦${(payload.data.amount || 0).toLocaleString()}</strong></p>
+        <p style="font-size: 11px; color:#6b7280; border-top:1px solid #e5e7eb; padding-top:8px; margin-top:16px;">
+          This message represents an official record under Supabase automated Edge ledger security.
+        </p>
+       </div>`
+    );
+    if (edgeResult.success && edgeResult.source === "real_edge") {
+      console.log("[EMAIL SERVICE] Dispatched successfully via standard Supabase Edge Function.");
+      return { success: true, status: "Delivered", unconfigured: false };
+    }
+  } catch (err: any) {
+    console.warn("[EMAIL SERVICE] Supabase Edge Function offline. Falling back over standard local channels.", err.message || err);
+  }
+
   try {
     const response = await fetch("/api/resend/send", {
       method: "POST",
@@ -89,14 +122,6 @@ export async function sendResendEmail(payload: SendEmailPayload): Promise<{ succ
   }
 
   // Pure Client SPA Email Dispatch Simulation
-  const subjectMap: Record<string, string> = {
-    payment_confirmation: `Receipt for Order #${payload.data.orderId}`,
-    delivery_confirmation: `Delivery Dispatched - Order #${payload.data.orderId}`,
-    status_change: `Order status upgraded - #${payload.data.orderId}`,
-    flagged: `Order Audit - Review Triggered #${payload.data.orderId}`
-  };
-
-  const subject = subjectMap[payload.type] || `Naija Online Stores: Support Message - #${payload.data.orderId}`;
   
   const simulatedEntry: MailLogEntry = {
     id: "mail_" + Date.now() + "_" + Math.floor(Math.random() * 1000),

@@ -470,14 +470,14 @@ export default function App() {
 
           <div className="flex items-center space-x-2 mt-0.5 sm:mt-0">
             <a 
-              href="tel:+2348123456789" 
+              href="tel:+2348138575869" 
               className="bg-white text-emerald-800 hover:bg-emerald-50 px-2.5 py-1 rounded-lg font-bold shadow-xs transition-all hover:scale-105 inline-flex items-center space-x-1 text-[11px]"
             >
               <span>📞</span>
-              <span>0812 345 6789</span>
+              <span>0813 857 5869</span>
             </a>
             <a 
-              href="https://wa.me/2348123456789?text=Hello%20Naija%20Online%20Store%2C%20I%20want%20to%20place%20an%20order" 
+              href="https://wa.me/2348138575869?text=Hello%20Naija%20Online%20Store%2C%20I%20want%20to%20place%20an%20order" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="bg-emerald-950 text-white hover:bg-emerald-900 border border-emerald-800 px-2.5 py-1 rounded-lg font-bold shadow-xs transition-all hover:scale-105 inline-flex items-center space-x-1 text-[11px]"

@@ -292,6 +292,50 @@ export default function CustomerViews({
               </div>
             )}
 
+            {/* MTN Animated Brand Banner */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.6 }}
+              className="relative w-full overflow-hidden rounded-2xl bg-amber-400 text-neutral-900 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm border border-amber-300"
+            >
+              {/* Left connectivity waves animation */}
+              <div className="absolute left-0 top-0 h-full w-40 pointer-events-none overflow-hidden opacity-10">
+                <span className="absolute -left-10 -top-10 w-28 h-28 rounded-full border-4 border-neutral-900 animate-ping"></span>
+                <span className="absolute -left-16 -top-16 w-44 h-44 rounded-full border-4 border-neutral-900 animate-pulse"></span>
+              </div>
+
+              <div className="flex items-center space-x-4 z-10 w-full md:w-auto">
+                {/* Yellow and Black Oval brand badge */}
+                <div className="w-14 h-10 rounded-full bg-neutral-900 text-amber-400 font-black flex items-center justify-center text-[10px] uppercase tracking-tighter shrink-0 border border-neutral-800 shadow-sm">
+                  MTN
+                </div>
+                <div className="text-left">
+                  <div className="flex items-center space-x-1.5 flex-wrap">
+                    <span className="text-[8px] bg-neutral-900/15 text-neutral-900 font-extrabold uppercase px-1.5 py-0.5 rounded tracking-widest leading-none">Sponsored Offer</span>
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neutral-900 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-600"></span>
+                    </span>
+                  </div>
+                  <h4 className="font-extrabold text-sm sm:text-base text-neutral-900 mt-0.5 leading-tight">
+                    Everywhere You Go — Turn on MTN 5G Fast Speed!
+                  </h4>
+                  <p className="text-[11px] text-neutral-800 font-medium max-w-lg mt-0.5">
+                    Nigeria's premium connectivity network. Recharge now to unlock standard 10x high data bonus instantly.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action trigger Call To Order or Promo link */}
+              <a
+                href="tel:08138575869"
+                className="bg-neutral-950 text-amber-400 hover:bg-neutral-900 transition-all font-black text-xs px-4.5 py-2.5 rounded-xl flex items-center space-x-2 shrink-0 z-10 hover:shadow-md hover:scale-105"
+              >
+                <span>⚡ Get Data Bonus</span>
+              </a>
+            </motion.div>
+
             <motion.section
               initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}

@@ -29,6 +29,7 @@ export default function Navbar({
   const [searchVal, setSearchVal] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [categoriesMenuOpen, setCategoriesMenuOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [cartBounced, setCartBounced] = useState(false);
   const shouldReduceMotion = useReducedMotion();
@@ -348,11 +349,95 @@ export default function Navbar({
               </form>
 
               {/* Menu options list */}
-              <h3 className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-3 text-left">Main Categories</h3>
+              <h3 className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-3 text-left">Main Navigation</h3>
               <div className="space-y-1.5 p-0.5">
                 {menuItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = currentScreen === item.id;
+                  
+                  if (item.id === "shop") {
+                    return (
+                      <div key={item.id} className="w-full flex flex-col">
+                        <button
+                          onClick={() => setCategoriesMenuOpen(!categoriesMenuOpen)}
+                          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-bold tracking-wide transition-all ${
+                            currentScreen === "shop"
+                              ? "bg-orange-500/20 text-orange-400 font-extrabold"
+                              : "text-emerald-100 hover:bg-white/5"
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <Icon className="w-5 h-5 text-white/50" />
+                            <span>{item.label}</span>
+                          </div>
+                          {categoriesMenuOpen ? <ChevronUp className="w-4 h-4 text-orange-400" /> : <ChevronDown className="w-4 h-4 text-emerald-400/80" />}
+                        </button>
+
+                        <AnimatePresence initial={false}>
+                          {categoriesMenuOpen && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="pl-6 pr-2 py-1.5 space-y-2 flex flex-col items-stretch text-left border-l-2 border-orange-500/30 ml-6 mt-1 overflow-hidden"
+                            >
+                              {categories.map((cat) => {
+                                const isCatExpanded = !!expandedCategories[`mob_shop_${cat.id}`];
+                                return (
+                                  <div key={cat.id} className="flex flex-col">
+                                    <button
+                                      onClick={() => {
+                                        setExpandedCategories(prev => ({
+                                          ...prev,
+                                          [`mob_shop_${cat.id}`]: !prev[`mob_shop_${cat.id}`]
+                                        }));
+                                      }}
+                                      className="w-full flex items-center justify-between py-1 text-xs font-semibold text-emerald-200 hover:text-white transition-colors text-left"
+                                    >
+                                      <span>{cat.name}</span>
+                                      {isCatExpanded ? <ChevronUp className="w-3.5 h-3.5 text-orange-400" /> : <ChevronDown className="w-3.5 h-3.5 text-emerald-400" />}
+                                    </button>
+
+                                    {isCatExpanded && (
+                                      <div className="pl-3 py-1 space-y-1 border-l border-emerald-800/60 mt-0.5 flex flex-col items-stretch">
+                                        <button
+                                          onClick={() => {
+                                            onSearch(cat.name);
+                                            setSearchVal(cat.name);
+                                            onNavigate("shop");
+                                            setMobileMenuOpen(false);
+                                          }}
+                                          className="text-left text-[10px] text-orange-400 hover:text-white font-bold tracking-wider py-0.5"
+                                        >
+                                          ⚡ All {cat.name}
+                                        </button>
+                                        {cat.subcategories && cat.subcategories.map((subcat) => (
+                                          <button
+                                            key={subcat}
+                                            onClick={() => {
+                                              onSearch(subcat);
+                                              setSearchVal(subcat);
+                                              onNavigate("shop");
+                                              setMobileMenuOpen(false);
+                                            }}
+                                            className="text-left text-[11px] text-zinc-300 hover:text-white hover:underline py-0.5"
+                                          >
+                                            • {subcat}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  }
+
                   return (
                     <button
                       key={item.id}
