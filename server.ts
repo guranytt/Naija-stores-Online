@@ -183,9 +183,9 @@ async function startServer() {
   // 3b. Paystack Secure Gateway Configuration and Verification
   app.get("/api/paystack/config", (req, res) => {
     try {
-      const paystackEnv = process.env.PAYSTACK_ENV || "test";
-      const testKey = process.env.PAYSTACK_PUBLIC_KEY || "pk_test_ba74b4817ea9187f26c5cb4ffe0960d1dad0323c";
-      const liveKey = process.env.PAYSTACK_LIVE_PUBLIC_KEY || "pk_live_be972002a14fdde6724589c1ab2ee451591c41fc";
+      const paystackEnv = process.env.VITE_PAYSTACK_ENV || process.env.PAYSTACK_ENV || "test";
+      const testKey = process.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || "pk_test_ba74b4817ea9187f26c5cb4ffe0960d1dad0323c";
+      const liveKey = process.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY || process.env.PAYSTACK_LIVE_PUBLIC_KEY || "pk_live_be972002a14fdde6724589c1ab2ee451591c41fc";
       
       const publicKey = paystackEnv === "live" ? liveKey : testKey;
       

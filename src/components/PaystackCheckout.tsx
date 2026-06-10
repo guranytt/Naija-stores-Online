@@ -54,6 +54,11 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
 
   // Fetch configuration on load to show correct environment badge early
   useEffect(() => {
+    const directEnv = import.meta.env.VITE_PAYSTACK_ENV;
+    if (directEnv) {
+      setPaystackEnv(directEnv);
+      return;
+    }
     fetch("/api/paystack/config")
       .then(res => res.json())
       .then(data => {
@@ -96,12 +101,24 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
     setLoaderMessage("Establishing secure connection with Paystack...");
 
     try {
-      // Fetch key dynamically from server configuration securely without client bundle baking
-      const configRes = await fetch("/api/paystack/config");
-      const configData = await configRes.json();
+      // First try Vite injected environemnt variable securely
+      const directKey = import.meta.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY || import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+      const directEnv = import.meta.env.VITE_PAYSTACK_ENV || "test";
+      
+      let configData: any = {
+        success: !!directKey,
+        publicKey: directKey,
+        env: directEnv
+      };
+
+      // Fallback to server config if no static build variables exist
+      if (!configData.publicKey) {
+        const configRes = await fetch("/api/paystack/config");
+        configData = await configRes.json();
+      }
 
       if (!configData.success || !configData.publicKey) {
-        throw new Error(configData.error || "Could not retrieve secure paystack config from server");
+        throw new Error(configData.error || "Could not retrieve secure paystack config");
       }
 
       console.log(`[PAYSTACK SECURE LAUNCH] Gateway initialized with environment: '${configData.env}'`);
