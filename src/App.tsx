@@ -391,9 +391,8 @@ export default function App() {
   };
 
   // Paystack verification success
-  const handlePaymentSuccess = (method: string) => {
-    // Generate simulated order
-    const firstCartItem = cart[0];
+  const handlePaymentSuccess = (method: string, serverOrder?: Order) => {
+    // Generate simulated order fallback if server did not hand back records (e.g. offline fallback modes)
     const orderValue = cart.reduce((acc, curr) => acc + curr.product.price * curr.quantity, 0);
     
     // Pick destination based on Lagos/Abuja/PH etc
@@ -401,7 +400,7 @@ export default function App() {
     const randomDest = destinationStates[Math.floor(Math.random() * destinationStates.length)];
     const startState = randomDest === "Lagos" ? "Kano" : "Lagos";
 
-    const newOrder: Order = {
+    const localOrder: Order = {
       id: "NS-" + Math.floor(Math.random() * 9000 + 1000),
       user_id: currentUserId || undefined,
       customerName: userEmail.split("@")[0].toUpperCase() || "Shopper",
@@ -417,17 +416,25 @@ export default function App() {
       productIds: cart.map((item) => item.product.id)
     };
 
+    const newOrder: Order = serverOrder || localOrder;
+
     const emailItems = cart.map((item) => ({
       name: item.product.title,
       qty: item.quantity,
       price: item.product.price
     }));
 
-    setOrders([newOrder, ...orders]);
+    setOrders((prev) => {
+      // Prevent duplicate appending if real-time subscription has already updated state
+      if (prev.some((o) => o.id === newOrder.id)) return prev;
+      return [newOrder, ...prev];
+    });
     setCart([]); // Clear cart
     
-    // Persist new order in Supabase table
-    saveSupabaseRecord("orders", newOrder);
+    // Persist new order in Supabase table only if it was not already created securely on backend
+    if (!serverOrder) {
+      saveSupabaseRecord("orders", newOrder);
+    }
     
     triggerToast("Security Code 200: Transaction reconciled. Shipments logged successfully!");
 
@@ -721,6 +728,8 @@ export default function App() {
         onClose={() => setIsCheckoutOpen(false)}
         amount={checkoutAmount}
         email={userEmail}
+        cart={cart}
+        userId={currentUserId || undefined}
         onSuccess={handlePaymentSuccess}
       />
 
