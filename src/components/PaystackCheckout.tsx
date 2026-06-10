@@ -456,7 +456,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
                 >
                   {step === "method" && (
                     <div className="space-y-3">
-                      <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 text-left">Choose Payment Gateway Method</p>
+                      <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 text-left">Choose Payment Method</p>
 
                       {/* Real Live Sandbox Gateway Gateway Option */}
                       <motion.button
@@ -482,48 +482,6 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
                         <ArrowRight className="w-4 h-4 text-cyan-600 group-hover:translate-x-0.5 transition-all" />
                       </motion.button>
 
-                      <div className="relative flex py-2 items-center">
-                        <div className="flex-grow border-t border-neutral-100"></div>
-                        <span className="flex-shrink mx-4 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">or use simulation</span>
-                        <div className="flex-grow border-t border-neutral-100"></div>
-                      </div>
-                      
-                      <motion.button
-                        whileHover={{ scale: 1.02, borderColor: "#06b6d4" }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setStep("card")}
-                        className="w-full flex items-center justify-between p-4 rounded-xl border border-neutral-200 hover:border-cyan-500 hover:bg-cyan-50/20 transition-all text-left bg-white cursor-pointer group"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-neutral-100 rounded-lg group-hover:bg-cyan-100/50 text-neutral-700 group-hover:text-cyan-600 transition-colors">
-                            <CreditCard className="w-5 h-5 animate-none" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-sm">Pay with Card</p>
-                            <p className="text-xs text-neutral-400">Visa, Mastercard, Verve</p>
-                          </div>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-cyan-500 group-hover:translate-x-0.5 transition-all" />
-                      </motion.button>
-
-                      <motion.button
-                        whileHover={{ scale: 1.02, borderColor: "#06b6d4" }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setStep("bank")}
-                        className="w-full flex items-center justify-between p-4 rounded-xl border border-neutral-200 hover:border-cyan-500 hover:bg-cyan-50/20 transition-all text-left bg-white cursor-pointer group"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-neutral-100 rounded-lg group-hover:bg-cyan-100/50 text-neutral-700 group-hover:text-cyan-600 transition-colors">
-                            <Landmark className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-sm">Bank App Checkout</p>
-                            <p className="text-xs text-neutral-400">Simulate direct login verification</p>
-                          </div>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-cyan-500 group-hover:translate-x-0.5 transition-all" />
-                      </motion.button>
-
                       <motion.button
                         whileHover={{ scale: 1.02, borderColor: "#06b6d4" }}
                         whileTap={{ scale: 0.98 }}
@@ -535,8 +493,8 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
                             <Landmark className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className="font-bold text-sm">Pay with Bank Transfer</p>
-                            <p className="text-xs text-neutral-400">Generate virtual Naira account</p>
+                            <p className="font-bold text-sm">Direct Bank Transfer</p>
+                            <p className="text-xs text-neutral-400">Complete transfer manually and upload success code</p>
                           </div>
                         </div>
                         <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-cyan-500 group-hover:translate-x-0.5 transition-all" />
@@ -653,7 +611,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
                         &larr; Choose another method
                       </p>
                       <div className="p-4 bg-cyan-50/40 border border-cyan-100 rounded-2xl flex flex-col space-y-3">
-                        <p className="text-sm font-semibold text-neutral-600">Simulated Wema/Providus Virtual Account</p>
+                        <p className="text-sm font-semibold text-neutral-600">Wema/Providus Store Settlement Account</p>
                         
                         <div className="border-t border-neutral-100 pt-3">
                           <p className="text-xs text-neutral-400 font-bold tracking-wider">BANK NAME</p>
