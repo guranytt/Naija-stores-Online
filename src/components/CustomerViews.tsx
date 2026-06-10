@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home, Eye } from "lucide-react";
-import { Product, Category, CartItem, Vendor, Advertisement, Order } from "../types";
+import { Product, Category, CartItem, Vendor, Advertisement, Order, FlashDealProposal } from "../types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_ADS, FLASH_SALE_PRODUCTS } from "../data/mockData";
 
 // Naira formatter helper
@@ -102,6 +102,7 @@ interface CustomerViewsProps {
   products?: Product[];
   categories?: Category[];
   orders?: Order[];
+  flashDeals?: FlashDealProposal[];
 }
 
 export default function CustomerViews({
@@ -119,7 +120,8 @@ export default function CustomerViews({
   onRateVendor,
   products = MOCK_PRODUCTS,
   categories = MOCK_CATEGORIES,
-  orders = []
+  orders = [],
+  flashDeals = []
 }: CustomerViewsProps) {
   
   // States for Category Filter inside shop view
@@ -133,6 +135,41 @@ export default function CustomerViews({
   const [flashSaleTime, setFlashSaleTime] = useState({ h: 2, m: 21, s: 6 });
   
   const homepageAds = MOCK_ADS.filter(ad => ad.position === "homepage" && ad.status === "active");
+
+  const activeFlashProducts = React.useMemo(() => {
+    const approvedProposals = (flashDeals || []).filter(fd => fd.status === "approved");
+    const dynamicProducts: Product[] = approvedProposals.map(fd => {
+      const originalProd = products.find(p => p.id === fd.productId);
+      return {
+        id: fd.productId, // Map to actual product ID so clicking it opens detail view correctly
+        title: fd.productName,
+        description: originalProd?.description || `Flash sale item. Price reduced off by ${formatNaira(fd.reducedAmount)}!`,
+        price: fd.priceAfter,
+        originalPrice: fd.priceBefore,
+        salePercentage: Math.round((fd.reducedAmount / fd.priceBefore) * 100),
+        image: fd.productImage || originalProd?.image || "https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&w=500&q=80",
+        rating: originalProd?.rating || 4.8,
+        reviewsCount: originalProd?.reviewsCount || 12,
+        category: originalProd?.category || "Flash Deals",
+        vendorId: fd.vendorId,
+        vendorName: fd.vendorName,
+        stock: originalProd?.stock || 45,
+        isNew: true
+      };
+    });
+
+    const combined = [...dynamicProducts, ...FLASH_SALE_PRODUCTS];
+    const unique: Product[] = [];
+    const titles = new Set();
+    combined.forEach(p => {
+      if (!titles.has(p.title)) {
+        titles.add(p.title);
+        unique.push(p);
+      }
+    });
+    return unique;
+  }, [flashDeals, products]);
+
 
   React.useEffect(() => {
     const timer = setInterval(() => {
@@ -626,7 +663,7 @@ export default function CustomerViews({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {FLASH_SALE_PRODUCTS.map((p, idx) => {
+              {activeFlashProducts.map((p, idx) => {
                 const isAdded = !!justAddedProducts[p.id];
                 const stockLeft = p.stock;
                 return (

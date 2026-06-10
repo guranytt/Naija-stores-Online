@@ -592,6 +592,12 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                 </div>
               )}
 
+              {authMode === "register" && (
+                <div className="p-3.5 bg-neutral-50 rounded-xl border border-neutral-100 text-[10px] md:text-[11px] text-neutral-500 font-semibold leading-relaxed text-center select-none">
+                  Signing up means you completely agree to our <span className="font-black text-neutral-800 underline">Terms & Conditions</span>, <span className="font-black text-neutral-800 underline">Privacy Policy</span>, and direct commission matrix guidelines.
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={isLoading}

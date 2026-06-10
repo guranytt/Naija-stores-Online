@@ -17,7 +17,7 @@ import VendorAdmin from "./components/VendorAdmin";
 import VendorAuth from "./components/VendorAuth";
 import UserAuthHub from "./components/UserAuthHub";
 import PaystackCheckout from "./components/PaystackCheckout";
-import { Product, CartItem, Order, Vendor, Category } from "./types";
+import { Product, CartItem, Order, Vendor, Category, FlashDealProposal } from "./types";
 import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS, MOCK_CATEGORIES } from "./data/mockData";
 import { formatNaira } from "./components/CustomerViews";
 import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText, Store, Bug } from "lucide-react";
@@ -90,6 +90,40 @@ export default function App() {
     }
     return MOCK_CATEGORIES;
   });
+
+  // Durable Client State Persistence For Flash Deals
+  const [flashDeals, setFlashDeals] = useState<FlashDealProposal[]>(() => {
+    try {
+      const saved = localStorage.getItem("NAIJA_FLASH_DEALS_PROPOSALS");
+      return saved ? JSON.parse(saved) : [];
+    } catch (_) {
+      return [];
+    }
+  });
+
+  const handleProposeFlashDeal = (newProposal: FlashDealProposal) => {
+    setFlashDeals(prev => {
+      const updated = [newProposal, ...prev];
+      localStorage.setItem("NAIJA_FLASH_DEALS_PROPOSALS", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleApproveFlashDeal = (id: string) => {
+    setFlashDeals(prev => {
+      const updated = prev.map(fd => fd.id === id ? { ...fd, status: "approved" as const } : fd);
+      localStorage.setItem("NAIJA_FLASH_DEALS_PROPOSALS", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleRejectFlashDeal = (id: string) => {
+    setFlashDeals(prev => {
+      const updated = prev.map(fd => fd.id === id ? { ...fd, status: "rejected" as const } : fd);
+      localStorage.setItem("NAIJA_FLASH_DEALS_PROPOSALS", JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleUpdateCategories = (newCats: Category[]) => {
     setCategories(newCats);
@@ -636,6 +670,7 @@ export default function App() {
                 categories={categories}
                 products={products}
                 orders={orders}
+                flashDeals={flashDeals}
               />
             </motion.div>
           )}
@@ -698,6 +733,11 @@ export default function App() {
                 onToggleAutoSend={() => setAutoSendEmails(!autoSendEmails)}
                 onRefreshMailLogs={updateMailLogs}
                 userEmail={userEmail}
+
+                flashDeals={flashDeals}
+                onProposeFlashDeal={handleProposeFlashDeal}
+                onApproveFlashDeal={handleApproveFlashDeal}
+                onRejectFlashDeal={handleRejectFlashDeal}
               />
             </motion.div>
           )}

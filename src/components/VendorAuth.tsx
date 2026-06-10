@@ -263,6 +263,12 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
             </div>
           )}
 
+          {isSignUp && (
+            <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-105 text-[10px] md:text-[11px] text-neutral-505 font-medium leading-relaxed text-center select-none">
+              Signing up means you completely agree to our <span className="font-black text-neutral-800 underline">Terms & Conditions</span>, <span className="font-black text-neutral-800 underline">Privacy Policy</span>, and administrative escrow terms.
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={isLoading}
