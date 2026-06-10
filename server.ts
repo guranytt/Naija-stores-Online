@@ -332,8 +332,8 @@ async function startServer() {
 
     console.log(`[PAYSTACK VERIFY SECURE] Reference: ${reference}, Expected Amount: ${amount}, Email: ${email}`);
 
-    // If an actual secret key is provided, perform live HTTP API checking on Paystack servers
-    if (secretKey && secretKey.startsWith("sk_")) {
+    // If an actual secret key is provided and is not a default placeholder, perform live HTTP API checking on Paystack servers
+    if (secretKey && secretKey.startsWith("sk_") && !secretKey.includes("...") && secretKey.length > 15) {
       try {
         const paystackResponse = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
           method: "GET",

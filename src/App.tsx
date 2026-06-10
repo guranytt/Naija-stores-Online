@@ -19,6 +19,7 @@ import UserAuthHub from "./components/UserAuthHub";
 import PaystackCheckout from "./components/PaystackCheckout";
 import CookiePopup from "./components/CookiePopup";
 import PolicyOverlay from "./components/PolicyOverlay";
+import { initPostHog, trackAddToCart, trackCheckoutStarted, trackPaymentCompleted, trackOrderCompleted } from "./lib/posthog";
 import { Product, CartItem, Order, Vendor, Category, FlashDealProposal } from "./types";
 import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS, MOCK_CATEGORIES } from "./data/mockData";
 import { formatNaira } from "./components/CustomerViews";
@@ -80,6 +81,11 @@ export default function App() {
       console.error("Sync error: ", e);
     }
   }, [cart]);
+
+  // Initial PostHog runtime loading
+  useEffect(() => {
+    initPostHog();
+  }, []);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [orders, setOrders] = useState<Order[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
@@ -400,6 +406,10 @@ export default function App() {
     } else {
       setCart([...cart, { product, quantity, selectedSize: size, selectedColor: color }]);
     }
+
+    // Trigger PostHog event
+    trackAddToCart(product.id, product.title, product.price, quantity);
+
     triggerToast(`Added ${quantity}x ${product.title} containing your specs to Basket.`);
   };
 
@@ -426,6 +436,17 @@ export default function App() {
 
     setCheckoutAmount(cartTotalSum);
     setIsCheckoutOpen(true);
+
+    // Track checkout starter metrics
+    trackCheckoutStarted(
+      cart.map((item) => ({
+        id: item.product.id,
+        title: item.product.title,
+        price: item.product.price,
+        quantity: item.quantity,
+      })),
+      cartTotalSum
+    );
   };
 
   // Paystack verification success
@@ -467,6 +488,20 @@ export default function App() {
       if (prev.some((o) => o.id === newOrder.id)) return prev;
       return [newOrder, ...prev];
     });
+
+    // Track using PostHog
+    trackPaymentCompleted(
+      newOrder.trackingId || "PAY-" + Date.now(),
+      checkoutAmount || newOrder.value,
+      method || "Paystack Inline"
+    );
+
+    trackOrderCompleted(
+      newOrder.id,
+      newOrder.value,
+      newOrder.itemsCount
+    );
+
     setCart([]); // Clear cart
     
     // Persist new order in Supabase table only if it was not already created securely on backend

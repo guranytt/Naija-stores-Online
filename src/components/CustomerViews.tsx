@@ -8,6 +8,7 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home, Eye } from "lucide-react";
 import { Product, Category, CartItem, Vendor, Advertisement, Order, FlashDealProposal } from "../types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_ADS, FLASH_SALE_PRODUCTS } from "../data/mockData";
+import { trackProductViewed } from "../lib/posthog";
 
 // Naira formatter helper
 export const formatNaira = (value: number) => {
@@ -206,8 +207,14 @@ export default function CustomerViews({
         }
         return updated;
       });
+
+      // Track using PostHog
+      const targetProd = products.find((p) => p.id === selectedProductId);
+      if (targetProd) {
+        trackProductViewed(targetProd.id, targetProd.title, targetProd.price, targetProd.category);
+      }
     }
-  }, [screen, selectedProductId]);
+  }, [screen, selectedProductId, products]);
 
   React.useEffect(() => {
     if (homepageAds.length <= 1) return;
