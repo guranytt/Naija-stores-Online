@@ -17,6 +17,8 @@ import VendorAdmin from "./components/VendorAdmin";
 import VendorAuth from "./components/VendorAuth";
 import UserAuthHub from "./components/UserAuthHub";
 import PaystackCheckout from "./components/PaystackCheckout";
+import CookiePopup from "./components/CookiePopup";
+import PolicyOverlay from "./components/PolicyOverlay";
 import { Product, CartItem, Order, Vendor, Category, FlashDealProposal } from "./types";
 import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS, MOCK_CATEGORIES } from "./data/mockData";
 import { formatNaira } from "./components/CustomerViews";
@@ -90,6 +92,8 @@ export default function App() {
     }
     return MOCK_CATEGORIES;
   });
+
+  const [activePolicy, setActivePolicy] = useState<"privacy" | "terms" | "shipping" | "refund" | null>(null);
 
   // Durable Client State Persistence For Flash Deals
   const [flashDeals, setFlashDeals] = useState<FlashDealProposal[]>(() => {
@@ -1102,10 +1106,34 @@ export default function App() {
             <div className="space-y-4">
               <h3 className="text-white font-bold text-xs uppercase tracking-widest mb-4">Policies</h3>
               <div className="flex flex-col space-y-3 text-[11px] font-semibold">
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Privacy Policy</a>
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Terms & Conditions</a>
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Shipping & Delivery</a>
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Refund & Return Policy</a>
+                <button
+                  type="button"
+                  onClick={() => setActivePolicy("privacy")}
+                  className="hover:text-emerald-400 text-left text-neutral-400 font-semibold cursor-pointer transition-colors w-fit hover:underline"
+                >
+                  Privacy Policy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePolicy("terms")}
+                  className="hover:text-emerald-400 text-left text-neutral-400 font-semibold cursor-pointer transition-colors w-fit hover:underline"
+                >
+                  Terms & Conditions
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePolicy("shipping")}
+                  className="hover:text-emerald-400 text-left text-neutral-400 font-semibold cursor-pointer transition-colors w-fit hover:underline"
+                >
+                  Shipping & Delivery
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePolicy("refund")}
+                  className="hover:text-emerald-400 text-left text-neutral-400 font-semibold cursor-pointer transition-colors w-fit hover:underline"
+                >
+                  Refund & Return Policy
+                </button>
               </div>
             </div>
 
@@ -1134,6 +1162,10 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Cookie pop up for explicit user storage consent & associated Policies overlay */}
+      <CookiePopup onOpenPolicy={(type) => setActivePolicy(type)} />
+      <PolicyOverlay policyType={activePolicy} onClose={() => setActivePolicy(null)} />
 
     </div>
   );
