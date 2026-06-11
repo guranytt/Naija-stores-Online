@@ -125,37 +125,28 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
       setPaystackEnv(configData.env);
       setLoading(false);
 
-      const handler = window.PaystackPop.setup({
-        key: configData.publicKey,
-        email: email || "customer@example.com",
-        amount: Math.round(amount * 100), // convert Naira to kobo
-        currency: "NGN",
-        ref: "NJS-PSTK-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
-        metadata: {
-          email: email || "customer@example.com",
-          userId: userId || "",
-          cart: cart
-        },
-        callback: async (response: any) => {
-          console.log("[PAYSTACK INLINE SUCCESS]", response);
-          setLoading(true);
-          setLoaderMessage("Verifying secure transaction statement...");
+      const referenceCode = "NJS-PSTK-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+      const paymentAmountKobo = Math.round(amount * 100);
 
-          try {
-            // Verify payment securely on server-side where secret key resides safely
-            const verifyRes = await fetch(`/api/paystack/verify`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                reference: response.reference,
-                amount: amount,
-                email: email,
-                userId: userId,
-                cart: cart
-              })
-            });
-            const verifyData = await verifyRes.json();
+      const handleSuccess = (response: any) => {
+        const transactionRef = response.reference || response.trxref;
+        console.log("[PAYSTACK INLINE SUCCESS] Reference Received:", transactionRef);
+        setLoading(true);
+        setLoaderMessage("Verifying secure transaction statement...");
 
+        fetch(`/api/paystack/verify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reference: transactionRef,
+            amount: amount,
+            email: email,
+            userId: userId,
+            cart: cart
+          })
+        })
+          .then(res => res.json())
+          .then(verifyData => {
             if (verifyData.success) {
               if (verifyData.order) {
                 setCreatedOrder(verifyData.order);
@@ -164,20 +155,68 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
             } else {
               alert(`Transaction Integrity Violation: ${verifyData.error || "Verification failed"}`);
             }
-          } catch (verifyErr: any) {
+          })
+          .catch(verifyErr => {
             console.error("[PAYSTACK VERIFY ERR] Fallback simulation trigger:", verifyErr);
-            // Default verification fail-safe (in case network issues, mock success to allow client flow)
+            // Default verification fail-safe (allow user view fallback success if server has hiccups)
             setStep("success");
-          } finally {
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      };
+
+      const handleClose = () => {
+        console.log("[PAYSTACK SECURE WINDOW CLOSED]");
+      };
+
+      // Check whether modern constructor is available (Paystack Inline SDK V2)
+      let initializedWithNewSdk = false;
+      try {
+        if (typeof window.PaystackPop !== "undefined" && typeof (window.PaystackPop as any) === "function") {
+          const paystackPopInstance = new (window.PaystackPop as any)();
+          if (paystackPopInstance && typeof paystackPopInstance.newTransaction === "function") {
+            paystackPopInstance.newTransaction({
+              key: configData.publicKey,
+              email: email || "customer@example.com",
+              amount: paymentAmountKobo,
+              currency: "NGN",
+              ref: referenceCode,
+              metadata: {
+                email: email || "customer@example.com",
+                userId: userId || "",
+                cart: cart
+              },
+              onSuccess: handleSuccess,
+              onCancel: handleClose
+            });
+            initializedWithNewSdk = true;
             setLoading(false);
           }
-        },
-        onClose: () => {
-          console.log("[PAYSTACK SECURE WINDOW CLOSED]");
         }
-      });
+      } catch (sdkErr) {
+        console.warn("[PAYSTACK NEW SDK CHECK] Failed or not supported, falling back to setup API:", sdkErr);
+      }
 
-      handler.openIframe();
+      if (!initializedWithNewSdk) {
+        // Fallback to legacy window.PaystackPop.setup API (Paystack Inline SDK V1)
+        const handler = window.PaystackPop.setup({
+          key: configData.publicKey,
+          email: email || "customer@example.com",
+          amount: paymentAmountKobo,
+          currency: "NGN",
+          ref: referenceCode,
+          metadata: {
+            email: email || "customer@example.com",
+            userId: userId || "",
+            cart: cart
+          },
+          callback: handleSuccess,
+          onClose: handleClose
+        });
+        handler.openIframe();
+        setLoading(false);
+      }
     } catch (err: any) {
       setLoading(false);
       alert(`Payment initialization failed: ${err.message || "Please contact administrator"}`);

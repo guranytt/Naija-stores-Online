@@ -327,7 +327,7 @@ async function startServer() {
     }
 
     const amount = Number(amountStr || 0);
-    const paystackEnv = process.env.PAYSTACK_ENV || "test";
+    const paystackEnv = process.env.VITE_PAYSTACK_ENV || process.env.PAYSTACK_ENV || "test";
     const secretKey = process.env.PAYSTACK_SECRET_KEY;
 
     console.log(`[PAYSTACK VERIFY SECURE] Reference: ${reference}, Expected Amount: ${amount}, Email: ${email}`);
