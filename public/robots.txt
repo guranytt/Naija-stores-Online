@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Fast crawling for Google Search
+Crawl-delay: 1
+
+# If a sitemap exists, point to it (assumed placeholder domain)
+Sitemap: https://naijastores.ng/sitemap.xml

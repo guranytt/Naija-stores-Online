@@ -188,6 +188,8 @@ export default function VendorAdmin({
   const [editOwnerName, setEditOwnerName] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editAvatar, setEditAvatar] = useState("");
+  const [editCacNumber, setEditCacNumber] = useState("");
+  const [editWhatsapp, setEditWhatsapp] = useState("");
   const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [profileUploadError, setProfileUploadError] = useState("");
 
@@ -255,6 +257,8 @@ export default function VendorAdmin({
       setEditOwnerName(activeVendor.ownerName || "");
       setEditLocation(activeVendor.location || "");
       setEditAvatar(activeVendor.avatar || "");
+      setEditCacNumber(activeVendor.cacNumber || "");
+      setEditWhatsapp(activeVendor.whatsappNumber || "");
     }
   }, [activeVendor]);
 
@@ -295,7 +299,9 @@ export default function VendorAdmin({
         name: editShopName,
         ownerName: editOwnerName,
         location: editLocation,
-        avatar: editAvatar
+        avatar: editAvatar,
+        cacNumber: editCacNumber,
+        whatsappNumber: editWhatsapp
       });
     }
     setShowEditProfileModal(false);
@@ -520,7 +526,14 @@ export default function VendorAdmin({
                 <span>⚙️ Edit Brand Profile</span>
               </button>
               <button
-                onClick={() => setShowAddProductModal(true)}
+                onClick={() => {
+                  if (!activeVendor.cacNumber || !activeVendor.whatsappNumber) {
+                    alert("Please complete your vendor profile verification (CAC Number and WhatsApp Mobile) before publishing products.");
+                    setShowEditProfileModal(true);
+                  } else {
+                    setShowAddProductModal(true);
+                  }
+                }}
                 className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center space-x-1.5 shadow-xs"
                 id="add-custom-product-trigger"
               >
@@ -1121,13 +1134,37 @@ export default function VendorAdmin({
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Location / Plaza Address</label>
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Location / Plaza Address (Optional)</label>
                       <input
                         type="text"
-                        required
                         value={editLocation}
                         onChange={(e) => setEditLocation(e.target.value)}
                         placeholder="Balogun Market, Lagos"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">CAC Registration No.</label>
+                      <input
+                        type="text"
+                        required
+                        value={editCacNumber}
+                        onChange={(e) => setEditCacNumber(e.target.value)}
+                        placeholder="e.g. RC 1234567"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">WhatsApp Mobile</label>
+                      <input
+                        type="text"
+                        required
+                        value={editWhatsapp}
+                        onChange={(e) => setEditWhatsapp(e.target.value)}
+                        placeholder="e.g. +23481234567"
                         className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
                       />
                     </div>

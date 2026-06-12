@@ -28,7 +28,7 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
     try {
       if (isSignUp) {
         // Register vendor in Supabase Auth
-        const { data, error } = await supabase.auth.signUp({
+        let { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -44,9 +44,34 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
         });
 
         if (error) {
-          setErrorMsg(error.message);
-          setIsLoading(false);
-          return;
+          if (error.message.toLowerCase().includes("already registered") || error.message.toLowerCase().includes("already exists")) {
+            // Attempt a sign in to upgrade them
+            const signInAttempt = await supabase.auth.signInWithPassword({ email, password });
+            
+            if (signInAttempt.error) {
+               setErrorMsg("Email already registered. Provide your correct password to upgrade to a Vendor account.");
+               setIsLoading(false);
+               return;
+            }
+            
+            // Password was correct, upgrade them!
+            await supabase.auth.updateUser({
+              data: {
+                role: "vendor",
+                shopName: shopName,
+                fullName: shopName,
+                bankName: bankName,
+                accountNumber: accountNumber
+              }
+            });
+            
+            data = signInAttempt.data as any;
+            error = null;
+          } else {
+            setErrorMsg(error.message);
+            setIsLoading(false);
+            return;
+          }
         }
 
         // Try to insert vendor metadata into public.vendors if table exists
@@ -68,7 +93,7 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
             accountNumber: accountNumber
           };
           
-          await supabase.from("vendors").insert(newVendorEntry);
+          await supabase.from("vendors").upsert(newVendorEntry);
         } catch (vErr) {
           console.warn("Could not insert vendor to tables, table might not be active yet.", vErr);
         }

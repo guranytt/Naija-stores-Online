@@ -49,7 +49,7 @@ async function getTableColumns(tableName: string): Promise<string[]> {
   const fallbacks: Record<string, string[]> = {
     categories: ['id', 'name', 'slug', 'image_url'],
     products: ['id', 'vendor_id', 'category_id', 'name', 'slug', 'description', 'price', 'discount_price', 'stock_quantity', 'featured', 'status', 'created_at'],
-    vendors: ['id', 'user_id', 'business_name', 'business_description', 'logo_url', 'approval_status', 'created_at', 'bank_name', 'account_number', 'bankName', 'accountNumber'],
+    vendors: ['id', 'user_id', 'business_name', 'business_description', 'logo_url', 'approval_status', 'created_at', 'bank_name', 'account_number', 'bankName', 'accountNumber', 'cac_number', 'whatsapp_number', 'physical_location', 'is_verified'],
     orders: ['id', 'user_id', 'total_amount', 'order_status', 'payment_status', 'shipping_address', 'created_at']
   };
   return fallbacks[tableName] || [];
@@ -120,8 +120,16 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
             ...item,
             name,
             avatar,
+            rating: item.rating || 4.5,
+            salesToday: item.salesToday || 0,
+            ordersPending: item.ordersPending || 0,
+            stockAlerts: item.stockAlerts || 0,
             bankName,
-            accountNumber
+            accountNumber,
+            cacNumber: item.cac_number || item.cacNumber || "",
+            whatsappNumber: item.whatsapp_number || item.whatsappNumber || "",
+            physicalLocation: item.physical_location || item.physicalLocation || "",
+            isVerified: item.is_verified || item.isVerified || false,
           };
         }
         if (tableName === "categories") {
@@ -241,12 +249,20 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       payload.user_id = record.userId || record.user_id || null;
       payload.bank_name = record.bankName || record.bank_name || "";
       payload.account_number = record.accountNumber || record.account_number || "";
+      payload.cac_number = record.cacNumber || record.cac_number || "";
+      payload.whatsapp_number = record.whatsappNumber || record.whatsapp_number || "";
+      payload.physical_location = record.physicalLocation || record.physical_location || "";
+      payload.is_verified = record.isVerified !== undefined ? record.isVerified : (record.is_verified || false);
 
       // Legacy mapping
       payload.name = record.name || record.business_name || "";
       payload.avatar = record.avatar || record.logo_url || "";
       payload.bankName = record.bankName || record.bank_name || "";
       payload.accountNumber = record.accountNumber || record.account_number || "";
+      payload.cacNumber = record.cacNumber || record.cac_number || "";
+      payload.whatsappNumber = record.whatsappNumber || record.whatsapp_number || "";
+      payload.physicalLocation = record.physicalLocation || record.physical_location || "";
+      payload.isVerified = record.isVerified !== undefined ? record.isVerified : (record.is_verified || false);
 
     } else if (tableName === "categories") {
       payload.name = record.name;
@@ -336,6 +352,10 @@ create table public.vendors (
   approval_status approval_status default 'pending',
   bank_name text,
   account_number text,
+  cac_number text,
+  whatsapp_number text,
+  physical_location text,
+  is_verified boolean default false,
   created_at timestamp default now()
 );
 
