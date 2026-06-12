@@ -85,6 +85,13 @@ export default function App() {
   // Initial PostHog runtime loading
   useEffect(() => {
     initPostHog();
+    
+    // Redirect parsing for email confirmations
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('login') === 'true') {
+      setCurrentScreen("auth");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [orders, setOrders] = useState<Order[]>([]);

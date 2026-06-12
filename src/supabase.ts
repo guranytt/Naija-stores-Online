@@ -591,39 +591,6 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_auth_user();
 
-
--- Trigger function to delegate welcome email template delivery to our Edge Function
-create or replace function public.on_profile_created_resend_trigger()
-returns trigger as $$
-declare
-  request_status int;
-begin
-  -- Fire asynchronous POST to our Supabase Edge Function 'send-email-resend' using the http extension.
-  -- Passes direct meta parameters so that the Edge Function renders a beautiful tailored template.
-  perform http_post(
-    'https://jmmfogjefenmjqspspyg.supabase.co/functions/v1/send-email-resend',
-    json_build_object(
-      'to', new.email,
-      'fullName', new.full_name,
-      'role', new.role::text,
-      'triggerSource', 'profile_creation'
-    )::text,
-    'application/json'
-  );
-  
-  return new;
-exception when others then
-  -- Fail-safe so database insert finishes even if network edge dispatch is offline
-  raise warning 'Profile creation resend webhook failover: %', sqlerrm;
-  return new;
-end;
-$$ language plpgsql security definer;
-
--- Bind trigger to public.users
-drop trigger if exists on_profile_created_resend on public.users;
-create trigger on_profile_created_resend
-  after insert on public.users
-  for each row execute function public.on_profile_created_resend_trigger();
 `;
 
 

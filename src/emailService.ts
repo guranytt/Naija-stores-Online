@@ -17,7 +17,7 @@ export interface MailLogEntry {
 
 export interface SendEmailPayload {
   to: string;
-  type: "payment_confirmation" | "delivery_confirmation" | "status_change" | "flagged" | "customer_signup" | "vendor_signup" | "confirm_email";
+  type: "payment_confirmation" | "delivery_confirmation" | "status_change" | "flagged" | "customer_signup" | "vendor_signup" | "confirm_email" | "first_login";
   data: {
     orderId?: string;
     customerName?: string;
@@ -70,6 +70,7 @@ export async function sendResendEmail(payload: SendEmailPayload): Promise<{ succ
     customer_signup: `Welcome to Naija Online Stores, ${payload.data.customerName || "Patron"}!`,
     vendor_signup: `Welcome to Naija Marketplace, ${payload.data.vendorName || "Vendor"}!`,
     confirm_email: `Verify your email address - Naija Online Stores`,
+    first_login: `Great to see you! Welcome back.`,
   };
   const subject = subjectMap[payload.type] || `Naija Online Stores: Support Message${payload.data.orderId ? ` - #${payload.data.orderId}` : ""}`;
 

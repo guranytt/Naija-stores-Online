@@ -11,14 +11,18 @@ import webpush from "web-push";
 dotenv.config();
 
 // Web Push setup
-const vapidPublicKey = process.env.VITE_VAPID_PUBLIC_KEY || "BLlL5n3fJ8F5KasjFnCAcNSLCV2eAvX7NYjFkapdaMzrdZbRXn8czp0iUz9tCxW1NpeBT6X1x8WJadYy40O97NQ";
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || "7Le3Sfw9zSj0LeiMzX_QJPNxG7nl6UYYGt_iC0KHJrA";
+const vapidPublicKey = process.env.VITE_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 
-webpush.setVapidDetails(
-  "mailto:support@naijastores.ng",
-  vapidPublicKey,
-  vapidPrivateKey
-);
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(
+    "mailto:support@naijastores.ng",
+    vapidPublicKey,
+    vapidPrivateKey
+  );
+} else {
+  console.warn("VAPID keys not set via environment variables. Web push notifications will be disabled.");
+}
 
 const vendorSubscriptions: Record<string, any[]> = {};
 
@@ -109,35 +113,65 @@ async function startServer() {
         </div>
       </div>`;
     } else if (type === "delivery_confirmation") {
-      htmlContent = `
-        <div style="font-family:sans-serif; padding:24px; max-width:600px; border:1px solid #eaeaea; border-radius:12px;">
-          <h2 style="color:#f59e0b;">Package En Route 🚚</h2>
-          <p>Hello <strong>${customer}</strong>,</p>
-          <p>Order <strong>#${ordId}</strong> has been transferred downstream. Current Location: <strong>${city}</strong>.</p>
-          <p>Do NOT give the shipper the security clearance code until physical inspection is complete.</p>
-          <a href="${action}" style="background:#f59e0b; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; display:inline-block; font-weight:bold; margin-top:10px;">Track Live Map</a>
+      htmlContent = `<div style="font-family: 'Inter', sans-serif; padding: 32px; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 24px; margin-bottom: 24px;">
+          <h1 style="color: #111827; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">Naija Online Stores</h1>
+          <p style="color: #f97316; margin: 8px 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Package En Route 🚚</p>
         </div>
-      `;
+        <div style="color: #374151; font-size: 16px; line-height: 1.6;">
+          <p style="margin-top: 0;">Hello <strong style="color: #111827;">${customer}</strong>,</p>
+          <p>Order <strong style="color: #111827;">#${ordId}</strong> has been transferred downstream. Current Location: <strong style="color: #111827;">${city}</strong>.</p>
+          <p style="background-color: #fffbeb; color: #b45309; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 500; border: 1px solid #fde68a;">⚠️ Do NOT give the shipper the security clearance code until physical inspection is complete.</p>
+        </div>
+        <div style="text-align: center; margin-top: 32px;">
+          <a href="${action}" style="background-color: #111827; color: #ffffff; padding: 14px 28px; border-radius: 9999px; text-decoration: none; display: inline-block; font-weight: 700; font-size: 16px; transition: background-color 0.2s;">Track Live Map</a>
+        </div>
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin: 0;">Bank-grade security & GDPR/NDPR compliant.</p>
+          <p style="margin: 4px 0 0;">© 2024 Naija Online Stores. All rights reserved.</p>
+        </div>
+      </div>`;
     } else if (type === "status_change") {
       subject = `Order status upgraded - #${ordId}`;
-      htmlContent = `
-        <div style="font-family:sans-serif; padding:24px; max-width:600px; border:1px solid #eaeaea; border-radius:12px;">
-          <h2>Order Status Update</h2>
-          <p>Hello <strong>${customer}</strong>,</p>
-          <p>Your order <strong>#${ordId}</strong> has shifted status to: <strong>${data?.newStatus || "Processing"}</strong>.</p>
-          <a href="${action}" style="background:#0f172a; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; display:inline-block; font-weight:bold; margin-top:10px;">Check Status</a>
+      htmlContent = `<div style="font-family: 'Inter', sans-serif; padding: 32px; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 24px; margin-bottom: 24px;">
+          <h1 style="color: #111827; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">Naija Online Stores</h1>
+          <p style="color: #f97316; margin: 8px 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Order Status Update ✨</p>
         </div>
-      `;
+        <div style="color: #374151; font-size: 16px; line-height: 1.6;">
+          <p style="margin-top: 0;">Hello <strong style="color: #111827;">${customer}</strong>,</p>
+          <p>Your order <strong style="color: #111827;">#${ordId}</strong> has shifted status to: <strong style="color: #f97316;">${data?.newStatus || "Processing"}</strong>.</p>
+          <p>You can check the detailed status of your order by visiting the order panel.</p>
+        </div>
+        <div style="text-align: center; margin-top: 32px;">
+          <a href="${action}" style="background-color: #111827; color: #ffffff; padding: 14px 28px; border-radius: 9999px; text-decoration: none; display: inline-block; font-weight: 700; font-size: 16px; transition: background-color 0.2s;">Check Status</a>
+        </div>
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin: 0;">Bank-grade security & GDPR/NDPR compliant.</p>
+          <p style="margin: 4px 0 0;">© 2024 Naija Online Stores. All rights reserved.</p>
+        </div>
+      </div>`;
     } else if (type === "flagged") {
       subject = `Verification Hold - Audit Triggered #${ordId}`;
-      htmlContent = `
-        <div style="font-family:sans-serif; padding:24px; max-width:600px; border:1px solid #eaeaea; border-radius:12px;">
-          <h2 style="color:#ef4444;">Compliance Safety Audit ⚠️</h2>
-          <p>Hello <strong>${customer}</strong>,</p>
-          <p>Order <strong>#${ordId}</strong> underwent a security checkpoint hold: <strong>${data?.alertReason || "Verification required."}</strong></p>
-          <p>Balances remain totally safe in temporary holding state during verification.</p>
+      htmlContent = `<div style="font-family: 'Inter', sans-serif; padding: 32px; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="text-align: center; border-bottom: 2px solid #ef4444; padding-bottom: 24px; margin-bottom: 24px;">
+          <h1 style="color: #111827; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">Naija Online Stores</h1>
+          <p style="color: #ef4444; margin: 8px 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Compliance Safety Audit ⚠️</p>
         </div>
-      `;
+        <div style="color: #374151; font-size: 16px; line-height: 1.6;">
+          <p style="margin-top: 0;">Hello <strong style="color: #111827;">${customer}</strong>,</p>
+          <p>Order <strong style="color: #111827;">#${ordId}</strong> underwent a security checkpoint hold.</p>
+          <p style="background-color: #fef2f2; color: #991b1b; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 500; border: 1px solid #fecaca; margin-bottom: 16px;">Reason: <strong>${data?.alertReason || "Verification required."}</strong></p>
+          <p>Balances remain totally safe in temporary holding state during verification. Please contact support if you need immediate assistance.</p>
+        </div>
+        <div style="text-align: center; margin-top: 32px;">
+          <a href="${action}" style="background-color: #ef4444; color: #ffffff; padding: 14px 28px; border-radius: 9999px; text-decoration: none; display: inline-block; font-weight: 700; font-size: 16px; transition: background-color 0.2s;">Contact Support</a>
+        </div>
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin: 0;">Bank-grade security & GDPR/NDPR compliant.</p>
+          <p style="margin: 4px 0 0;">© 2024 Naija Online Stores. All rights reserved.</p>
+        </div>
+      </div>`;
     } else if (type === "customer_signup") {
       subject = `Welcome to Naija Online Stores, ${customer}!`;
       htmlContent = `<div style="font-family: 'Inter', sans-serif; padding: 32px; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
@@ -188,7 +222,27 @@ async function startServer() {
           <p>Please verify your email address to secure your account and start shopping without limits. This helps us ensure that your orders and payments remain highly secure.</p>
         </div>
         <div style="text-align: center; margin-top: 32px;">
-          <a href="${action}" style="background-color: #10b981; color: #ffffff; padding: 14px 28px; border-radius: 9999px; text-decoration: none; display: inline-block; font-weight: 700; font-size: 16px; transition: transform 0.2s;">Verify Email</a>
+          <a href="${action}" style="background-color: #f97316; color: #ffffff; padding: 14px 28px; border-radius: 9999px; text-decoration: none; display: inline-block; font-weight: 700; font-size: 16px; transition: transform 0.2s;">Verify Email</a>
+        </div>
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin: 0;">Bank-grade security & GDPR/NDPR compliant.</p>
+          <p style="margin: 4px 0 0;">© 2024 Naija Online Stores. All rights reserved.</p>
+        </div>
+      </div>`;
+    } else if (type === "first_login") {
+      subject = `Great to see you! Welcome back.`;
+      htmlContent = `<div style="font-family: 'Inter', sans-serif; padding: 32px; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 24px; margin-bottom: 24px;">
+          <h1 style="color: #111827; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">Naija Online Stores</h1>
+          <p style="color: #f97316; margin: 8px 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Welcome Back 👋</p>
+        </div>
+        <div style="color: #374151; font-size: 16px; line-height: 1.6;">
+          <p style="margin-top: 0;">Hello <strong style="color: #111827;">${customer}</strong>,</p>
+          <p>It's great to have you successfully logged into your account! We are excited to show you our latest arrivals and top-tier vendors tailored just for you.</p>
+          <p>If you experience any issues accessing features, please ensure your profile is complete from your dashboard.</p>
+        </div>
+        <div style="text-align: center; margin-top: 32px;">
+          <a href="${action}" style="background-color: #111827; color: #ffffff; padding: 14px 28px; border-radius: 9999px; text-decoration: none; display: inline-block; font-weight: 700; font-size: 16px; transition: transform 0.2s;">Go to Dashboard</a>
         </div>
         <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; text-align: center; color: #9ca3af; font-size: 12px;">
           <p style="margin: 0;">Bank-grade security & GDPR/NDPR compliant.</p>

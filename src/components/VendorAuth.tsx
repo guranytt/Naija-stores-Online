@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Store, Mail, Lock, ChevronRight, Package, TrendingUp, ShieldCheck, Sparkles, AlertCircle, CheckCircle2, Landmark } from "lucide-react";
 import { supabase } from "../supabase";
+import { sendResendEmail } from "../emailService";
 
 interface VendorAuthProps {
   onLoginSuccess: () => void;
@@ -72,11 +73,39 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
           console.warn("Could not insert vendor to tables, table might not be active yet.", vErr);
         }
 
-        setSuccessMsg("Merchant account created successfully! Signing in...");
+        // Dispatch automated Resend notifications
+        try {
+          await sendResendEmail({
+            to: email,
+            type: "vendor_signup",
+            data: {
+              vendorName: shopName || email.split("@")[0],
+              actionUrl: window.location.origin
+            }
+          });
+
+          // Trigger confirmation email
+          await sendResendEmail({
+            to: email,
+            type: "confirm_email",
+            data: {
+              customerName: shopName || email.split("@")[0],
+              actionUrl: window.location.origin + "?login=true"
+            }
+          });
+        } catch (e) {
+          console.warn("Automated emails failed, proceeding smoothly.");
+        }
+
+        if (data.session) {
+          await supabase.auth.signOut();
+        }
+
+        setSuccessMsg("Merchant account created successfully! Please check your email to verify your account.");
         setTimeout(() => {
           setIsLoading(false);
-          onLoginSuccess();
-        }, 1500);
+          setIsSignUp(false);
+        }, 3000);
 
       } else {
         // Sign in via Supabase Auth
@@ -99,6 +128,26 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
           await supabase.auth.signOut();
           setIsLoading(false);
           return;
+        }
+
+        if (data.user) {
+          const sentKey = `hasSentGreeting_${data.user.id}`;
+          if (!localStorage.getItem(sentKey)) {
+            localStorage.setItem(sentKey, "true");
+            try {
+              const uName = userMeta.shopName || userMeta.business_name || email.split("@")[0];
+              await sendResendEmail({
+                to: email,
+                type: "first_login",
+                data: {
+                  customerName: uName,
+                  actionUrl: window.location.origin + "/admin"
+                }
+              });
+            } catch (e) {
+              console.warn("Failed to dispatch first login email silently", e);
+            }
+          }
         }
 
         setSuccessMsg("Welcome Back! Authorizing merchant cockpit...");

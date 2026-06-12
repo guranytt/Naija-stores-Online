@@ -120,6 +120,27 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
         });
         if (error) throw error;
         
+        // Dispatch first login greeting if not dispatched on this device yet
+        if (data.user) {
+          const sentKey = `hasSentGreeting_${data.user.id}`;
+          if (!localStorage.getItem(sentKey)) {
+            localStorage.setItem(sentKey, "true");
+            try {
+              const uName = data.user.user_metadata?.fullName || data.user.user_metadata?.shopName || email.split("@")[0];
+              await sendResendEmail({
+                to: email,
+                type: "first_login",
+                data: {
+                  customerName: uName,
+                  actionUrl: window.location.origin
+                }
+              });
+            } catch (e) {
+              console.warn("Failed to dispatch first login email silently", e);
+            }
+          }
+        }
+
         onUpdateEmail(data.user?.email || "");
         setFeedback({ type: "success", msg: "Reconciliation successful! Session synchronized." });
       } else if (authMode === "register") {
@@ -202,14 +223,18 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
             type: "confirm_email",
             data: {
               customerName: fullName,
-              actionUrl: window.location.origin
+              actionUrl: window.location.origin + "?login=true"
             }
           });
         } catch (e) {
           console.warn("Automated emails failed, proceeding smoothly.");
         }
 
-        setFeedback({ type: "success", msg: "Account registered! Check email for verification link (or proceed to log in if auto-approved)." });
+        if (data.session) {
+          await supabase.auth.signOut();
+        }
+
+        setFeedback({ type: "success", msg: "Account registered! Please check your email to verify your account." });
         setAuthMode("login");
       } else if (authMode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
