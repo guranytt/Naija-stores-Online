@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { UserCircle, Mail, Lock, ShieldCheck, MapPin, User, Edit3, Key, LogOut, ArrowLeft, RefreshCw, AlertCircle, CheckCircle } from "lucide-react";
 import { supabase } from "../supabase";
+import { sendResendEmail } from "../emailService";
 
 interface UserAuthHubProps {
   currentEmail: string;
@@ -171,6 +172,41 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
           } catch (tabErr) {
             console.warn("Table sync skipped during initial signup: ", tabErr);
           }
+        }
+
+        // Dispatch automated Resend notifications
+        try {
+          if (role === "vendor") {
+            await sendResendEmail({
+              to: email,
+              type: "vendor_signup",
+              data: {
+                vendorName: shopName || fullName,
+                actionUrl: window.location.origin
+              }
+            });
+          } else {
+            await sendResendEmail({
+              to: email,
+              type: "customer_signup",
+              data: {
+                customerName: fullName,
+                actionUrl: window.location.origin
+              }
+            });
+          }
+
+          // Trigger confirmation email
+          await sendResendEmail({
+            to: email,
+            type: "confirm_email",
+            data: {
+              customerName: fullName,
+              actionUrl: window.location.origin
+            }
+          });
+        } catch (e) {
+          console.warn("Automated emails failed, proceeding smoothly.");
         }
 
         setFeedback({ type: "success", msg: "Account registered! Check email for verification link (or proceed to log in if auto-approved)." });

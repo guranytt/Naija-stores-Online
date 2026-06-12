@@ -6,8 +6,21 @@ import { Resend } from "resend";
 import dotenv from "dotenv";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import webpush from "web-push";
 
 dotenv.config();
+
+// Web Push setup
+const vapidPublicKey = process.env.VITE_VAPID_PUBLIC_KEY || "BLlL5n3fJ8F5KasjFnCAcNSLCV2eAvX7NYjFkapdaMzrdZbRXn8czp0iUz9tCxW1NpeBT6X1x8WJadYy40O97NQ";
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || "7Le3Sfw9zSj0LeiMzX_QJPNxG7nl6UYYGt_iC0KHJrA";
+
+webpush.setVapidDetails(
+  "mailto:support@naijastores.ng",
+  vapidPublicKey,
+  vapidPrivateKey
+);
+
+const vendorSubscriptions: Record<string, any[]> = {};
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://jmmfogjefenmjqspspyg.supabase.co";
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptbWZvZ2plZmVubWpxc3BzcHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NjkwODEsImV4cCI6MjA5NjI0NTA4MX0.ah-wpbhIJKcF9fs4UVpXCAVwq5Bw10aTNPdtJxyPg3M";
@@ -40,14 +53,32 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Subscription Endpoint
+  app.post("/api/push/subscribe", (req, res) => {
+    const { vendorId, subscription } = req.body;
+    if (!vendorId || !subscription) {
+      return res.status(400).json({ error: "Missing vendorId or subscription" });
+    }
+    
+    if (!vendorSubscriptions[vendorId]) {
+      vendorSubscriptions[vendorId] = [];
+    }
+    
+    // Simple deduplication
+    const exists = vendorSubscriptions[vendorId].find(s => s.endpoint === subscription.endpoint);
+    if (!exists) {
+      vendorSubscriptions[vendorId].push(subscription);
+    }
+    
+    res.json({ success: true });
+  });
+
   // 1. Send system email via specific payload types
   app.post("/api/resend/send", async (req, res) => {
     const { to, type, data } = req.body;
     const apiKey = process.env.RESEND_API_KEY;
 
     let subject = "Naija Online Stores Alert";
-    let htmlContent = `<p>Alert message for Order #${data?.orderId || "N/A"}</p>`;
-
     // Format fields with clean fallback structures for compilation comfort
     const customer = data?.customerName || "Estemeed Patron";
     const ordId = data?.orderId || "NS-ORDER";
@@ -55,18 +86,29 @@ async function startServer() {
     const action = data?.actionUrl || "https://naijastores.ng";
     const city = data?.currentCity || "Lagos";
 
+    let htmlContent = `<p>Alert message for Order #${ordId}</p>`;
+
     if (type === "payment_confirmation") {
       subject = `Receipt for Order #${ordId}`;
-      htmlContent = `
-        <div style="font-family:sans-serif; padding:24px; max-width:600px; border:1px solid #eaeaea; border-radius:12px;">
-          <h2 style="color:#008751;">Payment Confirmed 🎉</h2>
-          <p>Hello <strong>${customer}</strong>,</p>
-          <p>We received your payment of <strong>${valStr}</strong> for Order <strong>#${ordId}</strong>. The order has been safely booked.</p>
-          <a href="${action}" style="background:#0f172a; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; display:inline-block; font-weight:bold; margin-top:10px;">View Order Panel</a>
+      htmlContent = `<div style="font-family: 'Inter', sans-serif; padding: 32px; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 24px; margin-bottom: 24px;">
+          <h1 style="color: #111827; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">Naija Online Stores</h1>
+          <p style="color: #f97316; margin: 8px 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Payment Confirmed 🎉</p>
         </div>
-      `;
+        <div style="color: #374151; font-size: 16px; line-height: 1.6;">
+          <p style="margin-top: 0;">Hello <strong style="color: #111827;">${customer}</strong>,</p>
+          <p>Thank you for shopping with us! We have successfully received your payment of <strong style="color: #111827; font-size: 18px;">${valStr}</strong> for Order <strong style="color: #111827;">#${ordId}</strong>.</p>
+          <p>Your order is now being processed and will be dispatched shortly. You can track your order status directly from your dashboard.</p>
+        </div>
+        <div style="text-align: center; margin-top: 32px;">
+          <a href="${action}" style="background-color: #f97316; color: #ffffff; padding: 14px 28px; border-radius: 9999px; text-decoration: none; display: inline-block; font-weight: 700; font-size: 16px; transition: background-color 0.2s;">View Order Dashboard</a>
+        </div>
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin: 0;">Bank-grade security & GDPR/NDPR compliant.</p>
+          <p style="margin: 4px 0 0;">© 2024 Naija Online Stores. All rights reserved.</p>
+        </div>
+      </div>`;
     } else if (type === "delivery_confirmation") {
-      subject = `Delivery Dispatched - Order #${ordId}`;
       htmlContent = `
         <div style="font-family:sans-serif; padding:24px; max-width:600px; border:1px solid #eaeaea; border-radius:12px;">
           <h2 style="color:#f59e0b;">Package En Route 🚚</h2>
@@ -96,6 +138,63 @@ async function startServer() {
           <p>Balances remain totally safe in temporary holding state during verification.</p>
         </div>
       `;
+    } else if (type === "customer_signup") {
+      subject = `Welcome to Naija Online Stores, ${customer}!`;
+      htmlContent = `<div style="font-family: 'Inter', sans-serif; padding: 32px; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 24px; margin-bottom: 24px;">
+          <h1 style="color: #111827; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">Naija Online Stores</h1>
+          <p style="color: #f97316; margin: 8px 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Welcome to the Family 🛍️</p>
+        </div>
+        <div style="color: #374151; font-size: 16px; line-height: 1.6;">
+          <p style="margin-top: 0;">Hello <strong style="color: #111827;">${customer}</strong>,</p>
+          <p>Welcome to Naija Online Stores! We are thrilled to have you. Explore the best local and international brands, all in one place with secure and fast checkout.</p>
+        </div>
+        <div style="text-align: center; margin-top: 32px;">
+          <a href="${action}" style="background-color: #f97316; color: #ffffff; padding: 14px 28px; border-radius: 9999px; text-decoration: none; display: inline-block; font-weight: 700; font-size: 16px; transition: transform 0.2s;">Start Shopping</a>
+        </div>
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin: 0;">Bank-grade security & GDPR/NDPR compliant.</p>
+          <p style="margin: 4px 0 0;">© 2024 Naija Online Stores. All rights reserved.</p>
+        </div>
+      </div>`;
+    } else if (type === "vendor_signup") {
+      subject = `Welcome to Naija Marketplace, ${data?.vendorName || "Partner"}!`;
+      htmlContent = `<div style="font-family: 'Inter', sans-serif; padding: 32px; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 24px; margin-bottom: 24px;">
+          <h1 style="color: #111827; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">Naija Online Stores</h1>
+          <p style="color: #f97316; margin: 8px 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Welcome to the Marketplace 🏪</p>
+        </div>
+        <div style="color: #374151; font-size: 16px; line-height: 1.6;">
+          <p style="margin-top: 0;">Hello <strong style="color: #111827;">${data?.vendorName || "Partner"}</strong>,</p>
+          <p>Welcome to Naija Online Stores! Your vendor application has been received. Setup your brand profile and start selling to thousands of customers securely.</p>
+        </div>
+        <div style="text-align: center; margin-top: 32px;">
+          <a href="${action}/admin" style="background-color: #111827; color: #ffffff; padding: 14px 28px; border-radius: 9999px; text-decoration: none; display: inline-block; font-weight: 700; font-size: 16px; transition: transform 0.2s;">Go to Vendor Dashboard</a>
+        </div>
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin: 0;">Bank-grade security & GDPR/NDPR compliant.</p>
+          <p style="margin: 4px 0 0;">© 2024 Naija Online Stores. All rights reserved.</p>
+        </div>
+      </div>`;
+    } else if (type === "confirm_email") {
+      subject = `Verify your email address - Naija Online Stores`;
+      htmlContent = `<div style="font-family: 'Inter', sans-serif; padding: 32px; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 24px; margin-bottom: 24px;">
+          <h1 style="color: #111827; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">Naija Online Stores</h1>
+          <p style="color: #f97316; margin: 8px 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Verify Your Email Address ✉️</p>
+        </div>
+        <div style="color: #374151; font-size: 16px; line-height: 1.6;">
+          <p style="margin-top: 0;">Hello <strong style="color: #111827;">${customer}</strong>,</p>
+          <p>Please verify your email address to secure your account and start shopping without limits. This helps us ensure that your orders and payments remain highly secure.</p>
+        </div>
+        <div style="text-align: center; margin-top: 32px;">
+          <a href="${action}" style="background-color: #10b981; color: #ffffff; padding: 14px 28px; border-radius: 9999px; text-decoration: none; display: inline-block; font-weight: 700; font-size: 16px; transition: transform 0.2s;">Verify Email</a>
+        </div>
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin: 0;">Bank-grade security & GDPR/NDPR compliant.</p>
+          <p style="margin: 4px 0 0;">© 2024 Naija Online Stores. All rights reserved.</p>
+        </div>
+      </div>`;
     }
 
     const logEntry: BackendMailLog = {
@@ -292,6 +391,20 @@ async function startServer() {
         return null;
       }
 
+      // Notify vendor via Web Push irrespective of whether they are on the app
+      const targetVendorId = "v_heritage"; // Assuming default vendor since multi-vendor routing isn't fully scoped
+      const subs = vendorSubscriptions[targetVendorId] || [];
+      const payloadString = JSON.stringify({
+        title: "New Payment Received!",
+        body: `Order #${orderId} for ₦${orderValue.toLocaleString()} has been paid by ${customerName}.`,
+        url: "/admin"
+      });
+      subs.forEach(sub => {
+        webpush.sendNotification(sub, payloadString).catch(err => {
+          console.error("Push notification send error:", err);
+        });
+      });
+
       console.log("[SERVER] Database insertion succeeded! Returning record:", data?.[0] || finalPayload);
       return {
         id: orderId,
@@ -444,6 +557,28 @@ async function startServer() {
   // 4. Sentry express test error trigger endpoint
   app.get("/api/sentry-error-test", (req, res) => {
     throw new Error("Sentry Express Backend Test Error: Sentry is fully configured!");
+  });
+
+  app.get("/sitemap.xml", (req, res) => {
+    res.header("Content-Type", "application/xml");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://naijastores.ng/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://naijastores.ng/shop</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://naijastores.ng/cart</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>`);
   });
 
   // Register Sentry express error handler

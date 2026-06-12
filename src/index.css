@@ -8,18 +8,11 @@
 
 /* Custom Scrollbars and Premium Utilities */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  display: none;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(160, 65, 0, 0.15);
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(160, 65, 0, 0.3);
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .shadow-ambient {

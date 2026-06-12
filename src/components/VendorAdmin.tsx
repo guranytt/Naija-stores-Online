@@ -4,13 +4,14 @@
  */
 
 import React, { useState } from "react";
-import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud, BarChart2, PieChart, Megaphone } from "lucide-react";
+import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud, BarChart2, PieChart, Megaphone, BellRing } from "lucide-react";
 import { Vendor, Order, AdminTeamMember, Product, Category, FlashDealProposal } from "../types";
 import { MOCK_VENDORS, MOCK_ORDERS, MOCK_TEAM_MEMBERS, MOCK_PRODUCTS, MOCK_CATEGORIES } from "../data/mockData";
 import { formatNaira } from "./CustomerViews";
 import { uploadToCloudinary, convertFileToBase64 } from "../cloudinaryService";
 import SalesAnalyticsDashboard from "./SalesAnalyticsDashboard";
 import { sendVendorApproval } from "../emailService";
+import { requestPushPermissionAndSubscribe } from "../pushService";
 
 
 interface VendorAdminProps {
@@ -498,6 +499,20 @@ export default function VendorAdmin({
             </div>
             
             <div className="flex space-x-2">
+              <button
+                onClick={async () => {
+                  const success = await requestPushPermissionAndSubscribe(activeVendor.id);
+                  if (success) {
+                    alert('Sale push notifications are now enabled! You will be alerted for every successful payment.');
+                  } else {
+                    alert('Could not enable push notifications. Please check your browser permissions.');
+                  }
+                }}
+                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center space-x-1.5 border border-indigo-200"
+              >
+                <BellRing className="w-4 h-4" />
+                <span>Enable Alerts</span>
+              </button>
               <button
                 onClick={() => setShowEditProfileModal(true)}
                 className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center space-x-1.5 border border-neutral-200"
