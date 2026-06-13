@@ -1124,6 +1124,49 @@ export default function App() {
                 Naija Online Store is a trusted Nigerian multi-vendor ecommerce marketplace connecting buyers with verified vendors nationwide through secure payments, fast delivery, and quality products.
               </p>
               
+              {/* Address details and Customer contact line */}
+              <div className="text-[11px] space-y-2 border-t border-neutral-900 pt-3 max-w-sm">
+                <p className="text-neutral-400 leading-relaxed font-semibold">
+                  🏢 <span className="text-neutral-300 font-bold uppercase tracking-wider text-[10px] block mb-0.5">Headquarters Address</span>
+                  Petrocam Plaza, Opposite Guru Maharaji, Obawole, 12 Victor Olaleye Ave, Ishaga, Iju, Lagos 100216, Lagos
+                </p>
+                <div className="text-neutral-400 font-semibold pt-1">
+                  📞 <span className="text-neutral-300 font-bold uppercase tracking-wider text-[10px] block mb-0.5">WhatsApp / Customer Hotline</span>
+                  <a href="https://wa.me/2348035237665" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 transition-colors font-bold text-xs ring-offset-neutral-950 focus:outline-none">08035237665</a>
+                </div>
+              </div>
+
+              {/* Social Channels Connect */}
+              <div className="pt-2">
+                <span className="text-white font-bold text-[10px] uppercase tracking-widest block mb-1">Follow Us</span>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <a 
+                    href="https://www.instagram.com/naijaonliestores/" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="bg-neutral-900 hover:bg-neutral-800 border border-neutral-850 hover:border-neutral-700 text-neutral-400 hover:text-white px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all hover:scale-105 inline-flex items-center space-x-1"
+                  >
+                    <span>📸 Instagram</span>
+                  </a>
+                  <a 
+                    href="https://www.facebook.com/profile.php?id=61590778524548" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="bg-neutral-900 hover:bg-neutral-800 border border-neutral-850 hover:border-neutral-700 text-neutral-400 hover:text-white px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all hover:scale-105 inline-flex items-center space-x-1"
+                  >
+                    <span>👥 Facebook</span>
+                  </a>
+                  <a 
+                    href="https://www.youtube.com/channel/UCGI5qBdP-aQDEce9J_hQMvA" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="bg-neutral-900 hover:bg-neutral-800 border border-neutral-850 hover:border-neutral-700 text-neutral-400 hover:text-white px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all hover:scale-105 inline-flex items-center space-x-1"
+                  >
+                    <span>📺 YouTube</span>
+                  </a>
+                </div>
+              </div>
+              
               <div className="pt-2">
                 <h3 className="text-white font-bold text-[10px] uppercase tracking-widest mb-3">We Accept</h3>
                 <div className="flex flex-wrap gap-2 text-[10px] font-bold text-neutral-400 uppercase">
