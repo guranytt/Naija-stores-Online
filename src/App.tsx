@@ -648,29 +648,29 @@ export default function App() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-100 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
             </span>
-            <span className="font-extrabold uppercase tracking-widest text-[9px] bg-emerald-800/40 px-2 py-0.5 rounded text-emerald-300">Fast Call to Order</span>
+            <span className="font-extrabold uppercase tracking-widest text-[9px] bg-emerald-800/40 px-2 py-0.5 rounded text-emerald-300">Ordering Options</span>
           </div>
           
           <p className="font-semibold tracking-wide text-white/95">
-            Place your order directly via call or WhatsApp! Instant delivery setup nationwide.
+            Shop online via secure cart, or optionally call/WhatsApp us to order directly! Nationwide delivery.
           </p>
 
           <div className="flex items-center space-x-2 mt-0.5 sm:mt-0">
             <a 
-              href="tel:+2348138575869" 
+              href="tel:+2348035237665" 
               className="bg-white text-emerald-800 hover:bg-emerald-50 px-2.5 py-1 rounded-lg font-bold shadow-xs transition-all hover:scale-105 inline-flex items-center space-x-1 text-[11px]"
             >
               <span>📞</span>
-              <span>0813 857 5869</span>
+              <span>0803 523 7665</span>
             </a>
             <a 
-              href="https://wa.me/2348138575869?text=Hello%20Naija%20Online%20Store%2C%20I%20want%20to%20place%20an%20order" 
+              href="https://wa.me/2348035237665?text=Hello%20Naija%20Online%20Stores%2C%20I%20want%20to%20place%20an%20order" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="bg-emerald-950 text-white hover:bg-emerald-900 border border-emerald-800 px-2.5 py-1 rounded-lg font-bold shadow-xs transition-all hover:scale-105 inline-flex items-center space-x-1 text-[11px]"
             >
               <span className="w-3.5 h-3.5 inline-block text-[11px]">💬</span>
-              <span>WhatsApp Order</span>
+              <span>WhatsApp Order Option</span>
             </a>
           </div>
         </div>

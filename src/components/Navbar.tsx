@@ -106,7 +106,7 @@ export default function Navbar({
           {/* Search bar Desktop (Expanding and smart dropdown recommendations list) */}
           <motion.form
             onSubmit={handleSearchSubmit}
-            animate={{ maxWidth: isSearchFocused ? 440 : 280 }}
+            animate={{ maxWidth: isSearchFocused ? 485 : 360 }}
             transition={{ type: "spring", stiffness: 350, damping: 28 }}
             className="hidden md:flex flex-1 mx-8 relative"
           >
@@ -116,11 +116,17 @@ export default function Navbar({
               onChange={(e) => setSearchVal(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setTimeout(() => setIsSearchFocused(false), 220)}
-              placeholder="Search local Agbada, spices, fabrics..."
-              className="w-full h-10 pl-11 pr-4 rounded-full border-none bg-white/10 text-white placeholder-white/70 focus:placeholder-white/40 focus:bg-white/15 focus:ring-2 focus:ring-orange-500 outline-none text-sm transition-all focus:text-white"
+              placeholder="Search products, brands, local spices..."
+              className="w-full h-11 pl-11 pr-4 rounded-full border-2 border-orange-400 bg-white text-neutral-900 placeholder-neutral-500 font-bold focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none text-xs transition-all shadow-sm"
               id="search-input"
             />
-            <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-white/70 pointer-events-none" />
+            <button
+              type="submit"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-orange-500 active:scale-90 transition-all font-black p-1 rounded-full cursor-pointer"
+              title="Search"
+            >
+              <Search className="w-4.5 h-4.5 stroke-[3.5]" />
+            </button>
 
             <AnimatePresence>
               {isSearchFocused && (
