@@ -201,7 +201,87 @@ export default function VendorAdmin({
   const [fdError, setFdError] = useState<string | null>(null);
 
   const vendorsList = vendors && vendors.length > 0 ? vendors : MOCK_VENDORS;
-  const activeVendor = vendorsList.find(v => v.id === "v_heritage") || vendorsList[0];
+  const activeVendor = vendorsList.find(v => v.email?.toLowerCase() === userEmail?.toLowerCase()) || 
+                       vendorsList.find(v => v.id === "v_heritage") || 
+                       vendorsList[0];
+
+  const isMasterAdmin = userEmail?.toLowerCase() === "mcgigimeshai@gmail.com" ||
+                        userEmail?.toLowerCase() === "nigerian.developer@gmail.com" ||
+                        userEmail?.toLowerCase()?.includes("admin") ||
+                        userEmail?.toLowerCase()?.includes("@naijastores.ng");
+
+  // Keep adminTab state synced if standard vendor tries to access platform tabs
+  React.useEffect(() => {
+    if (!isMasterAdmin && ["platform", "commissions", "ads", "emails"].includes(adminTab)) {
+      setAdminTab("vendor");
+    }
+  }, [adminTab, isMasterAdmin]);
+
+  // Filter products and orders dynamically for real, active vendor statistics
+  const vendorProducts = products.filter(p => {
+    const vId = p.vendorId || (p as any).vendor_id;
+    return vId === activeVendor.id;
+  });
+
+  const vendorOrders = orders.filter(o => {
+    const oVendorId = (o as any).vendorId || (o as any).vendor_id;
+    if (oVendorId) {
+      return oVendorId === activeVendor.id;
+    }
+    if (o.productIds && o.productIds.length > 0) {
+      return o.productIds.some(pId => vendorProducts.some(vp => vp.id === pId));
+    }
+    return false;
+  });
+
+  const totalSalesValue = vendorOrders
+    .filter(o => {
+      const s = o.status as string;
+      return s === "Success" || s === "Delivered" || s === "Paid" || s === "Shipped" || s === "Processing";
+    })
+    .reduce((acc, curr) => acc + (curr.value || 0), 0);
+
+  const pendingOrdersCount = vendorOrders.filter(o => {
+    const s = o.status as string;
+    return s === "Pending" || s === "Processing" || s === "Manifested";
+  }).length;
+  const lowStockThreshold = 15;
+  const stockAlertsCount = vendorProducts.filter(p => (p.stock || 0) < lowStockThreshold).length;
+
+  const vendorRating = activeVendor.rating || 5.0;
+  const vendorRatingCount = activeVendor.ratingCount || 1;
+
+  // Real, dynamic weekly sales activity bar charts
+  const dayTotals: Record<string, number> = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+  vendorOrders.forEach(o => {
+    let day = "Fri";
+    if (o.date) {
+      try {
+        const dateObj = new Date(o.date);
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        day = dayNames[dateObj.getDay()] || "Fri";
+      } catch (err) {
+        day = "Fri";
+      }
+    }
+    if (dayTotals[day] !== undefined) {
+      dayTotals[day] += o.value || 0;
+    }
+  });
+
+  // Fallback to activeVendor.salesToday if there's no dynamic order value yet, to ensure a smooth transition
+  const baseSales = totalSalesValue > 0 ? totalSalesValue : (activeVendor.salesToday || 0);
+
+  const maxDayVal = Math.max(...Object.values(dayTotals), 50000);
+  const barData = Object.keys(dayTotals).map(day => {
+    const val = dayTotals[day];
+    const pct = val > 0 ? Math.min(100, Math.round((val / maxDayVal) * 100)) : (day === "Fri" && baseSales > 0 ? 50 : 5);
+    return {
+      d: day,
+      v: val > 0 ? val : (day === "Fri" && baseSales > 0 ? baseSales : 0),
+      h: `${pct}%`
+    };
+  });
 
   const handleProposeFlashSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -408,54 +488,58 @@ export default function VendorAdmin({
             <span>Visual Analytics Board</span>
           </button>
           
-          <button
-            onClick={() => setAdminTab("platform")}
-            className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              adminTab === "platform"
-                ? "bg-white text-neutral-900 shadow-sm font-extrabold"
-                : "text-neutral-500 hover:text-neutral-900"
-            }`}
-          >
-            <ShieldPlus className="w-4 h-4 text-emerald-600" />
-            <span>Master Administrator Admin Console</span>
-          </button>
+          {isMasterAdmin && (
+            <>
+              <button
+                onClick={() => setAdminTab("platform")}
+                className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  adminTab === "platform"
+                    ? "bg-white text-neutral-900 shadow-sm font-extrabold"
+                    : "text-neutral-500 hover:text-neutral-900"
+                }`}
+              >
+                <ShieldPlus className="w-4 h-4 text-emerald-600" />
+                <span>Master Administrator Admin Console</span>
+              </button>
 
-          <button
-            onClick={() => setAdminTab("commissions")}
-            className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              adminTab === "commissions"
-                ? "bg-white text-neutral-900 shadow-sm font-extrabold"
-                : "text-neutral-500 hover:text-neutral-900"
-            }`}
-          >
-            <PieChart className="w-4 h-4 text-purple-500" />
-            <span>Commission & Payouts</span>
-          </button>
+              <button
+                onClick={() => setAdminTab("commissions")}
+                className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  adminTab === "commissions"
+                    ? "bg-white text-neutral-900 shadow-sm font-extrabold"
+                    : "text-neutral-500 hover:text-neutral-900"
+                }`}
+              >
+                <PieChart className="w-4 h-4 text-purple-500" />
+                <span>Commission & Payouts</span>
+              </button>
 
-          <button
-            onClick={() => setAdminTab("ads")}
-            className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              adminTab === "ads"
-                ? "bg-white text-neutral-900 shadow-sm font-extrabold"
-                : "text-neutral-500 hover:text-neutral-900"
-            }`}
-          >
-            <Megaphone className="w-4 h-4 text-pink-500" />
-            <span>Ad Campaigns</span>
-          </button>
+              <button
+                onClick={() => setAdminTab("ads")}
+                className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  adminTab === "ads"
+                    ? "bg-white text-neutral-900 shadow-sm font-extrabold"
+                    : "text-neutral-500 hover:text-neutral-900"
+                }`}
+              >
+                <Megaphone className="w-4 h-4 text-pink-500" />
+                <span>Ad Campaigns</span>
+              </button>
 
-          <button
-            onClick={() => setAdminTab("emails")}
-            className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              adminTab === "emails"
-                ? "bg-white text-neutral-900 shadow-sm font-extrabold font-black"
-                : "text-neutral-500 hover:text-neutral-950"
-            }`}
-          >
-            <Mail className="w-4 h-4 text-orange-500" />
-            <span>Resend Mail Automation Hub</span>
-            <span className="bg-orange-100 text-orange-850 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold">AUTO</span>
-          </button>
+              <button
+                onClick={() => setAdminTab("emails")}
+                className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  adminTab === "emails"
+                    ? "bg-white text-neutral-900 shadow-sm font-extrabold font-black"
+                    : "text-neutral-500 hover:text-neutral-950"
+                }`}
+              >
+                <Mail className="w-4 h-4 text-orange-500" />
+                <span>Resend Mail Automation Hub</span>
+                <span className="bg-orange-100 text-orange-850 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold">AUTO</span>
+              </button>
+            </>
+          )}
         </div>
         <div className="px-3 py-1 bg-white border border-neutral-200 rounded-lg text-[10px] font-bold text-neutral-500 uppercase tracking-widest font-mono">
           Currency: NGN (₦)
@@ -548,7 +632,7 @@ export default function VendorAdmin({
             {/* Sales */}
             <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs">
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Today's Store Sales</p>
-              <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1.5">{formatNaira(activeVendor.salesToday)}</h3>
+              <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1.5">{formatNaira(totalSalesValue > 0 ? totalSalesValue : (activeVendor.salesToday || 0))}</h3>
               <p className="text-[10px] text-emerald-600 font-bold mt-1 inline-flex items-center space-x-1">
                 <span>&uarr; 12.5%</span> 
                 <span className="text-neutral-400 font-normal">from yesterday</span>
@@ -558,7 +642,7 @@ export default function VendorAdmin({
             {/* Pending Orders */}
             <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs">
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider font-sans">Active Orders Needs Shipping</p>
-              <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1">{activeVendor.ordersPending} orders</h3>
+              <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1">{pendingOrdersCount} orders</h3>
               <p className="text-[10px] text-orange-500 font-bold mt-1 inline-flex items-center space-x-1">
                 <span>● Urgent Delivery queue</span>
               </p>
@@ -568,7 +652,7 @@ export default function VendorAdmin({
             <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs">
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Stock Alert Limits</p>
               <div className="flex items-center space-x-2.5 mt-1.5">
-                <h3 className="text-2xl font-black text-red-600 tracking-tight">{activeVendor.stockAlerts} items</h3>
+                <h3 className="text-2xl font-black text-red-600 tracking-tight">{stockAlertsCount} items</h3>
                 <span className="bg-red-50 text-red-600 font-extrabold text-[9px] px-1.5 py-0.5 rounded border border-red-100 uppercase tracking-wide">Danger Limit</span>
               </div>
               <p className="text-[10px] text-neutral-400 font-semibold mt-1">Re-ordering coordinates advised</p>
@@ -577,9 +661,9 @@ export default function VendorAdmin({
             {/* Ratings summary */}
             <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs">
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Net Rating Factor</p>
-              <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1">{activeVendor.rating.toFixed(1)} ★</h3>
+              <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1">{vendorRating.toFixed(1)} ★</h3>
               <p className="text-[10px] text-emerald-600 font-bold mt-1 inline-flex items-center space-x-1">
-                <span>Verified by {activeVendor.ratingCount || 145} customers</span>
+                <span>Verified by {vendorRatingCount} customers</span>
               </p>
             </div>
           </div>
@@ -595,21 +679,13 @@ export default function VendorAdmin({
                 </div>
                 <div className="flex items-center space-x-1">
                   <span className="w-2.5 h-2.5 bg-orange-500 rounded-full inline-block" />
-                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Agbada & Craft Sales</span>
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Active Store Sales</span>
                 </div>
               </div>
 
               {/* Vector Bar Layout */}
               <div className="h-60 flex items-end justify-between pt-6 px-4">
-                {[
-                  { d: "Mon", v: 105000, h: "35%" },
-                  { d: "Tue", v: 185000, h: "55%" },
-                  { d: "Wed", v: 240000, h: "75%" },
-                  { d: "Thu", v: 120000, h: "40%" },
-                  { d: "Fri", v: 342050, h: "98%" },
-                  { d: "Sat", v: 200000, h: "65%" },
-                  { d: "Sun", v: 150000, h: "45%" }
-                ].map((bar) => (
+                {barData.map((bar) => (
                   <div key={bar.d} className="flex flex-col items-center space-y-2 w-10 group relative cursor-pointer">
                     {/* Tooltip */}
                     <div className="absolute bottom-full mb-2 bg-neutral-900 text-white text-[9px] font-bold px-2 py-1 rounded hidden group-hover:block transition-all shadow-md z-15 font-mono">
@@ -637,7 +713,7 @@ export default function VendorAdmin({
               </h3>
 
               <div className="space-y-4">
-                {products.filter(p => p.stock <= 12).slice(0, 3).map((item) => (
+                {vendorProducts.filter(p => (p.stock || 0) <= 12).slice(0, 3).map((item) => (
                   <div key={item.id} className="flex items-center space-x-3 text-xs justify-between">
                     <div className="flex items-center space-x-2.5 min-w-0">
                       <div className="w-9 h-9 bg-neutral-50 border border-neutral-100 rounded-lg overflow-hidden flex-shrink-0">
@@ -655,7 +731,7 @@ export default function VendorAdmin({
                     </div>
                   </div>
                 ))}
-                {products.filter(p => p.stock <= 12).length === 0 && (
+                {vendorProducts.filter(p => (p.stock || 0) <= 12).length === 0 && (
                   <p className="text-xs text-neutral-400 py-6 text-center">All catalog listings currently healthy.</p>
                 )}
               </div>
@@ -1352,8 +1428,8 @@ export default function VendorAdmin({
                     <th className="px-6 py-3.5 text-right font-bold">Order Audit Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-100 font-medium">
-                  {orders.map((o) => (
+                <tbody className="divide-y divide-neutral-100 font-medium font-sans">
+                  {vendorOrders.map((o) => (
                     <tr key={o.id} className="hover:bg-neutral-50/50">
                       <td className="px-6 py-4 font-bold text-neutral-800 text-[11px] font-mono">{o.id}</td>
                       <td className="px-6 py-4 text-neutral-705">{o.customerName}</td>
@@ -1394,6 +1470,13 @@ export default function VendorAdmin({
                       </td>
                     </tr>
                   ))}
+                  {vendorOrders.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-neutral-400 text-xs font-semibold">
+                        No orders currently registered for your products in the transaction ledger.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

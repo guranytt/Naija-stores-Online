@@ -782,7 +782,7 @@ export default function CustomerViews({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {MOCK_PRODUCTS.slice(4, 8).map((p, idx) => {
+              {products.slice(4, 12).map((p, idx) => {
                 const isAdded = !!justAddedProducts[p.id];
                 return (
                   <motion.div
@@ -921,7 +921,7 @@ export default function CustomerViews({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {MOCK_PRODUCTS.slice(0, 4).map((p, idx) => {
+              {products.slice(0, 4).map((p, idx) => {
                 const isAdded = !!justAddedProducts[p.id];
                 const isLiked = wishlist.includes(p.id);
                 return (
@@ -1075,24 +1075,52 @@ export default function CustomerViews({
         >
         
           {/* Ad Banner for Category / Search Results */}
-          {MOCK_ADS.filter(ad => (ad.position === "category" || ad.position === "search") && ad.status === "active").map((ad, idx) => (
+          {searchFilter ? (
              <motion.div
-               key={ad.id}
                initial={{ opacity: 0, y: 10 }}
                animate={{ opacity: 1, y: 0 }}
-               transition={{ delay: 0.1 * idx }}
-               className="w-full h-24 sm:h-32 rounded-2xl overflow-hidden relative group cursor-pointer shadow-sm mb-4"
-               onClick={() => {
-                  // Tracking logic
-               }}
+               className="w-full bg-linear-to-r from-emerald-900 to-emerald-950 text-white rounded-2xl overflow-hidden relative p-6 sm:p-8 flex flex-row items-center justify-between border-2 border-emerald-800 shadow-sm mb-4"
              >
-               <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-4">
-                 <span className="text-[9px] text-orange-400 font-extrabold uppercase tracking-widest mb-1 bg-black/50 w-fit px-1.5 py-0.5 rounded">Promoted</span>
-                 <h3 className="text-white font-black text-lg sm:text-xl">{ad.title}</h3>
+               <div className="z-10 text-left">
+                  <span className="text-[10px] text-orange-400 font-extrabold uppercase tracking-widest bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-800/80">Search Directory</span>
+                  <h3 className="text-white font-black text-xl sm:text-2xl mt-2">Showing Results for "{searchFilter}"</h3>
+                  <p className="text-xs text-emerald-200 mt-1">Found top deals from trusted, verified merchants</p>
+               </div>
+               
+               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white shrink-0 border-2 border-emerald-700 flex items-center justify-center p-1 shadow-md z-10">
+                 <img 
+                   src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" 
+                   alt="Naija Online Stores Logo" 
+                   className="w-full h-full object-cover rounded-xl"
+                   referrerPolicy="no-referrer"
+                 />
+               </div>
+               
+               {/* Decorative background vectors */}
+               <div className="absolute right-0 top-0 opacity-10 pointer-events-none translate-y-2 translate-x-2">
+                 <span className="text-[140px] font-black tracking-tighter text-emerald-500/20 select-none leading-none">SEARCH</span>
                </div>
              </motion.div>
-          ))}
+          ) : (
+            MOCK_ADS.filter(ad => (ad.position === "category" || ad.position === "search") && ad.status === "active").map((ad, idx) => (
+               <motion.div
+                 key={ad.id}
+                 initial={{ opacity: 0, y: 10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ delay: 0.1 * idx }}
+                 className="w-full h-24 sm:h-32 rounded-2xl overflow-hidden relative group cursor-pointer shadow-sm mb-4"
+                 onClick={() => {
+                    // Tracking logic
+                 }}
+               >
+                 <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-4">
+                   <span className="text-[9px] text-orange-400 font-extrabold uppercase tracking-widest mb-1 bg-black/50 w-fit px-1.5 py-0.5 rounded">Promoted</span>
+                   <h3 className="text-white font-black text-lg sm:text-xl">{ad.title}</h3>
+                 </div>
+               </motion.div>
+            ))
+          )}
           
           {/* Filters Bar Row */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-4 border border-neutral-200 rounded-2xl shadow-xs">

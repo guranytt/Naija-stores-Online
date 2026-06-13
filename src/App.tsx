@@ -632,6 +632,11 @@ export default function App() {
     triggerToast(`Successfully published ${prod.title} to NaijaStores Catalog.`, "success");
   };
 
+  const linkedProducts = products.filter(p => {
+    const vId = p.vendorId || (p as any).vendor_id;
+    return vId && vendors.some(v => v.id === vId);
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans select-none antialiased">
       
@@ -719,7 +724,7 @@ export default function App() {
                 vendors={vendors}
                 onRateVendor={handleRateVendor}
                 categories={categories}
-                products={products}
+                products={linkedProducts}
                 orders={orders}
                 flashDeals={flashDeals}
               />
