@@ -85,6 +85,8 @@ export interface Vendor {
   email: string;
   phone: string;
   location: string;
+  cacNumber?: string;
+  whatsappNumber?: string;
 }
 
 export interface Order {

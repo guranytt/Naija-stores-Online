@@ -53,6 +53,11 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
       if (activeSession?.user) {
         syncProfile(activeSession.user);
       }
+    }).catch(err => {
+      console.warn("[USER AUTH HUB GETSESSION] Failed to restore session:", err);
+      if (err?.message?.includes("Invalid Refresh Token") || err?.message?.includes("Refresh Token Not Found")) {
+        supabase.auth.signOut().catch(() => {});
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, activeSession) => {

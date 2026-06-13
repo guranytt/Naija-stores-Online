@@ -186,6 +186,11 @@ export default function App() {
       } else {
         setCurrentUserId(null);
       }
+    }).catch(err => {
+      console.warn("[SUPABASE GETSESSION] Failed to restore session on initialization:", err);
+      if (err?.message?.includes("Invalid Refresh Token") || err?.message?.includes("Refresh Token Not Found")) {
+        supabase.auth.signOut().catch(() => {});
+      }
     });
 
     // Listen for auth level events

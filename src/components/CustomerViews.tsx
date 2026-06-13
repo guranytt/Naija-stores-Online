@@ -372,6 +372,47 @@ export default function CustomerViews({
   return (
     <div className="font-sans text-neutral-800">
       
+      {/* 🚀 ELITE SEO MARKETPLACE HEADER - CRAWL-AND-INDEX POWERHOUSE */}
+      <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent rounded-2xl p-6 sm:p-8 border border-neutral-150/70 mb-8 relative overflow-hidden text-left shadow-xs">
+        <div className="max-w-4xl space-y-4 z-10 relative">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-neutral-900 tracking-tight leading-tight">
+            NaijaOnlineStores | Nigeria's Online Shopping Marketplace
+          </h1>
+          <p className="text-xs sm:text-sm text-neutral-600 font-medium leading-relaxed max-w-3xl">
+            Shop electronics, fashion, phones, computers, home appliances, beauty products, groceries, and more from trusted Nigerian sellers. Enjoy secure payments, nationwide delivery, and highly competitive prices. Discover amazing deals on electronics, fashion, home essentials, beauty products, and everyday items from verified vendors.
+          </p>
+          
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button
+              onClick={() => onNavigate("shop")}
+              className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-1 cursor-pointer"
+            >
+              <span>Start Shopping</span>
+              <span>&rarr;</span>
+            </button>
+            <button
+              onClick={() => onNavigate("shop")}
+              className="bg-white hover:bg-neutral-50 active:scale-95 text-neutral-800 font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all border border-neutral-250 shadow-2xs cursor-pointer"
+            >
+              Shop Now
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 pt-3 border-t border-neutral-200/50 text-[10px] sm:text-[11px] font-mono font-black text-neutral-500 uppercase tracking-wider">
+            <span className="bg-neutral-100 border border-neutral-200/75 px-2.5 py-1 rounded-lg">🏷️ Online shopping in Nigeria</span>
+            <span className="bg-neutral-100 border border-neutral-200/75 px-2.5 py-1 rounded-lg">₦ Buy online Nigeria</span>
+            <span className="bg-neutral-100 border border-neutral-200/75 px-2.5 py-1 rounded-lg">🏪 Nigerian marketplace</span>
+            <span className="bg-neutral-100 border border-neutral-200/75 px-2.5 py-1 rounded-lg">🚀 E-commerce Nigeria</span>
+            <span className="bg-neutral-100 border border-neutral-200/75 px-2.5 py-1 rounded-lg">💎 Online store Nigeria</span>
+          </div>
+        </div>
+        
+        {/* Abstract design elements matching elite craftsmanship */}
+        <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none md:opacity-20 translate-y-10 translate-x-4">
+          <span className="text-[130px] font-black tracking-tighter text-orange-900/40 select-none block leading-none">NG</span>
+        </div>
+      </div>
+      
       {/* ---------------- 1. MARKETPLACE HOMEPAGE ---------------- */}
       <AnimatePresence mode="wait">
         {screen === "home" && (
@@ -1522,9 +1563,9 @@ export default function CustomerViews({
             <div className="lg:col-span-7 space-y-6">
               <div className="space-y-2 pb-4 border-b border-neutral-100">
                 <div className="flex items-center space-x-2">
-                  <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight">
+                  <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight">
                     {detailProduct.title}
-                  </h1>
+                  </h2>
                   {detailProduct.condition === "Fairly Used" && (
                     <span className="px-2 py-1 bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-widest rounded-md border border-amber-200">Fairly Used</span>
                   )}
@@ -1812,7 +1853,7 @@ export default function CustomerViews({
           className="space-y-6"
         >
           <div className="text-left pb-4 border-b border-neutral-100">
-            <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">Your Shopping Basket</h1>
+            <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">Your Shopping Basket</h2>
             <p className="text-xs text-neutral-400 font-semibold mt-1">Review your cart and shipping details before payment</p>
           </div>
 
