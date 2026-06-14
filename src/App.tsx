@@ -173,7 +173,20 @@ export default function App() {
   // Synchronize Supabase authentication state changes and roles
   useEffect(() => {
     // Check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.warn("[SUPABASE GETSESSION] Error from getSession:", error);
+        if (error.message?.includes("Refresh Token")) {
+          supabase.auth.signOut().catch(() => {});
+          // Clear local storage aggressively to prevent infinite loops of refresh
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.includes("supabase")) {
+              localStorage.removeItem(key);
+            }
+          }
+        }
+      }
       if (session?.user) {
         setUserEmail(session.user.email || "shopper@example.com");
         setCurrentUserId(session.user.id);
@@ -366,9 +379,7 @@ export default function App() {
     };
     const response = await sendResendEmail(payload);
     if (response.success) {
-      triggerToast(response.unconfigured 
-        ? "Simulated dispatch created in local logs successfully!" 
-        : "Live inbox dispatch triggered successfully via Resend API!", "success");
+      triggerToast("Email dispatch triggered successfully via Edge Functions!", "success");
     } else {
       triggerToast(`Failing dispatch sequence: ${response.error || "Check logs"}`, "info");
     }
@@ -562,9 +573,7 @@ export default function App() {
         }
       }).then((res) => {
         if (res.success) {
-          triggerToast(res.unconfigured 
-            ? "Payment receipt simulation logged successfully." 
-            : `Resend Inbox Dispatch success for order ${newOrder.id}!`, "success");
+          triggerToast(`Receipt Dispatch success for order ${newOrder.id}!`, "success");
         }
         updateMailLogs();
       });

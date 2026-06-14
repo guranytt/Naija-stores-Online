@@ -96,7 +96,7 @@ export default function Navbar({
       initial={shouldReduceMotion ? { opacity: 0 } : { y: -30, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 260, damping: 26 }}
-      className="sticky top-0 z-50 w-full bg-secondary dark:bg-emerald-950 text-white shadow-ambient font-sans"
+      className="sticky top-0 z-50 w-full bg-white border-b border-emerald-100/50 shadow-ambient font-sans"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -105,10 +105,10 @@ export default function Navbar({
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-full hover:bg-emerald-800 transition-colors"
+              className="md:hidden p-2 rounded-full text-emerald-700 hover:bg-emerald-50 transition-colors"
               id="mobile-menu-toggle"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6 text-emerald-500" /> : <Menu className="w-6 h-6 text-emerald-500" />}
+              {mobileMenuOpen ? <X className="w-6 h-6 text-emerald-600" /> : <Menu className="w-6 h-6 text-emerald-600" />}
             </button>
             <div
               onClick={() => onNavigate("home")}
@@ -124,7 +124,7 @@ export default function Navbar({
               </div>
               <div className="text-left leading-none">
                 <span className="font-extrabold text-sm sm:text-base tracking-tight block animate-fade-in">
-                  <span className="text-emerald-400">Naija</span><span className="text-orange-400"> Online Stores</span>
+                  <span className="text-emerald-700">Naija</span><span className="text-orange-500"> Online Stores</span>
                 </span>
               </div>
             </div>
@@ -315,7 +315,7 @@ export default function Navbar({
           </motion.form>
 
           {/* Navigation Links Desktop */}
-          <nav className="hidden lg:flex items-center space-x-1 select-none">
+          <nav className="hidden md:flex items-center space-x-1 select-none">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentScreen === item.id;
@@ -325,19 +325,19 @@ export default function Navbar({
                   onClick={() => onNavigate(item.id)}
                   className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-bold tracking-wide transition-all relative ${
                     isActive
-                      ? "text-white font-extrabold"
-                      : "text-emerald-100 hover:text-white"
+                      ? "text-emerald-900 bg-emerald-50 font-extrabold"
+                      : "text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50/50"
                   }`}
                   id={`nav-link-${item.id}`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="activeNavHighlight"
-                      className="absolute inset-0 bg-white/10 rounded-lg border border-white/5 -z-10"
+                      className="absolute inset-0 bg-emerald-100/50 rounded-lg border border-emerald-100 -z-10"
                       transition={{ type: "spring", stiffness: 350, damping: 30 }}
                     />
                   )}
-                  <Icon className="w-4 h-4 text-orange-400" />
+                  <Icon className={`w-4 h-4 ${isActive ? "text-orange-500" : "text-orange-400"}`} />
                   <span>{item.label}</span>
                 </button>
               );
@@ -353,8 +353,8 @@ export default function Navbar({
               animate={cartBounced ? { scale: [1, 1.3, 0.95, 1.15, 1], rotate: [0, -10, 10, -5, 0] } : { scale: 1, rotate: 0 }}
               transition={{ duration: 0.45, ease: "easeOut" }}
               onClick={() => onNavigate("cart")}
-              className={`p-2.5 rounded-full hover:bg-emerald-800 transition-colors relative cursor-pointer ${
-                currentScreen === "cart" ? "bg-white/10" : ""
+              className={`p-2.5 rounded-full transition-colors relative cursor-pointer text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 ${
+                currentScreen === "cart" ? "bg-emerald-100" : ""
               }`}
               id="cart-badge-trigger"
             >
@@ -367,7 +367,7 @@ export default function Navbar({
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.6, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 380, damping: 15 }}
-                    className="absolute top-1 right-1 bg-orange-500 text-white text-[10px] font-extrabold w-5 h-5 rounded-full border-2 border-secondary flex items-center justify-center shadow-lg"
+                    className="absolute top-1 right-1 bg-orange-500 text-white text-[10px] font-extrabold w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-lg"
                   >
                     {cartCount}
                   </motion.span>
@@ -376,7 +376,7 @@ export default function Navbar({
             </motion.button>
 
             {/* Profile Avatar widget and Sign Up */}
-            <div className="flex items-center space-x-2 pl-2 border-l border-emerald-800">
+            <div className="flex items-center space-x-2 pl-2 border-l border-emerald-100/60">
               <button
                 onClick={() => onNavigate("auth")}
                 className="inline-flex items-center justify-center px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[10px] sm:text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
@@ -384,10 +384,10 @@ export default function Navbar({
               >
                 Sign Up
               </button>
-              <span className="hidden xl:inline text-xs text-emerald-100 truncate max-w-32">{userEmail}</span>
+              <span className="hidden xl:inline text-xs text-emerald-800 font-bold truncate max-w-32">{userEmail}</span>
               <button
                 onClick={() => onNavigate("auth")}
-                className="w-8 h-8 rounded-full bg-emerald-800 border-2 border-orange-400 flex items-center justify-center overflow-hidden hover:scale-105 active:scale-95 transition-transform"
+                className="w-8 h-8 rounded-full bg-emerald-100 border-2 border-orange-400 flex items-center justify-center overflow-hidden hover:scale-105 active:scale-95 transition-transform"
                 id="profile-dropdown-trigger"
               >
                 <img

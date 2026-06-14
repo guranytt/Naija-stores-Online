@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home, Eye } from "lucide-react";
+import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home, Eye, Settings2, ShieldAlert } from "lucide-react";
 import { Product, Category, CartItem, Vendor, Advertisement, Order, FlashDealProposal } from "../types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_ADS, FLASH_SALE_PRODUCTS } from "../data/mockData";
 import { trackProductViewed } from "../lib/posthog";
@@ -391,53 +391,6 @@ export default function CustomerViews({
   return (
     <div className="font-sans text-neutral-800">
       
-      {/* 🚀 ELITE SEO MARKETPLACE HEADER - CRAWL-AND-INDEX POWERHOUSE */}
-      <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent rounded-2xl p-6 sm:p-8 border border-neutral-150/70 mb-8 relative overflow-hidden text-left shadow-xs">
-        <div className="max-w-4xl space-y-4 z-10 relative">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-neutral-900 tracking-tight leading-tight">
-            NaijaOnlineStores | Nigeria's Online Shopping Marketplace
-          </h1>
-          <p className="text-xs sm:text-sm text-neutral-600 font-medium leading-relaxed max-w-3xl">
-            Shop electronics, fashion, phones, computers, home appliances, beauty products, groceries, and more from trusted Nigerian sellers. Enjoy secure payments, nationwide delivery, and highly competitive prices. Discover amazing deals on electronics, fashion, home essentials, beauty products, and everyday items from verified vendors.
-          </p>
-          
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <button
-              onClick={() => {
-                if (isLoggedIn) {
-                  onNavigate("shop");
-                } else {
-                  onNavigate("auth");
-                }
-              }}
-              className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-1 cursor-pointer"
-            >
-              <span>Start Shopping</span>
-              <span>&rarr;</span>
-            </button>
-            <button
-              onClick={() => onNavigate("shop")}
-              className="bg-white hover:bg-neutral-50 active:scale-95 text-neutral-800 font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all border border-neutral-250 shadow-2xs cursor-pointer"
-            >
-              Shop Now
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-3 border-t border-neutral-200/50 text-[10px] sm:text-[11px] font-mono font-black text-neutral-500 uppercase tracking-wider">
-            <span className="bg-neutral-100 border border-neutral-200/75 px-2.5 py-1 rounded-lg">🏷️ Online shopping in Nigeria</span>
-            <span className="bg-neutral-100 border border-neutral-200/75 px-2.5 py-1 rounded-lg">₦ Buy online Nigeria</span>
-            <span className="bg-neutral-100 border border-neutral-200/75 px-2.5 py-1 rounded-lg">🏪 Nigerian marketplace</span>
-            <span className="bg-neutral-100 border border-neutral-200/75 px-2.5 py-1 rounded-lg">🚀 E-commerce Nigeria</span>
-            <span className="bg-neutral-100 border border-neutral-200/75 px-2.5 py-1 rounded-lg">💎 Online store Nigeria</span>
-          </div>
-        </div>
-        
-        {/* Abstract design elements matching elite craftsmanship */}
-        <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none md:opacity-20 translate-y-10 translate-x-4">
-          <span className="text-[130px] font-black tracking-tighter text-orange-900/40 select-none block leading-none">NG</span>
-        </div>
-      </div>
-      
       {/* ---------------- 1. MARKETPLACE HOMEPAGE ---------------- */}
       <AnimatePresence mode="wait">
         {screen === "home" && (
@@ -451,185 +404,305 @@ export default function CustomerViews({
             className="space-y-8"
           >
             
-            {/* Animated Hero Mega Banner Carousel */}
+            {/* Cinematic Hero Mega Banner Carousel */}
             {homepageAds.length > 0 && (
-              <div className="relative w-full h-32 sm:h-48 rounded-2xl overflow-hidden shadow-md mb-6 group cursor-pointer" onClick={() => onNavigate("shop")}>
+              <div className="relative w-full h-80 sm:h-96 lg:h-[480px] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] mb-8 group cursor-pointer border border-neutral-200/50" onClick={() => onNavigate("shop")}>
                 <AnimatePresence initial={false} mode="wait">
                   <motion.div
                     key={homepageAds[currentAdIndex].id}
-                    initial={{ opacity: 0, x: 50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -50 }}
-                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                    initial={{ opacity: 0, filter: "blur(4px)", scale: 1.05 }}
+                    animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+                    exit={{ opacity: 0, filter: "blur(4px)", scale: 0.95 }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                     className="absolute inset-0 w-full h-full"
                   >
                     <img 
                       src={homepageAds[currentAdIndex].imageUrl} 
                       alt={homepageAds[currentAdIndex].title} 
-                      className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110 ease-out" 
+                      className="w-full h-full object-cover transition-transform duration-[20s] group-hover:scale-110 ease-out" 
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
-                      <span className="text-[10px] text-orange-400 font-extrabold uppercase tracking-widest mb-1 bg-black/50 backdrop-blur-sm w-fit px-2 py-0.5 rounded">Sponsored</span>
-                      <h3 className="text-white font-black text-xl sm:text-2xl drop-shadow-md">{homepageAds[currentAdIndex].title}</h3>
+                    
+                    {/* Cinematic Gradients */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent z-0"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/10 to-transparent z-0"></div>
+                    
+                    <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-12 lg:p-16 z-10 w-full md:w-3/4 lg:w-2/3">
+                      <motion.div 
+                        initial={{ y: 30, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
+                        className="space-y-4"
+                      >
+                        <div className="flex">
+                          <span className="flex items-center space-x-1.5 bg-orange-500/90 backdrop-blur-sm px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs text-white font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(249,115,22,0.4)]">
+                            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                            <span>Trending Collection</span>
+                          </span>
+                        </div>
+                        
+                        <h3 className="text-white font-black text-4xl sm:text-5xl lg:text-7xl leading-[1.05] tracking-tight drop-shadow-2xl">
+                          {homepageAds[currentAdIndex].title}
+                        </h3>
+                        
+                        <p className="text-neutral-200 text-sm sm:text-lg lg:text-xl font-medium max-w-xl line-clamp-3 lg:line-clamp-none border-l-2 border-orange-500 pl-4 py-1 leading-snug drop-shadow-md">
+                          Discover the latest premium fashion, electronics, and authentic local goods curated directly from top Nigerian collective makers.
+                        </p>
+                        
+                        <div className="pt-4 lg:pt-6">
+                          <button 
+                            className="bg-white text-black font-extrabold text-xs sm:text-sm uppercase px-8 sm:px-10 py-3.5 sm:py-4 rounded-full tracking-widest transition-all duration-300 shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:shadow-[0_10px_40px_rgba(255,255,255,0.4)] hover:bg-orange-500 hover:text-white transform group-hover:translate-y-[-2px]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigate("shop");
+                            }}
+                          >
+                            Explore Now
+                          </button>
+                        </div>
+                      </motion.div>
                     </div>
                   </motion.div>
                 </AnimatePresence>
                 
-                {/* Carousel Indicators */}
-                {homepageAds.length > 1 && (
-                  <div className="absolute bottom-4 right-4 flex space-x-1.5 z-10">
-                    {homepageAds.map((_, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`transition-all duration-300 rounded-full h-1.5 ${idx === currentAdIndex ? 'w-4 bg-orange-400' : 'w-1.5 bg-white/50'}`}
-                        onClick={(e) => { e.stopPropagation(); setCurrentAdIndex(idx); }}
-                      />
-                    ))}
-                  </div>
-                )}
+                {/* Modern Indicator Dots */}
+                <div className="absolute bottom-6 sm:bottom-10 right-8 sm:right-12 flex space-x-2.5 z-20">
+                  {homepageAds.map((_, idx) => (
+                    <button 
+                      key={idx} 
+                      type="button"
+                      className={`transition-all duration-500 rounded-full h-1.5 ${idx === currentAdIndex ? 'w-8 bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.8)]' : 'w-2 bg-white/40 hover:bg-white/70'}`}
+                      onClick={(e) => { e.stopPropagation(); setCurrentAdIndex(idx); }}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Animated Brand Banner Carousel */}
-            <div className="relative w-full">
+            {/* Enhanced Animated Brand Banner Carousel */}
+            <div className="relative w-full my-12 [perspective:1000px]">
               <AnimatePresence mode="wait">
                 {(() => {
                   const ad = sponsoredBrandAds[brandAdIndex];
                   return (
                     <motion.div
                       key={ad.id}
-                      initial={{ opacity: 0, scale: 0.99, y: 5 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.99, y: -5 }}
-                      transition={{ duration: 0.35, ease: "easeOut" }}
-                      className={`relative w-full overflow-hidden rounded-2xl ${ad.bgClass} px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm border`}
+                      initial={{ opacity: 0, rotateX: 10, y: 20 }}
+                      animate={{ opacity: 1, rotateX: 0, y: 0 }}
+                      exit={{ opacity: 0, rotateX: -10, y: -20 }}
+                      transition={{ duration: 0.5, type: "spring", stiffness: 100, damping: 20 }}
+                      className={`relative w-full overflow-hidden rounded-3xl ${ad.bgClass} px-8 py-8 sm:px-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_10px_30px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.15)] transition-all border transform-gpu border-white/20`}
                     >
                       {/* Left connectivity waves animation template */}
-                      <div className="absolute left-0 top-0 h-full w-40 pointer-events-none overflow-hidden opacity-10">
-                        <span className={`absolute -left-10 -top-10 w-28 h-28 rounded-full border-4 ${ad.waveColor} animate-ping`}></span>
-                        <span className={`absolute -left-16 -top-16 w-44 h-44 rounded-full border-4 ${ad.waveColor} animate-pulse`}></span>
+                      <div className="absolute left-0 top-0 h-full w-40 pointer-events-none overflow-hidden opacity-20">
+                        <span className={`absolute -left-10 -top-10 w-32 h-32 rounded-full border-[6px] ${ad.waveColor} animate-ping`}></span>
+                        <span className={`absolute -left-16 -top-16 w-48 h-48 rounded-full border-4 ${ad.waveColor} animate-pulse`}></span>
+                      </div>
+                      
+                      {/* Right side abstract shapes */}
+                      <div className="absolute right-0 bottom-0 h-full w-1/3 pointer-events-none overflow-hidden opacity-10">
+                        <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-current rounded-full blur-3xl mix-blend-overlay"></div>
                       </div>
 
-                      <div className="flex items-center space-x-4 z-10 w-full md:w-auto">
-                        {/* Custom Oval brand badge */}
-                        <div className={`w-14 h-10 rounded-full ${ad.badgeBg} flex items-center justify-center text-[10px] uppercase tracking-tighter shrink-0 border border-neutral-800 shadow-sm leading-none`}>
-                          {ad.brand}
-                        </div>
-                        <div className="text-left">
-                          <div className="flex items-center space-x-1.5 flex-wrap">
-                            <span className="text-[8px] bg-black/10 font-bold uppercase px-1.5 py-0.5 rounded tracking-widest leading-none">
-                              {ad.tagline}
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left space-y-4 sm:space-y-0 sm:space-x-6 z-10 w-full md:w-auto relative">
+                        {/* Custom Animated Oval brand badge */}
+                        <motion.div 
+                          initial={{ scale: 0.8, rotate: -15 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: "spring", delay: 0.2 }}
+                          className={`w-20 h-20 sm:w-16 sm:h-16 rounded-2xl ${ad.badgeBg} flex items-center justify-center text-xs sm:text-[10px] uppercase tracking-tighter shrink-0 border border-black/10 shadow-xl leading-none`}
+                        >
+                          <span className="font-black text-center px-1">{ad.brand}</span>
+                        </motion.div>
+                        
+                        <div>
+                          <div className="flex items-center justify-center sm:justify-start space-x-2 flex-wrap mb-1.5">
+                            <span className="text-[10px] sm:text-[9px] bg-black/15 font-bold uppercase px-2 py-1 space-x-1 flex items-center rounded-md tracking-wider leading-none shadow-inner">
+                              <Sparkles className="w-3 h-3 inline-block" />
+                              <span>{ad.tagline}</span>
                             </span>
-                            <span className="flex h-2 w-2 relative">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neutral-950 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            <span className="flex h-2.5 w-2.5 relative">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-current"></span>
                             </span>
                           </div>
-                          <h4 className="font-extrabold text-sm sm:text-base mt-1 leading-tight">
+                          <h4 className="font-black text-xl sm:text-2xl mt-1 leading-tight tracking-tight">
                             {ad.title}
                           </h4>
-                          <p className="text-[11px] opacity-90 font-medium max-w-lg mt-0.5 leading-normal">
+                          <p className="text-xs sm:text-sm font-medium max-w-xl mt-1.5 leading-relaxed opacity-90 mix-blend-multiply">
                             {ad.description}
                           </p>
                         </div>
                       </div>
 
                       {/* Action trigger call to order or promotion Whatsapp API */}
-                      <a
+                      <motion.a
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         href={ad.ctaUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="bg-neutral-950 text-white hover:bg-neutral-900 transition-all font-black text-xs px-4.5 py-2.5 rounded-xl flex items-center space-x-2 shrink-0 z-10 hover:shadow-md hover:scale-105 cursor-pointer"
+                        className="bg-neutral-950 text-white hover:bg-neutral-900 font-black text-sm uppercase px-8 py-4 rounded-2xl flex items-center space-x-2 shrink-0 z-10 shadow-[0_10px_20px_rgba(0,0,0,0.2)] cursor-pointer"
                       >
                         <span>{ad.ctaText}</span>
-                      </a>
+                      </motion.a>
                     </motion.div>
                   );
                 })()}
               </AnimatePresence>
 
               {/* Slider Dots */}
-              <div className="absolute right-4 bottom-3 flex space-x-1.5 z-10">
+              <div className="absolute right-6 -bottom-6 flex space-x-2 z-10">
                 {sponsoredBrandAds.map((_, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setBrandAdIndex(idx)}
-                    className={`h-1.5 rounded-full transition-all duration-300 outline-none ${
-                      idx === brandAdIndex ? "w-4 bg-neutral-950" : "w-1.5 bg-neutral-950/35"
+                    className={`h-2 rounded-full transition-all duration-300 outline-none shadow-sm ${
+                      idx === brandAdIndex ? "w-6 bg-neutral-900" : "w-2 bg-neutral-300 hover:bg-neutral-400"
                     }`}
                   />
                 ))}
               </div>
             </div>
 
-            <motion.section
-              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="relative rounded-2xl overflow-hidden bg-emerald-950 text-white min-h-[340px] flex items-center shadow-premium bg-radial from-emerald-900 to-emerald-950 border border-emerald-800 p-8 sm:p-12"
-            >
-              {/* Background design accents */}
-              <motion.div
-                animate={shouldReduceMotion ? {} : { y: [0, -10, 0] }}
-                transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-                className="absolute right-0 bottom-0 opacity-15 pointer-events-none select-none"
-              >
-                <span className="text-[250px] font-extrabold text-white leading-none tracking-tighter">₦</span>
-              </motion.div>
-  
-              <div className="max-w-xl text-left space-y-5 z-10">
+            {/* Interactive Animated Platform Features Carousel (Replaces static landing card) */}
+            <div className="relative w-full overflow-hidden rounded-3xl bg-neutral-950 text-white min-h-[380px] shadow-2xl border border-neutral-800">
+              {/* Dynamic Animated Background Elements */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <motion.div
-                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
-                  className="inline-flex items-center space-x-2 bg-emerald-800/60 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-bold text-emerald-300"
-                >
-                  <Sparkles className="w-4 h-4 text-orange-400" />
-                  <span>NIGERIA'S SEAMLESS MARKET HUB</span>
-                </motion.div>
-                
-                <motion.h1
-                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
-                  className="text-3xl sm:text-5xl font-black tracking-tight leading-none text-white"
-                >
-                  Premium Shopping, <br />
-                  <span className="text-orange-400">Homegrown Trust.</span>
-                </motion.h1>
-                
-                <motion.p
-                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.3 }}
-                  className="text-sm text-emerald-100/90 leading-relaxed max-w-md"
-                >
-                  Connecting local vendors to your doorstep with direct checkout.
-                </motion.p>
-                
+                  animate={{ 
+                    rotate: [0, 360],
+                    scale: [1, 1.2, 1],
+                  }}
+                  transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
+                  className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full opacity-20"
+                  style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.4) 0%, rgba(0,0,0,0) 70%)' }}
+                />
                 <motion.div
-                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.4 }}
-                  className="flex flex-wrap items-center gap-3 pt-2"
-                >
-                  <motion.button
-                    whileHover={shouldReduceMotion ? {} : { scale: 1.03 }}
-                    whileTap={shouldReduceMotion ? {} : { scale: 0.97 }}
-                    onClick={() => {
-                      setActiveCategoryTab("all");
-                      onNavigate("shop");
+                  animate={{ 
+                    rotate: [360, 0],
+                    scale: [1, 1.5, 1],
+                  }}
+                  transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
+                  className="absolute -bottom-1/2 -left-1/4 w-[600px] h-[600px] rounded-full opacity-20"
+                  style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.4) 0%, rgba(0,0,0,0) 70%)' }}
+                />
+                
+                {/* Floating particles */}
+                {Array.from({ length: 15 }).map((_, i) => (
+                  <motion.div
+                    key={i}
+                    animate={{
+                      y: [Math.random() * 400, Math.random() * -100],
+                      x: [Math.random() * 200 - 100, Math.random() * 200 - 100],
+                      opacity: [0, 0.5, 0],
                     }}
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold px-6 py-3 rounded-full transition-all text-xs tracking-wider uppercase active:scale-95 shadow-md cursor-pointer"
-                    id="hero-shop-all"
-                  >
-                    Explore Categories &rarr;
-                  </motion.button>
-                </motion.div>
+                    transition={{
+                      repeat: Infinity,
+                      duration: Math.random() * 10 + 5,
+                      delay: Math.random() * 5,
+                      ease: "linear",
+                    }}
+                    className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-50"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                    }}
+                  />
+                ))}
               </div>
-            </motion.section>
+
+              {/* Scrolling Carousel of Core App Capabilities */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentAdIndex % 3} // Sync with the other carousel timer or use its own
+                  initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -30, filter: "blur(8px)" }}
+                  transition={{ duration: 0.7, ease: "easeOut" }}
+                  className="absolute inset-0 flex flex-col justify-center p-8 sm:p-12 z-10"
+                >
+                  {currentAdIndex % 3 === 0 && (
+                    <div className="max-w-xl space-y-6">
+                      <div className="inline-flex items-center space-x-2 bg-emerald-500/20 border border-emerald-500/30 px-4 py-1.5 rounded-full text-xs font-black text-emerald-400 tracking-widest uppercase shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                        <Sparkles className="w-4 h-4" />
+                        <span>NIGERIA'S SEAMLESS MARKET HUB</span>
+                      </div>
+                      <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.1] text-white">
+                        Premium Shopping, <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">Homegrown Trust.</span>
+                      </h1>
+                      <p className="text-base sm:text-lg text-emerald-50/80 leading-relaxed max-w-md font-medium">
+                        Connecting local vendors to your doorstep with direct checkout and guaranteed authentic wares.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {currentAdIndex % 3 === 1 && (
+                    <div className="max-w-xl space-y-6">
+                      <div className="inline-flex items-center space-x-2 bg-blue-500/20 border border-blue-500/30 px-4 py-1.5 rounded-full text-xs font-black text-blue-400 tracking-widest uppercase shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                        <Settings2 className="w-4 h-4" />
+                        <span>VENDOR POWERHOUSE</span>
+                      </div>
+                      <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.1] text-white">
+                        Sell Nationwide, <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Instant Payouts.</span>
+                      </h1>
+                      <p className="text-base sm:text-lg text-blue-50/80 leading-relaxed max-w-md font-medium">
+                        List your inventory in seconds and reach thousands of daily active buyers across all 36 states.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {currentAdIndex % 3 === 2 && (
+                    <div className="max-w-xl space-y-6">
+                      <div className="inline-flex items-center space-x-2 bg-purple-500/20 border border-purple-500/30 px-4 py-1.5 rounded-full text-xs font-black text-purple-400 tracking-widest uppercase shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                        <ShieldAlert className="w-4 h-4" />
+                        <span>SECURE TRANSACTIONS</span>
+                      </div>
+                      <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.1] text-white">
+                        Pay with Confidence, <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-300">Escrow Protected.</span>
+                      </h1>
+                      <p className="text-base sm:text-lg text-purple-50/80 leading-relaxed max-w-md font-medium">
+                        Your funds are secured until you confirm delivery. Dispute resolution managed by local experts.
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+              
+              <div className="absolute bottom-10 left-8 sm:left-12 z-20 flex gap-4">
+                 <motion.button
+                   whileHover={{ scale: 1.05, boxShadow: "0 10px 25px rgba(249,115,22,0.4)" }}
+                   whileTap={{ scale: 0.95 }}
+                   onClick={() => {
+                     setActiveCategoryTab("all");
+                     onNavigate("shop");
+                   }}
+                   className="bg-orange-500 text-white font-extrabold px-8 py-3.5 rounded-full transition-all text-xs sm:text-sm tracking-widest uppercase shadow-lg"
+                 >
+                   Explore Market &rarr;
+                 </motion.button>
+              </div>
+
+              {/* Want to Advertise Button */}
+              <div className="absolute top-6 right-6 sm:top-8 sm:right-8 z-30">
+                <motion.a
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  href="https://wa.me/2348000000000?text=Hello%2C%20I%20want%20to%20advertise%20on%20NaijaOnlineStores"
+                  target="_blank"
+                  className="group relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all px-4 sm:px-6 py-2 sm:py-2.5 rounded-full flex items-center gap-2"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="text-xs sm:text-sm font-bold text-white tracking-wide">Want to advertise here?</span>
+                  <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                </motion.a>
+              </div>
+            </div>
 
           {/* Shop by Category Bento layout */}
           <section className="space-y-4">

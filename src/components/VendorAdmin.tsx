@@ -27,6 +27,7 @@ interface VendorAdminProps {
   // Resend Email Integration supporting controls
   mailLogs?: any[];
   onSendTestEmail?: (to: string, type: "payment_confirmation" | "delivery_confirmation" | "status_change" | "flagged", orderId: string) => Promise<any>;
+  onPreviewEmail?: (type: string, orderId: string) => Promise<any>;
   autoSendEmails?: boolean;
   onToggleAutoSend?: () => void;
   onRefreshMailLogs?: () => void;
@@ -157,7 +158,7 @@ export default function VendorAdmin({
     try {
       const response = await sendVendorApproval(email, businessName);
       if (response && response.success) {
-        setApprovalFeedback(`🎉 Vendor approval email dispatched to ${email}! Status: ${response.status}`);
+        setApprovalFeedback(`🎉 Vendor approval email dispatched to ${email}!`);
         setTimeout(() => setApprovalFeedback(null), 5000);
       } else {
         setApprovalFeedback(`❌ Failed: ${response?.error || 'Unknown transport issue'}`);
@@ -174,6 +175,10 @@ export default function VendorAdmin({
   const [newTitle, setNewTitle] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newCategory, setNewCategory] = useState("Fashion");
+  const [proposingCategory, setProposingCategory] = useState(false);
+  const [customCategoryName, setCustomCategoryName] = useState("");
+  const [proposingSubcategory, setProposingSubcategory] = useState(false);
+  const [customSubcategoryName, setCustomSubcategoryName] = useState("");
   const [newStock, setNewStock] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newImage, setNewImage] = useState("");
@@ -190,6 +195,8 @@ export default function VendorAdmin({
   const [editAvatar, setEditAvatar] = useState("");
   const [editCacNumber, setEditCacNumber] = useState("");
   const [editWhatsapp, setEditWhatsapp] = useState("");
+  const [editBankName, setEditBankName] = useState("");
+  const [editAccountNumber, setEditAccountNumber] = useState("");
   const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [profileUploadError, setProfileUploadError] = useState("");
 
@@ -339,6 +346,8 @@ export default function VendorAdmin({
       setEditAvatar(activeVendor.avatar || "");
       setEditCacNumber(activeVendor.cacNumber || "");
       setEditWhatsapp(activeVendor.whatsappNumber || "");
+      setEditBankName(activeVendor.bankName || "");
+      setEditAccountNumber(activeVendor.accountNumber || "");
     }
   }, [activeVendor]);
 
@@ -381,7 +390,9 @@ export default function VendorAdmin({
         location: editLocation,
         avatar: editAvatar,
         cacNumber: editCacNumber,
-        whatsappNumber: editWhatsapp
+        whatsappNumber: editWhatsapp,
+        bankName: editBankName,
+        accountNumber: editAccountNumber
       });
     }
     setShowEditProfileModal(false);
@@ -427,6 +438,36 @@ export default function VendorAdmin({
     e.preventDefault();
     if (!newTitle || !newPrice || !newStock) return;
     
+    let resolvedCategory = newCategory;
+    
+    // Auto-create proposed category
+    if (proposingCategory && customCategoryName.trim()) {
+      resolvedCategory = customCategoryName.trim();
+      const cat: import("../types").Category = {
+        id: "cat_" + Date.now().toString(),
+        name: resolvedCategory,
+        description: "New category proposed by vendor: " + activeVendor.name,
+        image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=500&q=80",
+        iconName: "FolderHeart",
+        itemCount: 0,
+        subcategories: proposingSubcategory && customSubcategoryName.trim() ? [customSubcategoryName.trim()] : [],
+        status: "pending"
+      };
+      const updated = [...localCategories, cat];
+      handleUpdateCategoriesState(updated);
+    } else if (proposingSubcategory && customSubcategoryName.trim() && !proposingCategory) {
+      // Find existing category and add pending subcategory
+      const updated = localCategories.map(c => {
+         // Optionally you could add it immediately, or flag it.
+         // For now, if they propose subcategory to existing category, just inject it locally.
+         if (c.name === newCategory) {
+           return { ...c, subcategories: [...c.subcategories, customSubcategoryName.trim()] };
+         }
+         return c;
+      });
+      handleUpdateCategoriesState(updated);
+    }
+
     if (onAddNewProduct) {
       const prod: Product = {
         id: "p_" + Date.now(),
@@ -434,7 +475,7 @@ export default function VendorAdmin({
         description: newDesc || "High-quality item customized for Nigerian markets.",
         price: Number(newPrice),
         stock: Number(newStock),
-        category: newCategory,
+        category: resolvedCategory,
         condition: newCondition,
         commissionPercentage: Number(newCommissionPercent),
         image: newImage || "https://lh3.googleusercontent.com/aida-public/AB6AXuBXHHRDhnfXAPzOsfwJAJsaalg4cWfRii5vBleuGOxKrptM-qmw3JgFBhmDSeXClxBlfi3YbQJiQs13dl3CJxFMTrEsoeKAI1JkXEckU88mcDf64zuwrUdWJW8NNuhXEbmbimeAKXSCpzoTENrA7IaXi3jzD_WCPb-on3IiWMAikNItCyKkPDuCIxGIIFS30rf-qvm-aGDzOiKqproxCid4Yu_VB_ycleJTW0iXWyz1WZUzAk_v-gZdvKW2YKJet89-kA4ee4AC0u9d",
@@ -454,6 +495,10 @@ export default function VendorAdmin({
     setNewImage("");
     setNewCondition("New");
     setNewCommissionPercent("5");
+    setProposingCategory(false);
+    setProposingSubcategory(false);
+    setCustomCategoryName("");
+    setCustomSubcategoryName("");
     setUploadError("");
     setShowAddProductModal(false);
   };
@@ -967,21 +1012,92 @@ export default function VendorAdmin({
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Market Category</label>
                     <select
-                      value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value)}
+                      value={proposingCategory ? "PROPOSE_NEW" : newCategory}
+                      onChange={(e) => {
+                        if (e.target.value === "PROPOSE_NEW") {
+                          setProposingCategory(true);
+                        } else {
+                          setProposingCategory(false);
+                          setNewCategory(e.target.value);
+                          // Reset subcategory proposing state if changing main category
+                          setProposingSubcategory(false);
+                        }
+                      }}
                       className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-bold text-neutral-700"
                     >
-                      <option value="Phones">Phones</option>
-                      <option value="Cars">Cars</option>
-                      <option value="Phone Accessories">Phone Accessories</option>
-                      <option value="Fashion">Fashion</option>
-                      <option value="Electronics">Electronics</option>
-                      <option value="Home and Kitchen">Home and Kitchen</option>
-                      <option value="Beauty">Beauty</option>
-                      <option value="Sports">Sports</option>
-                      <option value="Grocery">Grocery</option>
+                      {localCategories.filter(c => c.status !== "pending" && c.status !== "rejected").map(cat => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                      <option value="PROPOSE_NEW">+ Propose New Category</option>
                     </select>
+
+                    {proposingCategory && (
+                      <div className="mt-2 animate-fade-in space-y-1">
+                         <input
+                           type="text"
+                           placeholder="Type product category name..."
+                           value={customCategoryName}
+                           onChange={(e) => setCustomCategoryName(e.target.value)}
+                           className="w-full px-4 py-2 text-xs border border-orange-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none placeholder-neutral-400 bg-orange-50 pl-3 shadow-sm font-bold"
+                           required
+                         />
+                      </div>
+                    )}
                   </div>
+
+                  {/* Subcategory Proposal Field */}
+                  {!proposingCategory && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center px-1">
+                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Subcategory</label>
+                        <button type="button" onClick={() => setProposingSubcategory(!proposingSubcategory)} className="text-[10px] text-orange-500 font-extrabold hover:underline">
+                          {proposingSubcategory ? "Cancel" : "+ Propose Subcategory"}
+                        </button>
+                      </div>
+                      
+                      {proposingSubcategory ? (
+                         <div className="animate-fade-in space-y-1 pt-1">
+                           <input
+                             type="text"
+                             placeholder={`E.g., Smartphones in ${newCategory}`}
+                             value={customSubcategoryName}
+                             onChange={(e) => setCustomSubcategoryName(e.target.value)}
+                             className="w-full px-4 py-2 text-xs border border-orange-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none placeholder-neutral-400 bg-orange-50 shadow-sm font-bold"
+                             required
+                           />
+                         </div>
+                      ) : (
+                         <select
+                           className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-bold text-neutral-500"
+                         >
+                           <option value="">-- Main Category Default --</option>
+                           {(localCategories.find(c => c.name === newCategory)?.subcategories || []).map((sub, idx) => (
+                             <option key={idx} value={sub}>{sub}</option>
+                           ))}
+                         </select>
+                      )}
+                    </div>
+                  )}
+
+                  {proposingCategory && (
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Subcategory (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="E.g., Smart Phones"
+                        value={customSubcategoryName}
+                        onChange={(e) => {
+                          setCustomSubcategoryName(e.target.value);
+                          if (e.target.value.trim().length > 0) {
+                            setProposingSubcategory(true);
+                          } else {
+                            setProposingSubcategory(false);
+                          }
+                        }}
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none placeholder-neutral-400 bg-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                      />
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
@@ -1242,6 +1358,43 @@ export default function VendorAdmin({
                         onChange={(e) => setEditWhatsapp(e.target.value)}
                         placeholder="e.g. +23481234567"
                         className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Settlement Bank</label>
+                      <select
+                        required
+                        value={editBankName}
+                        onChange={(e) => setEditBankName(e.target.value)}
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-medium"
+                      >
+                        <option value="">-- Select Bank --</option>
+                        <option value="Access Bank">Access Bank</option>
+                        <option value="Guaranty Trust Bank">Guaranty Trust Bank (GTB)</option>
+                        <option value="Zenith Bank">Zenith Bank</option>
+                        <option value="United Bank for Africa">United Bank for Africa (UBA)</option>
+                        <option value="Kuda MFB">Kuda Microfinance Bank</option>
+                        <option value="Moniepoint MFB">Moniepoint MFB</option>
+                        <option value="OPay">OPay</option>
+                        <option value="Wema Bank">Wema Bank (ALAT)</option>
+                        <option value="Fidelity Bank">Fidelity Bank</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Settlement Account (NUBAN)</label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={10}
+                        minLength={10}
+                        pattern="[0-9]{10}"
+                        value={editAccountNumber}
+                        onChange={(e) => setEditAccountNumber(e.target.value.replace(/[^0-9]/g, ""))}
+                        placeholder="10 digit account number"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-mono"
                       />
                     </div>
                   </div>
@@ -1732,13 +1885,36 @@ export default function VendorAdmin({
 
                       <div className="space-y-1.5">
                         <div className="flex items-center space-x-1.5">
-                          <span className="text-[10px] uppercase font-black tracking-widest bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-100">
-                            {cat.iconName}
+                          <span className={`text-[10px] uppercase font-black tracking-widest px-2 py-0.5 rounded border ${cat.status === "pending" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-100"}`}>
+                            {cat.status === "pending" ? "PENDING REVIEW" : cat.iconName}
                           </span>
                         </div>
                         <h5 className="font-extrabold text-xs text-neutral-900 pr-5">{cat.name}</h5>
                         <p className="text-[10px] text-neutral-400 leading-normal line-clamp-2">{cat.description}</p>
                       </div>
+
+                      {cat.status === "pending" && (
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={() => {
+                               const updated = localCategories.map(c => c.id === cat.id ? { ...c, status: "active" as const } : c);
+                               handleUpdateCategoriesState(updated);
+                            }}
+                            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[10px] py-1.5 rounded"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => {
+                               const updated = localCategories.map(c => c.id === cat.id ? { ...c, status: "rejected" as const } : c);
+                               handleUpdateCategoriesState(updated);
+                            }}
+                            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black text-[10px] py-1.5 rounded"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
 
                       {/* Subcategories bullet pills block */}
                       <div className="mt-4 pt-3 border-t border-neutral-105">

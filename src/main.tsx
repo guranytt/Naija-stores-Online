@@ -18,7 +18,14 @@ Sentry.init({
 // Gracefully catch and handle any unhandled rejections related to Supabase refresh tokens
 if (typeof window !== "undefined") {
   window.addEventListener("unhandledrejection", (event) => {
-    const errorMsg = event.reason?.message || event.reason?.toString() || "";
+    let errorMsg = "";
+    if (typeof event.reason === "string") errorMsg = event.reason;
+    else if (event.reason?.message) errorMsg = event.reason.message;
+    else if (event.reason?.error_description) errorMsg = event.reason.error_description;
+    else {
+      try { errorMsg = JSON.stringify(event.reason); } catch(e) {}
+    }
+    
     if (
       errorMsg.includes("Invalid Refresh Token") || 
       errorMsg.includes("Refresh Token Not Found") ||
@@ -26,6 +33,7 @@ if (typeof window !== "undefined") {
     ) {
       console.warn("[SUPABASE AUTH SHIELD] Gracefully caught invalid refresh token rejection:", event.reason);
       event.preventDefault(); // Stop standard error propagation
+      event.stopImmediatePropagation();
       try {
         // Clear local storage items containing the stale supabase tokens to prevent loops
         const keysToRemove: string[] = [];
@@ -43,7 +51,7 @@ if (typeof window !== "undefined") {
   });
 
   window.addEventListener("error", (event) => {
-    const errorMsg = event.message || "";
+    const errorMsg = event.message || event.error?.message || "";
     if (
       errorMsg.includes("Invalid Refresh Token") || 
       errorMsg.includes("Refresh Token Not Found") ||
@@ -51,6 +59,17 @@ if (typeof window !== "undefined") {
     ) {
       console.warn("[SUPABASE AUTH SHIELD] Gracefully caught global error:", event.error);
       event.preventDefault(); // Stop standard error propagation
+      event.stopImmediatePropagation();
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes("sb-") || key.includes("supabase"))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch (e) {}
     }
   });
 }

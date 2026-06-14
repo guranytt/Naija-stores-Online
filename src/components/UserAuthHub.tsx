@@ -48,7 +48,17 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
 
   // Load current user profile from session
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: activeSession } }) => {
+    supabase.auth.getSession().then(({ data: { session: activeSession }, error }) => {
+      if (error) {
+        console.warn("[USER AUTH HUB GETSESSION] Error:", error);
+        if (error.message?.includes("Refresh Token")) {
+          supabase.auth.signOut().catch(() => {});
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.includes("supabase")) localStorage.removeItem(key);
+          }
+        }
+      }
       setSession(activeSession);
       if (activeSession?.user) {
         syncProfile(activeSession.user);

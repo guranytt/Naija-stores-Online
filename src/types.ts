@@ -48,6 +48,7 @@ export interface Category {
   iconName: string; // lucide icon name representation
   itemCount: number;
   subcategories: string[];
+  status?: "active" | "pending" | "rejected";
 }
 
 export interface Advertisement {
@@ -88,6 +89,8 @@ export interface Vendor {
   location: string;
   cacNumber?: string;
   whatsappNumber?: string;
+  bankName?: string;
+  accountNumber?: string;
 }
 
 export interface Order {
