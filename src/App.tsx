@@ -223,7 +223,7 @@ export default function App() {
 
         // Load Products
         const { data: dbProducts, synced: pSynced, error: pError } = await getSupabaseData<Product>("products", MOCK_PRODUCTS);
-        if (dbProducts) setProducts(dbProducts);
+        if (dbProducts) setProducts(dbProducts.filter((p: Product) => String(p.id).startsWith("p_")));
 
         // Load Orders
         const { data: dbOrders, synced: oSynced, error: oError } = await getSupabaseData<Order>("orders", []);
