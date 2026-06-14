@@ -344,14 +344,16 @@ export default function CustomerViews({
     .map((id) => products.find((p) => p.id === id))
     .filter((p): p is Product => !!p);
 
-  const detailProduct = products.find((p) => p.id === selectedProductId) || products[0];
+  const detailProduct = products.find((p) => p.id === selectedProductId) || products[0] || null;
 
   // Initialize selected values for detail screen when product changes
   React.useEffect(() => {
-    setSelectedSize(detailProduct.sizes?.[0] || "");
-    setSelectedColor(detailProduct.colors?.[0] || "");
-    setDetailQty(1);
-    setSelectedImageIndex(0);
+    if (detailProduct) {
+      setSelectedSize(detailProduct.sizes?.[0] || "");
+      setSelectedColor(detailProduct.colors?.[0] || "");
+      setDetailQty(1);
+      setSelectedImageIndex(0);
+    }
   }, [detailProduct]);
 
   // Cart totals math
