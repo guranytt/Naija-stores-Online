@@ -37,6 +37,7 @@ export interface Product {
   salePercentage?: number;
   highlights?: string[];
   whatsInTheBox?: string[];
+  tags?: string[];
 }
 
 export interface Category {

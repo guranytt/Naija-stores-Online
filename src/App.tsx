@@ -344,7 +344,7 @@ export default function App() {
   }, []);
 
   // Direct dispatcher trigger mapper for manual testers
-  const handleSendTestEmail = async (to: string, type: "payment_confirmation" | "delivery_confirmation" | "status_change" | "flagged", orderId: string) => {
+  const handleSendTestEmail = async (to: string, type: string, orderId: string) => {
     const matchingOrder = orders.find(o => o.id === orderId) || orders[0];
     const payload = {
       to,
@@ -374,6 +374,31 @@ export default function App() {
     }
     updateMailLogs();
     return response;
+  };
+
+  const handlePreviewEmail = async (type: string, orderId: string) => {
+    const matchingOrder = orders.find(o => o.id === orderId) || orders.find(o => o.id) || null;
+    const payload = {
+      to: "preview@naijaonlinestores.com.ng",
+      type,
+      data: {
+        orderId: matchingOrder?.id || orderId || "NS-ORDER",
+        customerName: "Shopper",
+        amount: matchingOrder?.value || 145000,
+        newStatus: "Processing"
+      }
+    };
+    try {
+      const response = await fetch("/api/resend/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const json = await response.json();
+      return json.html;
+    } catch (e) {
+      return null;
+    }
   };
 
   // Success message toaster helper
@@ -525,6 +550,7 @@ export default function App() {
 
     // Automatically trigger Resend payment confirmation emails
     if (autoSendEmails) {
+      // 1. Payment confirmation
       sendResendEmail({
         to: userEmail,
         type: "payment_confirmation",
@@ -532,9 +558,6 @@ export default function App() {
           orderId: newOrder.id,
           customerName: newOrder.customerName,
           amount: newOrder.value,
-          itemsCount: newOrder.itemsCount,
-          date: newOrder.date,
-          items: emailItems,
           actionUrl: window.location.origin
         }
       }).then((res) => {
@@ -544,6 +567,51 @@ export default function App() {
             : `Resend Inbox Dispatch success for order ${newOrder.id}!`, "success");
         }
         updateMailLogs();
+      });
+
+      // 2. Order Confirmation
+      sendResendEmail({
+        to: userEmail,
+        type: "order_confirmation", 
+        data: {
+          orderId: newOrder.id,
+          customerName: newOrder.customerName,
+          amount: newOrder.value,
+          items: emailItems,
+          shippingAddress: newOrder.routeTo,
+          paymentMethod: method || "Paystack"
+        }
+      }).then(() => updateMailLogs());
+
+      // 3. Admin Notification
+      sendResendEmail({
+        to: "admin@naijaonlinestores.com.ng",
+        type: "admin_new_order",
+        data: {
+          orderId: newOrder.id,
+          amount: newOrder.value
+        }
+      }).then(() => updateMailLogs());
+
+      // 4. Vendor Notifications
+      const vendorOrders = new Map<string, any[]>();
+      cart.forEach(item => {
+        const vName = item.product.vendorName;
+        if (!vendorOrders.has(vName)) vendorOrders.set(vName, []);
+        vendorOrders.get(vName)?.push(item);
+      });
+
+      vendorOrders.forEach((vItems, vName) => {
+        const itemsStr = vItems.map(i => `<li>${i.quantity}x ${i.product.title}</li>`).join("");
+        sendResendEmail({
+          to: `vendor_${vName.replace(/\\s+/g, "").toLowerCase()}@naijaonlinestores.com.ng`, // Mocked vendor email
+          type: "vendor_new_order",
+          data: {
+            vendorName: vName,
+            orderId: newOrder.id,
+            itemsHtml: itemsStr
+          }
+        }).then(() => updateMailLogs());
       });
     }
     
@@ -684,14 +752,22 @@ export default function App() {
       {/* Prime Header */}
       <Navbar
         currentScreen={currentScreen}
-        onNavigate={(screen) => {
-          setCurrentScreen(screen);
-          setSearchFilter(""); // Clear query when changing tabs
-        }}
+        onNavigate={(screen) => setCurrentScreen(screen)}
+        onSelectProduct={(id) => setSelectedProductId(id)}
         cartCount={cart.reduce((acc, curr) => acc + curr.quantity, 0)}
-        onSearch={(query) => setSearchFilter(query)}
+        onSearch={(query) => {
+          setSearchFilter(query);
+          if (query) {
+             const key = `recent_searches_${currentUserId || "guest"}`;
+             const existing = JSON.parse(localStorage.getItem(key) || "[]");
+             const updated = [query, ...existing.filter((s: string) => s !== query)].slice(0, 5);
+             localStorage.setItem(key, JSON.stringify(updated));
+          }
+        }}
         userEmail={userEmail}
         categories={categories}
+        products={linkedProducts}
+        isLoggedIn={!!currentUserId}
       />
 
        {/* Main Container Workspace layout */}
@@ -727,6 +803,7 @@ export default function App() {
                 products={linkedProducts}
                 orders={orders}
                 flashDeals={flashDeals}
+                isLoggedIn={!!currentUserId}
               />
             </motion.div>
           )}
@@ -785,6 +862,7 @@ export default function App() {
                 // Email Automation Props
                 mailLogs={mailLogs}
                 onSendTestEmail={handleSendTestEmail}
+                onPreviewEmail={handlePreviewEmail}
                 autoSendEmails={autoSendEmails}
                 onToggleAutoSend={() => setAutoSendEmails(!autoSendEmails)}
                 onRefreshMailLogs={updateMailLogs}

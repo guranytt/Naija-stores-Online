@@ -17,7 +17,7 @@ export interface MailLogEntry {
 
 export interface SendEmailPayload {
   to: string;
-  type: "payment_confirmation" | "delivery_confirmation" | "status_change" | "flagged" | "customer_signup" | "vendor_signup" | "confirm_email" | "first_login";
+  type: "payment_confirmation" | "order_confirmation" | "delivery_confirmation" | "status_change" | "flagged" | "customer_signup" | "vendor_signup" | "confirm_email" | "password_reset" | "first_login" | "vendor_approved" | "vendor_rejected" | "vendor_new_order" | "refund_processed" | "admin_new_order" | "contact_form";
   data: {
     orderId?: string;
     customerName?: string;
@@ -31,6 +31,9 @@ export interface SendEmailPayload {
     actionUrl?: string;
     alertReason?: string;
     vendorName?: string;
+    shippingAddress?: string;
+    paymentMethod?: string;
+    itemsHtml?: string;
   };
 }
 
@@ -64,13 +67,21 @@ export function saveLocalMailLog(entry: MailLogEntry) {
 export async function sendResendEmail(payload: SendEmailPayload): Promise<{ success: boolean; status: string; unconfigured: boolean; error?: string }> {
   const subjectMap: Record<string, string> = {
     payment_confirmation: `Receipt for Order #${payload.data.orderId}`,
+    order_confirmation: `Order Confirmation #${payload.data.orderId}`,
     delivery_confirmation: `Delivery Dispatched - Order #${payload.data.orderId}`,
     status_change: `Order status upgraded - #${payload.data.orderId}`,
     flagged: `Order Audit - Review Triggered #${payload.data.orderId}`,
     customer_signup: `Welcome to Naija Online Stores, ${payload.data.customerName || "Patron"}!`,
     vendor_signup: `Welcome to Naija Marketplace, ${payload.data.vendorName || "Vendor"}!`,
     confirm_email: `Verify your email address - Naija Online Stores`,
+    password_reset: `Password Reset Request`,
     first_login: `Great to see you! Welcome back.`,
+    vendor_approved: `Your Vendor Application is Approved!`,
+    vendor_rejected: `Update on your Vendor Application`,
+    vendor_new_order: `New Order Received #${payload.data.orderId}`,
+    refund_processed: `Refund Processed for Order #${payload.data.orderId}`,
+    admin_new_order: `New Order: #${payload.data.orderId}`,
+    contact_form: `Contact Form Submission`
   };
   const subject = subjectMap[payload.type] || `Naija Online Stores: Support Message${payload.data.orderId ? ` - #${payload.data.orderId}` : ""}`;
 

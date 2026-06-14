@@ -454,6 +454,17 @@ create table public.admin_commissions (
   created_at timestamp default now()
 );
 
+-- 15. Email Logs Table
+create table public.email_logs (
+  id uuid primary key default gen_random_uuid(),
+  recipient text not null,
+  type text,
+  subject text,
+  status text,
+  error_message text,
+  created_at timestamp default now()
+);
+
 -- Indexes
 create index idx_products_vendor on public.products(vendor_id);
 create index idx_products_category on public.products(category_id);
@@ -472,6 +483,7 @@ alter table public.wishlists enable row level security;
 alter table public.reviews enable row level security;
 alter table public.payments enable row level security;
 alter table public.admin_commissions enable row level security;
+alter table public.email_logs enable row level security;
 
 -- Policies
 create policy "Allow public read users" on public.users for select using (true);

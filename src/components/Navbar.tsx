@@ -12,19 +12,25 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 interface NavbarProps {
   currentScreen: string;
   onNavigate: (screen: string) => void;
+  onSelectProduct?: (id: string) => void;
   cartCount: number;
   onSearch: (query: string) => void;
   userEmail: string;
   categories?: Category[];
+  products?: import("../types").Product[];
+  isLoggedIn?: boolean;
 }
 
 export default function Navbar({ 
   currentScreen, 
   onNavigate, 
+  onSelectProduct,
   cartCount, 
   onSearch, 
   userEmail, 
-  categories = MOCK_CATEGORIES
+  categories = MOCK_CATEGORIES,
+  products = [],
+  isLoggedIn = false
 }: NavbarProps) {
   const [searchVal, setSearchVal] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
@@ -33,6 +39,26 @@ export default function Navbar({
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [cartBounced, setCartBounced] = useState(false);
   const shouldReduceMotion = useReducedMotion();
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  
+  useEffect(() => {
+    if (isSearchFocused) {
+      const key = `recent_searches_${isLoggedIn ? userEmail : "guest"}`;
+      setRecentSearches(JSON.parse(localStorage.getItem(key) || "[]"));
+    }
+  }, [isSearchFocused, isLoggedIn, userEmail]);
+
+  // Debounce search effect (optional, because search is triggered on submit)
+  // Let's implement real-time dropdown search
+  const [debouncedSearchVal, setDebouncedSearchVal] = useState("");
+  const [selectedSearchIndex, setSelectedSearchIndex] = useState(-1);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchVal(searchVal);
+      setSelectedSearchIndex(-1);
+    }, 200);
+    return () => clearTimeout(handler);
+  }, [searchVal]);
 
   const toggleCategoryExpand = (catId: string) => {
     setExpandedCategories(prev => ({
@@ -54,6 +80,7 @@ export default function Navbar({
     e.preventDefault();
     onSearch(searchVal);
     setIsSearchFocused(false);
+    setMobileMenuOpen(false);
     onNavigate("shop"); // Navigate to shop to see search results
   };
 
@@ -116,6 +143,20 @@ export default function Navbar({
               onChange={(e) => setSearchVal(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setTimeout(() => setIsSearchFocused(false), 220)}
+              onKeyDown={(e) => {
+                 if (e.key === "Escape") {
+                    setIsSearchFocused(false);
+                 } else if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setSelectedSearchIndex(prev => Math.min(prev + 1, 10)); // rough max
+                 } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setSelectedSearchIndex(prev => Math.max(prev - 1, -1));
+                 } else if (e.key === "Enter" && selectedSearchIndex >= 0) {
+                    // Handled implicitly if they tabbed, but complex if they just used arrows without DOM focus.
+                    // Tab navigation is supported natively so we don't strictly need to force DOM click here if we assume standard focus.
+                 }
+              }}
               placeholder="Search products, brands, local spices..."
               className="w-full h-11 pl-11 pr-4 rounded-full border-2 border-orange-400 bg-white text-neutral-900 placeholder-neutral-500 font-bold focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none text-xs transition-all shadow-sm"
               id="search-input"
@@ -129,16 +170,67 @@ export default function Navbar({
             </button>
 
             <AnimatePresence>
-              {isSearchFocused && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                  className="absolute left-0 right-0 top-12 bg-white rounded-2xl shadow-premium border border-neutral-150 overflow-hidden text-neutral-800 z-50 text-left p-3 .shadow-ambient max-h-80 overflow-y-auto"
-                >
-                  {searchVal.trim() === "" ? (
+              {isSearchFocused && (() => {
+                const sVal = debouncedSearchVal.toLowerCase();
+                const matchedProducts = products.filter(p =>
+                  p.title.toLowerCase().includes(sVal) ||
+                  p.category.toLowerCase().includes(sVal) ||
+                  (p.tags && p.tags.some(t => t.toLowerCase().includes(sVal))) ||
+                  (p.subCategory && p.subCategory.toLowerCase().includes(sVal)) ||
+                  p.vendorName.toLowerCase().includes(sVal)
+                ).slice(0, 5);
+
+                const currentSuggestionsCount = debouncedSearchVal.trim() === "" 
+                  ? ((isLoggedIn ? recentSearches.length : 0) + 4) // 4 popular searches
+                  : matchedProducts.length;
+
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    className="absolute left-0 right-0 top-12 bg-white rounded-2xl shadow-premium border border-neutral-150 overflow-hidden text-neutral-800 z-50 text-left p-3 .shadow-ambient max-h-80 overflow-y-auto"
+                  >
+                  {debouncedSearchVal.trim() === "" ? (
                     <div>
+                      {isLoggedIn && recentSearches.length > 0 && (
+                        <div className="mb-3">
+                          <div className="flex justify-between items-center mb-1">
+                            <p className="text-[9px] font-black tracking-widest text-neutral-400 uppercase pl-2">Recent Searches</p>
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const key = `recent_searches_${isLoggedIn ? userEmail : "guest"}`;
+                                localStorage.removeItem(key);
+                                setRecentSearches([]);
+                              }}
+                              className="text-[9px] text-orange-500 font-bold px-2 hover:underline"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                          <div className="space-y-1">
+                            {recentSearches.map((kw) => (
+                              <button
+                                key={kw}
+                                type="button"
+                                onClick={() => {
+                                  setSearchVal(kw);
+                                  onSearch(kw);
+                                  setIsSearchFocused(false);
+                                  onNavigate("shop");
+                                }}
+                                className="w-full flex items-center space-x-2 px-2.5 py-2 hover:bg-neutral-50 rounded-xl transition-all cursor-pointer font-bold text-xs text-neutral-700 hover:text-emerald-800 text-left"
+                              >
+                                <Search className="w-3.5 h-3.5 text-neutral-400" />
+                                <span>{kw}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <p className="text-[9px] font-black tracking-widest text-neutral-400 uppercase mb-2 pl-2">Popular Searches</p>
                       <div className="space-y-1">
                         {["Agbada", "Shea Butter", "Suya Sauce", "Ankara Art Fabric"].map((kw) => (
@@ -163,10 +255,13 @@ export default function Navbar({
                     <div>
                       {/* Matching Categories & Products */}
                       {(() => {
-                        const matchedProducts = MOCK_PRODUCTS.filter(p =>
-                          p.title.toLowerCase().includes(searchVal.toLowerCase()) ||
-                          p.category.toLowerCase().includes(searchVal.toLowerCase()) ||
-                          p.vendorName.toLowerCase().includes(searchVal.toLowerCase())
+                        const sVal = debouncedSearchVal.toLowerCase();
+                        const matchedProducts = products.filter(p =>
+                          p.title.toLowerCase().includes(sVal) ||
+                          p.category.toLowerCase().includes(sVal) ||
+                          (p.tags && p.tags.some(t => t.toLowerCase().includes(sVal))) ||
+                          (p.subCategory && p.subCategory.toLowerCase().includes(sVal)) ||
+                          p.vendorName.toLowerCase().includes(sVal)
                         ).slice(0, 5);
 
                         return matchedProducts.length > 0 ? (
@@ -178,10 +273,12 @@ export default function Navbar({
                                   key={p.id}
                                   type="button"
                                   onClick={() => {
-                                    setSearchVal(p.title);
-                                    onSearch(p.title);
+                                    setSearchVal("");
                                     setIsSearchFocused(false);
-                                    onNavigate("shop");
+                                    if (onSelectProduct) {
+                                      onSelectProduct(p.id);
+                                    }
+                                    onNavigate("details");
                                   }}
                                   className="w-full flex items-start space-x-3 px-2 py-2 hover:bg-neutral-50 rounded-xl transition-all cursor-pointer text-left"
                                 >
@@ -211,8 +308,9 @@ export default function Navbar({
                       })()}
                     </div>
                   )}
-                </motion.div>
-              )}
+                  </motion.div>
+                );
+              })()}
             </AnimatePresence>
           </motion.form>
 

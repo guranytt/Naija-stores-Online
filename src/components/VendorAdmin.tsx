@@ -1815,6 +1815,7 @@ function EmailAutomationTabContent({
   autoSendEmails,
   onToggleAutoSend,
   onSendTestEmail,
+  onPreviewEmail,
   onRefreshMailLogs,
   userEmail
 }: {
@@ -1822,14 +1823,17 @@ function EmailAutomationTabContent({
   mailLogs: any[];
   autoSendEmails: boolean;
   onToggleAutoSend: () => void;
-  onSendTestEmail?: (to: string, type: "payment_confirmation" | "delivery_confirmation" | "status_change" | "flagged", orderId: string) => Promise<any>;
+  onSendTestEmail?: (to: string, type: string, orderId: string) => Promise<any>;
+  onPreviewEmail?: (type: string, orderId: string) => Promise<string | null>;
   onRefreshMailLogs: () => void;
   userEmail: string;
 }) {
   const [testRecipient, setTestRecipient] = useState(userEmail);
-  const [testMailType, setTestMailType] = useState<"payment_confirmation" | "delivery_confirmation" | "status_change" | "flagged">("payment_confirmation");
+  const [testMailType, setTestMailType] = useState<string>("payment_confirmation");
   const [testOrderId, setTestOrderId] = useState(orders[0]?.id || "NS-9942");
   const [isDispatching, setIsDispatching] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [selectedPreviewLog, setSelectedPreviewLog] = useState<any | null>(null);
   const [localFeedback, setLocalFeedback] = useState<string | null>(null);
 
@@ -1837,6 +1841,25 @@ function EmailAutomationTabContent({
   React.useEffect(() => {
     setTestRecipient(userEmail);
   }, [userEmail]);
+
+  const triggerPreview = async () => {
+    if (!onPreviewEmail) return;
+    setIsPreviewing(true);
+    setLocalFeedback(null);
+    try {
+      const html = await onPreviewEmail(testMailType, testOrderId);
+      if (html) {
+        setPreviewHtml(html);
+        setLocalFeedback(`green:Generated preview for "${testMailType}" template.`);
+      } else {
+        setLocalFeedback(`red:Failed to generate preview.`);
+      }
+    } catch (err: any) {
+      setLocalFeedback(`red:Error generating preview: ${err.message}`);
+    } finally {
+      setIsPreviewing(false);
+    }
+  };
 
   const triggerDirectFire = async () => {
     if (!testRecipient) {
@@ -1948,10 +1971,24 @@ function EmailAutomationTabContent({
                   onChange={(e: any) => setTestMailType(e.target.value)}
                   className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 font-bold text-neutral-700"
                 >
-                  <option value="payment_confirmation">Invoice Paid &amp; Checked Out (Direct Receipt)</option>
-                  <option value="delivery_confirmation">🚚 Out for Dispatch (Shipping Map Update)</option>
-                  <option value="status_change">System Notification (Status Modified)</option>
-                  <option value="flagged">⚠️ Security Risk Alert (Compliance Review Hold)</option>
+                  <optgroup label="Customer Onboarding">
+                    <option value="welcome">Welcome Email (User Signup)</option>
+                    <option value="first_login">First Login Confirmation</option>
+                  </optgroup>
+                  <optgroup label="Account Security">
+                    <option value="confirm_email">Email Verification Required</option>
+                    <option value="password_reset">Account Recovery (Password Reset)</option>
+                  </optgroup>
+                  <optgroup label="E-Commerce Flows">
+                    <option value="payment_confirmation">Invoice Paid (Payment Successful)</option>
+                    <option value="delivery_confirmation">Order Shipped & Out for Dispatch</option>
+                    <option value="status_change">Generic Order Status Update</option>
+                  </optgroup>
+                  <optgroup label="Vendor Administration">
+                    <option value="vendor_signup">Vendor Registration Received</option>
+                    <option value="vendor_approved">Vendor Approved</option>
+                    <option value="flagged">⚠️ Security Risk Alert (Compliance Review)</option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -1985,26 +2022,69 @@ function EmailAutomationTabContent({
               </div>
             )}
 
-            <button
-              onClick={triggerDirectFire}
-              disabled={isDispatching}
-              className="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white font-extrabold uppercase rounded-xl tracking-wider text-xs transition-colors flex items-center justify-center space-x-1.5 shadow-md disabled:opacity-50"
-            >
-              {isDispatching ? (
-                <React.Fragment>
-                  <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
-                  <span>Transmitting Payload...</span>
-                </React.Fragment>
-              ) : (
-                <React.Fragment>
-                  <Send className="w-4 h-4 text-orange-400" />
-                  <span>Transmit Email Payload</span>
-                </React.Fragment>
-              )}
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={triggerPreview}
+                disabled={isPreviewing}
+                className="flex-1 py-3 bg-white border border-neutral-300 hover:bg-neutral-50 text-neutral-800 font-extrabold uppercase rounded-xl tracking-wider text-xs transition-colors flex items-center justify-center space-x-1.5 shadow-sm disabled:opacity-50"
+              >
+                {isPreviewing ? (
+                  <RefreshCw className="w-4 h-4 animate-spin text-neutral-500" />
+                ) : (
+                  <Eye className="w-4 h-4 text-neutral-500" />
+                )}
+                <span>Preview Template HTML</span>
+              </button>
+
+              <button
+                onClick={triggerDirectFire}
+                disabled={isDispatching}
+                className="flex-1 py-3 bg-neutral-900 hover:bg-neutral-800 text-white font-extrabold uppercase rounded-xl tracking-wider text-xs transition-colors flex items-center justify-center space-x-1.5 shadow-md disabled:opacity-50"
+              >
+                {isDispatching ? (
+                  <React.Fragment>
+                    <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
+                    <span>Transmitting...</span>
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    <Send className="w-4 h-4 text-orange-400" />
+                    <span>Send Payload</span>
+                  </React.Fragment>
+                )}
+              </button>
+            </div>
           </div>
 
         </div>
+
+        {/* Preview Modal Overlay (rendered conditionally) */}
+        {previewHtml && (
+          <div className="fixed inset-0 z-[100] bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative">
+              <div className="p-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50 shrink-0">
+                <h3 className="font-extrabold text-neutral-800 text-sm flex items-center space-x-2">
+                  <Eye className="w-4 h-4 text-orange-500" />
+                  <span>Email Layout Preview</span>
+                </h3>
+                <button
+                  onClick={() => setPreviewHtml(null)}
+                  className="p-1 px-3 bg-white border border-neutral-200 text-neutral-500 hover:bg-neutral-100 rounded-lg text-xs font-bold transition-colors"
+                >
+                  Close Preview
+                </button>
+              </div>
+              <div className="p-0 flex-1 overflow-auto bg-neutral-50 relative">
+                <iframe
+                  title="Email Preview"
+                  sandbox="allow-same-origin allow-scripts"
+                  srcDoc={previewHtml}
+                  className="w-full min-h-[500px] border-0"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 3. Help guidelines / documentation */}
         <div className="bg-white border border-neutral-155 rounded-2xl p-6 shadow-xs space-y-5">

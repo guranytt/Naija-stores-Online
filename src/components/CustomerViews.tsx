@@ -104,6 +104,7 @@ interface CustomerViewsProps {
   categories?: Category[];
   orders?: Order[];
   flashDeals?: FlashDealProposal[];
+  isLoggedIn?: boolean;
 }
 
 export default function CustomerViews({
@@ -122,7 +123,8 @@ export default function CustomerViews({
   products = MOCK_PRODUCTS,
   categories = MOCK_CATEGORIES,
   orders = [],
-  flashDeals = []
+  flashDeals = [],
+  isLoggedIn = false
 }: CustomerViewsProps) {
   
   // States for Category Filter inside shop view
@@ -319,11 +321,26 @@ export default function CustomerViews({
 
   // Dynamic products filtering logic
   const filteredProducts = products.filter((product) => {
-    const matchesCategory = activeCategoryTab === "all" || product.category.toLowerCase().includes(activeCategoryTab.toLowerCase()) || activeCategoryTab.toLowerCase().includes(product.category.toLowerCase());
-    const matchesSearch = product.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
-                          product.category.toLowerCase().includes(searchFilter.toLowerCase()) ||
-                          product.vendorName.toLowerCase().includes(searchFilter.toLowerCase()) ||
-                          product.description.toLowerCase().includes(searchFilter.toLowerCase());
+    const activeCatLower = activeCategoryTab.toLowerCase();
+    const searchLower = searchFilter.toLowerCase();
+    
+    let matchesCategory = false;
+    if (activeCatLower === "all") {
+      matchesCategory = true;
+    } else {
+      const pCatLower = (product.category || "").toLowerCase();
+      matchesCategory = pCatLower.includes(activeCatLower) || activeCatLower.includes(pCatLower);
+    }
+    
+    let matchesSearch = true;
+    if (searchLower) {
+      matchesSearch = (product.title || "").toLowerCase().includes(searchLower) ||
+                      (product.category || "").toLowerCase().includes(searchLower) ||
+                      (product.vendorName || "").toLowerCase().includes(searchLower) ||
+                      (product.subCategory || "").toLowerCase().includes(searchLower) ||
+                      (product.tags && product.tags.some(t => t.toLowerCase().includes(searchLower))) ||
+                      (product.description || "").toLowerCase().includes(searchLower);
+    }
     return matchesCategory && matchesSearch;
   });
 
@@ -386,7 +403,13 @@ export default function CustomerViews({
           
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button
-              onClick={() => onNavigate("shop")}
+              onClick={() => {
+                if (isLoggedIn) {
+                  onNavigate("shop");
+                } else {
+                  onNavigate("auth");
+                }
+              }}
               className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-1 cursor-pointer"
             >
               <span>Start Shopping</span>
@@ -675,11 +698,7 @@ export default function CustomerViews({
                   <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent opacity-85" />
                   
                   <div className="relative text-left text-white z-10 space-y-1">
-                    <span className="text-[10px] font-extrabold tracking-widest text-orange-400 uppercase">
-                      {cat.itemCount} items
-                    </span>
                     <h3 className="font-extrabold text-base leading-snug tracking-tight">{cat.name}</h3>
-                    <p className="text-[10px] text-neutral-300 line-clamp-1 truncate">{cat.description}</p>
                   </div>
                 </motion.div>
               ))}
@@ -1370,8 +1389,8 @@ export default function CustomerViews({
 
             {sortedProducts.length === 0 && !isSearchLoading && (
               <div className="col-span-full py-16 text-center space-y-2">
-                <p className="text-base font-bold text-neutral-500">No products match your criteria inside this category.</p>
-                <p className="text-xs text-neutral-400">Try modifying search inputs or choosing another category block above.</p>
+                <p className="text-base font-bold text-neutral-500">No products found matching your search criteria.</p>
+                <p className="text-xs text-neutral-400">Try checking for spelling errors, using more general terms, or modifying filters.</p>
                 <button
                   onClick={() => {
                     setActiveCategoryTab("all");
