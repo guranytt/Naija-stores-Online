@@ -576,9 +576,6 @@ export default function Navbar({
                         >
                           <span className="truncate mr-2">{cat.name}</span>
                           <span className="flex items-center space-x-1.5 shrink-0">
-                            <span className="text-[9px] bg-emerald-950 text-orange-400 font-black px-1.5 py-0.5 rounded-full">
-                              {cat.itemCount || 0}
-                            </span>
                             {isExpanded ? (
                               <ChevronUp className="w-3.5 h-3.5 text-emerald-300" />
                             ) : (
