@@ -121,8 +121,8 @@ export default function CustomerViews({
   searchFilter,
   vendors = [],
   onRateVendor,
-  products = MOCK_PRODUCTS,
-  categories = MOCK_CATEGORIES,
+  products = [],
+  categories = [],
   orders = [],
   flashDeals = [],
   isLoggedIn = false,
@@ -755,7 +755,7 @@ export default function CustomerViews({
               viewport={{ once: true, margin: "-10px" }}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
             >
-              {MOCK_CATEGORIES.map((cat, idx) => (
+              {categories.map((cat, idx) => (
                 <motion.div
                   key={cat.id}
                   onClick={() => {

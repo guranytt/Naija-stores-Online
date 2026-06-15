@@ -345,7 +345,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
     setIsLoading(true);
     await supabase.auth.signOut();
     setIsLoading(false);
-    onUpdateEmail("nigerian.developer@gmail.com");
+    onUpdateEmail("adminnaijastoresonline@gmail.com");
     onNavigateHome();
   };
 

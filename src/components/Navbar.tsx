@@ -6,7 +6,6 @@
 import React, { useState, useEffect } from "react";
 import { ShoppingCart, Search, Store, Map, LayoutDashboard, UserCircle, Menu, X, Landmark, BadgeCheck, ChevronDown, ChevronUp, Package, ShoppingBag } from "lucide-react";
 import { Category } from "../types";
-import { MOCK_PRODUCTS, MOCK_CATEGORIES } from "../data/mockData";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 
 interface NavbarProps {
@@ -28,7 +27,7 @@ export default function Navbar({
   cartCount, 
   onSearch, 
   userEmail, 
-  categories = MOCK_CATEGORIES,
+  categories = [],
   products = [],
   isLoggedIn = false
 }: NavbarProps) {

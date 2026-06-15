@@ -230,9 +230,9 @@ export default function App() {
     jsonLd.textContent = JSON.stringify(schemaObj);
     
   }, [currentScreen, selectedProductId]);
-  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [categories, setCategories] = useState<Category[]>(() => {
     try {
       const saved = localStorage.getItem("NAIJA_CATEGORIES_STATE");
@@ -240,7 +240,7 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    return MOCK_CATEGORIES;
+    return [];
   });
 
   const [activePolicy, setActivePolicy] = useState<"privacy" | "terms" | "shipping" | "refund" | null>(null);
@@ -316,19 +316,22 @@ export default function App() {
         if (error.message?.includes("Refresh Token")) {
           supabase.auth.signOut().catch(() => {});
           // Clear local storage aggressively to prevent infinite loops of refresh
+          const keysToRemove = [];
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key && key.includes("supabase")) {
-              localStorage.removeItem(key);
+              keysToRemove.push(key);
             }
           }
+          keysToRemove.forEach(k => localStorage.removeItem(k));
         }
       }
       if (session?.user) {
-        setUserEmail(session.user.email || "shopper@example.com");
+        const uEmail = session.user.email || "shopper@example.com";
+        setUserEmail(uEmail);
         setCurrentUserId(session.user.id);
         const role = session.user.user_metadata?.role || "customer";
-        if (role === "vendor" || role === "admin") {
+        if (role === "vendor" || role === "admin" || uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com") {
           setVendorAuthenticated(true);
         } else {
           setVendorAuthenticated(false);
@@ -346,10 +349,11 @@ export default function App() {
     // Listen for auth level events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUserEmail(session.user.email || "shopper@example.com");
+        const uEmail = session.user.email || "shopper@example.com";
+        setUserEmail(uEmail);
         setCurrentUserId(session.user.id);
         const role = session.user.user_metadata?.role || "customer";
-        if (role === "vendor" || role === "admin") {
+        if (role === "vendor" || role === "admin" || uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com") {
           setVendorAuthenticated(true);
         } else {
           setVendorAuthenticated(false);
@@ -368,21 +372,26 @@ export default function App() {
     async function initSupabase() {
       try {
         // Load Vendors
-        const { data: dbVendors, synced: vSynced, error: vError } = await getSupabaseData<Vendor>("vendors", MOCK_VENDORS);
+        const { data: dbVendors, synced: vSynced, error: vError } = await getSupabaseData<Vendor>("vendors", []);
         if (dbVendors) setVendors(dbVendors);
 
         // Load Products
-        const { data: dbProducts, synced: pSynced, error: pError } = await getSupabaseData<Product>("products", MOCK_PRODUCTS);
-        if (dbProducts) setProducts(dbProducts.filter((p: Product) => String(p.id).startsWith("p_")));
+        const { data: dbProducts, synced: pSynced, error: pError } = await getSupabaseData<Product>("products", []);
+        if (dbProducts) setProducts(dbProducts);
 
         // Load Orders
         const { data: dbOrders, synced: oSynced, error: oError } = await getSupabaseData<Order>("orders", []);
         if (dbOrders) setOrders(dbOrders);
 
+        // Load Categories
+        const { data: dbCategories, synced: cSynced, error: cError } = await getSupabaseData<Category>("categories", []);
+        if (dbCategories && dbCategories.length > 0) setCategories(dbCategories);
+
         const syncedList: string[] = [];
         if (vSynced) syncedList.push("vendors");
         if (pSynced) syncedList.push("products");
         if (oSynced) syncedList.push("orders");
+        if (cSynced) syncedList.push("categories");
 
         setDbSyncStatus({
           connected: syncedList.length > 0,
@@ -391,7 +400,7 @@ export default function App() {
           productsSynced: pSynced,
           ordersSynced: oSynced,
           loading: false,
-          error: vError || pError || oError
+          error: vError || pError || oError || cError
         });
 
         if (syncedList.length > 0) {
@@ -471,7 +480,7 @@ export default function App() {
   };
   const [searchFilter, setSearchFilter] = useState<string>("");
   const shouldReduceMotion = useReducedMotion();
-  const [userEmail, setUserEmail] = useState<string>("nigerian.developer@gmail.com");
+  const [userEmail, setUserEmail] = useState<string>("adminnaijastoresonline@gmail.com");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
@@ -1276,11 +1285,11 @@ export default function App() {
                     <p className="text-[10px] text-neutral-400">Revert checkout and product database modifications back to initial state.</p>
                     <button
                       onClick={() => {
-                        setProducts(MOCK_PRODUCTS);
+                        setProducts([]);
                         setOrders([]);
-                        setVendors(MOCK_VENDORS);
+                        setVendors([]);
                         setCart([]);
-                        setUserEmail("nigerian.developer@gmail.com");
+                        setUserEmail("adminnaijastoresonline@gmail.com");
                         triggerToast("E-commerce persistent database wiped and re-seeded.", "info");
                         setSettingsDrawerOpen(false);
                       }}

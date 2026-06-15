@@ -6,7 +6,6 @@
 import React, { useState } from "react";
 import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud, BarChart2, PieChart, Megaphone, BellRing } from "lucide-react";
 import { Vendor, Order, AdminTeamMember, Product, Category, FlashDealProposal } from "../types";
-import { MOCK_VENDORS, MOCK_ORDERS, MOCK_TEAM_MEMBERS, MOCK_PRODUCTS, MOCK_CATEGORIES } from "../data/mockData";
 import { formatNaira } from "./CustomerViews";
 import { uploadToCloudinary, convertFileToBase64 } from "../cloudinaryService";
 import SalesAnalyticsDashboard from "./SalesAnalyticsDashboard";
@@ -51,7 +50,7 @@ export default function VendorAdmin({
   autoSendEmails = true,
   onToggleAutoSend = () => {},
   onRefreshMailLogs = () => {},
-  userEmail = "nigerian.developer@gmail.com",
+  userEmail = "adminnaijastoresonline@gmail.com",
   categories = [],
   onUpdateCategories,
   flashDeals = [],
@@ -63,7 +62,7 @@ export default function VendorAdmin({
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
 
   // Categories Master Admin Control block states
-  const [localCategories, setLocalCategories] = useState<Category[]>(categories.length ? categories : MOCK_CATEGORIES);
+  const [localCategories, setLocalCategories] = useState<Category[]>(categories.length ? categories : []);
 
   React.useEffect(() => {
     if (categories && categories.length) {
@@ -207,15 +206,21 @@ export default function VendorAdmin({
   const [fdSuccess, setFdSuccess] = useState<string | null>(null);
   const [fdError, setFdError] = useState<string | null>(null);
 
-  const vendorsList = vendors && vendors.length > 0 ? vendors : MOCK_VENDORS;
+  const vendorsList = vendors && vendors.length > 0 ? vendors : [];
   const activeVendor = vendorsList.find(v => v.email?.toLowerCase() === userEmail?.toLowerCase()) || 
-                       vendorsList.find(v => v.id === "v_heritage") || 
-                       vendorsList[0];
+                       {
+                         id: "v_fallback",
+                         name: "My Store",
+                         ownerName: "Vendor Owner",
+                         email: userEmail || "vendor@naijaonlinestores.com.ng",
+                         location: "Nigeria",
+                         rating: 0,
+                         ratingCount: 0,
+                         salesToday: 0,
+                         isVerified: false
+                       } as Vendor;
 
-  const isMasterAdmin = userEmail?.toLowerCase() === "mcgigimeshai@gmail.com" ||
-                        userEmail?.toLowerCase() === "nigerian.developer@gmail.com" ||
-                        userEmail?.toLowerCase()?.includes("admin") ||
-                        userEmail?.toLowerCase()?.includes("@naijastores.ng");
+  const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com";
 
   // Keep adminTab state synced if standard vendor tries to access platform tabs
   React.useEffect(() => {
@@ -397,14 +402,14 @@ export default function VendorAdmin({
     }
     setShowEditProfileModal(false);
   };
-  const averageVendorRating = vendorsList.reduce((acc, curr) => acc + curr.rating, 0) / vendorsList.length;
+  const averageVendorRating = vendorsList.length > 0 ? (vendorsList.reduce((acc, curr) => acc + curr.rating, 0) / vendorsList.length) : 0;
 
   // Raw mock stats for platform view
   const platformStats = {
-    totalGMV: 4859000,
-    activeUsers: "124,800",
-    activeVendors: "432",
-    pendingVerifications: 4
+    totalGMV: orders.reduce((acc, curr) => acc + (curr.value || 0), 0),
+    activeUsers: 0,
+    activeVendors: vendorsList.length,
+    pendingVerifications: 0
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -518,7 +523,7 @@ export default function VendorAdmin({
             }`}
           >
             <TrendingUp className="w-4 h-4 text-orange-500" />
-            <span>Alex's Merchant Cabin</span>
+            <span>Merchant Cabin</span>
           </button>
 
           <button
@@ -1444,16 +1449,12 @@ export default function VendorAdmin({
             <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs animate-fade-in">
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Gross Settlement Value (GMV)</p>
               <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1.5">{formatNaira(platformStats.totalGMV)}</h3>
-              <p className="text-[10px] text-emerald-600 font-bold mt-1 inline-flex items-center space-x-1">
-                <span>&uarr; 14.2% block growth</span>
-              </p>
             </div>
 
             {/* Users */}
             <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs animate-fade-in">
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Active Platform Shoppers</p>
               <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1">{platformStats.activeUsers} Shoppers</h3>
-              <p className="text-[10px] text-emerald-600 font-bold mt-1">Target threshold: 150k</p>
             </div>
 
             {/* Vendors count */}
@@ -1461,7 +1462,6 @@ export default function VendorAdmin({
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Onboarded Traders</p>
               <div className="flex items-center space-x-2 mt-1">
                 <h3 className="text-2xl font-black text-neutral-900 tracking-tight">{vendorsList.length} merchants</h3>
-                <span className="bg-emerald-50 text-emerald-600 font-extrabold text-[9px] px-2 py-0.5 rounded border border-emerald-100 uppercase">+432 Dynamic</span>
               </div>
             </div>
 
@@ -1469,7 +1469,6 @@ export default function VendorAdmin({
             <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs animate-fade-in">
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Pending Shop Verifications</p>
               <h3 className="text-2xl font-black text-orange-600 tracking-tight">{platformStats.pendingVerifications} shops</h3>
-              <p className="text-[10px] text-orange-500 font-bold mt-1">Awaiting compliance audits</p>
             </div>
 
             {/* Average Vendor Rating Card */}
@@ -1477,11 +1476,8 @@ export default function VendorAdmin({
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Average Vendor Rating</p>
               <div className="flex items-center space-x-2 mt-1.5">
                 <h3 className="text-2xl font-black text-amber-500 tracking-tight">
-                  {averageVendorRating.toFixed(2)} ★
+                  {averageVendorRating > 0 ? averageVendorRating.toFixed(2) : "0.00"} ★
                 </h3>
-                <span className="bg-amber-50 text-amber-600 font-extrabold text-[9px] px-1.5 py-0.5 rounded border border-amber-100 uppercase tracking-wide">
-                  Excellent
-                </span>
               </div>
               <p className="text-[10px] text-neutral-400 font-semibold mt-1">
                 Avg across all {vendorsList.length} active sellers
@@ -1719,7 +1715,17 @@ export default function VendorAdmin({
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {MOCK_TEAM_MEMBERS.map((worker) => (
+              {[
+                {
+                  id: "1",
+                  name: "Master Admin",
+                  role: "Super Administrator",
+                  initials: "MA",
+                  status: "Online",
+                  twoFactorEnabled: true,
+                  email: "adminnaijastoresonline@gmail.com"
+                }
+              ].map((worker) => (
                 <div key={worker.id} className="p-4 bg-neutral-50 border border-neutral-100 rounded-xl flex items-center justify-between text-xs">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-full bg-emerald-950 text-emerald-300 font-extrabold flex items-center justify-center font-mono select-none">

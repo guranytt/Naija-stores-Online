@@ -139,8 +139,9 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
 
         const userMeta = data.user?.user_metadata || {};
         const role = userMeta.role || "customer";
+        const emailLower = email.toLowerCase();
 
-        if (role !== "vendor" && role !== "admin") {
+        if (role !== "vendor" && role !== "admin" && emailLower !== "adminnaijastoresonline@gmail.com") {
           setErrorMsg("Access Deny: This account is registered as Customer. Vendor Portal restricted.");
           await supabase.auth.signOut();
           setIsLoading(false);
