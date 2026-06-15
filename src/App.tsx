@@ -93,6 +93,54 @@ export default function App() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
+
+  // Update SEO metadata dynamically
+  useEffect(() => {
+    const isPublic = !["admin", "tracking", "checkout"].includes(currentScreen);
+    
+    let title = "NaijaOnlineStores | Online Shopping Marketplace in Nigeria";
+    let desc = "Shop electronics, fashion, home appliances, beauty products, and more on NaijaOnlineStores, Nigeria's trusted online marketplace. Secure payments and nationwide delivery.";
+    let robots = isPublic ? "index, follow" : "noindex, nofollow";
+
+    if (currentScreen === "shop") {
+      title = "Shop Latest Products | NaijaOnlineStores";
+    } else if (currentScreen === "admin" || currentScreen === "tracking") {
+      title = "Dashboard | NaijaOnlineStores";
+    }
+
+    // Update <title>
+    document.title = title;
+
+    // Update Meta Tags
+    const setMeta = (name: string, content: string, property: boolean = false) => {
+      let el = document.querySelector(property ? `meta[property="${name}"]` : `meta[name="${name}"]`);
+      if (!el) {
+        el = document.createElement("meta");
+        if (property) el.setAttribute("property", name);
+        else el.setAttribute("name", name);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+
+    setMeta("description", desc);
+    setMeta("robots", robots);
+    setMeta("og:title", title, true);
+    setMeta("og:description", desc, true);
+    setMeta("og:url", window.location.href, true);
+    setMeta("twitter:title", title);
+    setMeta("twitter:description", desc);
+
+    // Update Canonical
+    let canonical = document.querySelector("link[rel='canonical']");
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute("href", window.location.href.split("?")[0]);
+    
+  }, [currentScreen, selectedProductId]);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [orders, setOrders] = useState<Order[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);

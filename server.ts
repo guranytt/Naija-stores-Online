@@ -465,9 +465,16 @@ async function startServer() {
     throw new Error("Sentry Express Backend Test Error: Sentry is fully configured!");
   });
 
-  app.get("/sitemap.xml", (req, res) => {
+  app.get("/sitemap.xml", async (req, res) => {
     res.header("Content-Type", "application/xml");
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+    
+    try {
+      // Fetch products dynamically for sitemap SEO indexing
+      const { data: products } = await supabaseAdmin.from("products").select("id, updated_at").limit(1000);
+      const { data: vendors } = await supabaseAdmin.from("vendors").select("id").limit(100);
+      const { data: categories } = await supabaseAdmin.from("categories").select("id").limit(100);
+      
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://naijastores.ng/</loc>
@@ -479,12 +486,35 @@ async function startServer() {
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
-  <url>
-    <loc>https://naijastores.ng/cart</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
-  </url>
+`;
+
+      if (categories) {
+        categories.forEach(cat => {
+          xml += `  <url>\n    <loc>https://naijastores.ng/category/${cat.id}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+        });
+      }
+
+      if (products) {
+        products.forEach(prod => {
+          xml += `  <url>\n    <loc>https://naijastores.ng/product/${prod.id}</loc>\n    <lastmod>${new Date(prod.updated_at || Date.now()).toISOString().split('T')[0]}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+        });
+      }
+
+      if (vendors) {
+        vendors.forEach(vendor => {
+          xml += `  <url>\n    <loc>https://naijastores.ng/vendor/${vendor.id}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+        });
+      }
+
+      xml += `</urlset>`;
+      res.send(xml);
+    } catch (e) {
+      // Fallback sitemap
+      res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://naijastores.ng/</loc></url>
 </urlset>`);
+    }
   });
 
   // Register Sentry express error handler
