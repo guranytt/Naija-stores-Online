@@ -477,12 +477,12 @@ async function startServer() {
       let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://naijastores.ng/</loc>
+    <loc>https://www.naijaonlinestores.com.ng/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://naijastores.ng/shop</loc>
+    <loc>https://www.naijaonlinestores.com.ng/shop</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
@@ -490,19 +490,19 @@ async function startServer() {
 
       if (categories) {
         categories.forEach(cat => {
-          xml += `  <url>\n    <loc>https://naijastores.ng/category/${cat.id}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+          xml += `  <url>\n    <loc>https://www.naijaonlinestores.com.ng/category/${cat.id}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
         });
       }
 
       if (products) {
         products.forEach(prod => {
-          xml += `  <url>\n    <loc>https://naijastores.ng/product/${prod.id}</loc>\n    <lastmod>${new Date(prod.updated_at || Date.now()).toISOString().split('T')[0]}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+          xml += `  <url>\n    <loc>https://www.naijaonlinestores.com.ng/product/${prod.id}</loc>\n    <lastmod>${new Date(prod.updated_at || Date.now()).toISOString().split('T')[0]}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
         });
       }
 
       if (vendors) {
         vendors.forEach(vendor => {
-          xml += `  <url>\n    <loc>https://naijastores.ng/vendor/${vendor.id}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+          xml += `  <url>\n    <loc>https://www.naijaonlinestores.com.ng/vendor/${vendor.id}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
         });
       }
 
@@ -512,7 +512,7 @@ async function startServer() {
       // Fallback sitemap
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://naijastores.ng/</loc></url>
+  <url><loc>https://www.naijaonlinestores.com.ng/</loc></url>
 </urlset>`);
     }
   });

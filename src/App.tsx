@@ -61,6 +61,59 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<string>("home");
   const [vendorAuthenticated, setVendorAuthenticated] = useState<boolean>(false);
   const [selectedProductId, setSelectedProductId] = useState<string>("p1");
+  const [initialCategory, setInitialCategory] = useState<string>("all");
+
+  // Router logic to interpret URL on first load and back/forward
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const path = window.location.pathname;
+      if (path.startsWith("/cart")) setCurrentScreen("cart");
+      else if (path.startsWith("/admin") || path.startsWith("/dashboard")) setCurrentScreen("admin");
+      else if (path.startsWith("/tracking")) setCurrentScreen("map");
+      else if (path.startsWith("/auth")) setCurrentScreen("auth");
+      else if (path.startsWith("/shop")) {
+        setCurrentScreen("shop");
+        setInitialCategory("all");
+      }
+      else if (path.startsWith("/product/")) {
+        const id = path.split("/product/")[1];
+        if (id) {
+          setSelectedProductId(id);
+          setCurrentScreen("details");
+        }
+      }
+      else if (path.startsWith("/category/")) {
+        const cat = path.split("/category/")[1];
+        if (cat) {
+          setInitialCategory(cat);
+          setCurrentScreen("shop");
+        }
+      }
+      else setCurrentScreen("home");
+    };
+
+    handleUrlChange();
+    window.addEventListener("popstate", handleUrlChange);
+    return () => window.removeEventListener("popstate", handleUrlChange);
+  }, []);
+
+  // Sync URL with current screen changes
+  useEffect(() => {
+    let newPath = "/";
+    if (currentScreen === "cart") newPath = "/cart";
+    else if (currentScreen === "admin") newPath = "/dashboard";
+    else if (currentScreen === "map") newPath = "/tracking";
+    else if (currentScreen === "auth") newPath = "/auth";
+    else if (currentScreen === "shop") newPath = window.location.pathname.startsWith("/category/") ? window.location.pathname : "/shop";
+    else if (currentScreen === "details") newPath = `/product/${selectedProductId}`;
+    
+    if (window.location.pathname !== newPath && currentScreen !== "home") {
+       window.history.pushState({ screen: currentScreen }, "", newPath);
+    } else if (currentScreen === "home" && window.location.pathname !== "/") {
+       window.history.pushState({ screen: "home" }, "", "/");
+    }
+  }, [currentScreen, selectedProductId]);
+
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = getCookie("naija_plaza_cart");
@@ -96,7 +149,7 @@ export default function App() {
 
   // Update SEO metadata dynamically
   useEffect(() => {
-    const isPublic = !["admin", "tracking", "checkout"].includes(currentScreen);
+    const isPublic = !["admin", "tracking", "checkout", "auth"].includes(currentScreen);
     
     let title = "NaijaOnlineStores | Online Shopping Marketplace in Nigeria";
     let desc = "Shop electronics, fashion, home appliances, beauty products, and more on NaijaOnlineStores, Nigeria's trusted online marketplace. Secure payments and nationwide delivery.";
@@ -139,6 +192,42 @@ export default function App() {
       document.head.appendChild(canonical);
     }
     canonical.setAttribute("href", window.location.href.split("?")[0]);
+    
+    // Structured Data (JSON-LD)
+    let jsonLd = document.querySelector("#json-ld-seo");
+    if (!jsonLd) {
+      jsonLd = document.createElement("script");
+      jsonLd.id = "json-ld-seo";
+      jsonLd.setAttribute("type", "application/ld+json");
+      document.head.appendChild(jsonLd);
+    }
+    
+    let schemaObj: any = {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "NaijaOnlineStores",
+      "url": "https://www.naijaonlinestores.com.ng"
+    };
+
+    if (currentScreen === "details" && selectedProductId) {
+       schemaObj = {
+         "@context": "https://schema.org",
+         "@type": "Product",
+         "name": title,
+         "description": desc,
+         "url": window.location.href
+       };
+    } else if (currentScreen === "home") {
+       schemaObj = {
+         "@context": "https://schema.org",
+         "@type": "Organization",
+         "name": "NaijaOnlineStores",
+         "url": "https://www.naijaonlinestores.com.ng",
+         "logo": "https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png"
+       };
+    }
+
+    jsonLd.textContent = JSON.stringify(schemaObj);
     
   }, [currentScreen, selectedProductId]);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
@@ -848,6 +937,7 @@ export default function App() {
                 onNavigate={(s) => setCurrentScreen(s)}
                 selectedProductId={selectedProductId}
                 onSelectProduct={(id) => setSelectedProductId(id)}
+                initialCategory={initialCategory}
                 cart={cart}
                 onAddToCart={handleAddToCart}
                 onUpdateCartQty={handleUpdateCartQty}

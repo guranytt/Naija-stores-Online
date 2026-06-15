@@ -10,4 +10,4 @@ Disallow: /api/
 Crawl-delay: 1
 
 # If a sitemap exists, point to it
-Sitemap: https://naijastores.ng/sitemap.xml
+Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml

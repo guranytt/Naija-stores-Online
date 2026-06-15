@@ -92,6 +92,7 @@ interface CustomerViewsProps {
   onNavigate: (screen: string) => void;
   selectedProductId: string;
   onSelectProduct: (productId: string) => void;
+  initialCategory?: string;
   cart: CartItem[];
   onAddToCart: (product: Product, quantity: number, size?: string, color?: string) => void;
   onUpdateCartQty: (productId: string, quantity: number) => void;
@@ -124,11 +125,27 @@ export default function CustomerViews({
   categories = MOCK_CATEGORIES,
   orders = [],
   flashDeals = [],
-  isLoggedIn = false
+  isLoggedIn = false,
+  initialCategory = "all"
 }: CustomerViewsProps) {
   
   // States for Category Filter inside shop view
-  const [activeCategoryTab, setActiveCategoryTab] = useState<string>("all");
+  const [activeCategoryTab, setActiveCategoryTab] = useState<string>(initialCategory);
+
+  useEffect(() => {
+    if (initialCategory) setActiveCategoryTab(initialCategory);
+  }, [initialCategory]);
+
+  useEffect(() => {
+    // Whenever category changes, update URL if we are in shop
+    if (screen === 'shop') {
+      const url = activeCategoryTab === 'all' ? '/shop' : `/category/${activeCategoryTab}`;
+      if (window.location.pathname !== url) {
+         window.history.pushState({ screen: 'shop' }, "", url);
+      }
+    }
+  }, [activeCategoryTab, screen]);
+
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [sortOption, setSortOption] = useState<string>("recommended");
   const [selectedStateForShipping, setSelectedStateForShipping] = useState<string>("Lagos");
