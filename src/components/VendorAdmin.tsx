@@ -11,6 +11,7 @@ import { uploadToCloudinary, convertFileToBase64 } from "../cloudinaryService";
 import SalesAnalyticsDashboard from "./SalesAnalyticsDashboard";
 import { sendVendorApproval } from "../emailService";
 import { requestPushPermissionAndSubscribe } from "../pushService";
+import { saveSupabaseRecord, ensureUUID } from "../supabase";
 
 
 interface VendorAdminProps {
@@ -19,7 +20,7 @@ interface VendorAdminProps {
   products: Product[];
   onAddNewProduct?: (product: Product) => void;
   vendors?: Vendor[];
-  onUpdateVendor?: (updatedVendor: Vendor) => void;
+  onUpdateVendor?: (updatedVendor: Vendor) => Promise<boolean | void> | void;
   currentUserId?: string | null;
   categories?: Category[];
   onUpdateCategories?: (categories: Category[]) => void;
@@ -200,6 +201,8 @@ export default function VendorAdmin({
   const [editAccountNumber, setEditAccountNumber] = useState("");
   const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [profileUploadError, setProfileUploadError] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [saveProfileError, setSaveProfileError] = useState<string | null>(null);
 
   // States for Vendor Flash Deal Proposals
   const [fdProductId, setFdProductId] = useState("");
@@ -409,28 +412,47 @@ export default function VendorAdmin({
     }
   };
 
-  const handleSaveProfileSubmit = (e: React.FormEvent) => {
+  const handleSaveProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editShopName.trim()) return;
 
-    if (onUpdateVendor) {
-      onUpdateVendor({
-        ...activeVendor,
-        userId: currentUserId || activeVendor.userId || activeVendor.user_id,
-        user_id: currentUserId || activeVendor.user_id || activeVendor.userId,
-        name: editShopName,
-        ownerName: editOwnerName,
-        location: editLocation,
-        avatar: editAvatar,
-        cacNumber: editCacNumber,
-        whatsappNumber: editWhatsapp,
-        phone: editWhatsapp,
-        email: userEmail || activeVendor.email,
-        bankName: editBankName,
-        accountNumber: editAccountNumber
-      });
+    setIsSavingProfile(true);
+    setSaveProfileError(null);
+
+    const compliantId = ensureUUID(activeVendor.id);
+    const resolvedVendor: Vendor = {
+      ...activeVendor,
+      id: compliantId,
+      userId: currentUserId ? ensureUUID(currentUserId) : (activeVendor.userId ? ensureUUID(activeVendor.userId) : (activeVendor.user_id ? ensureUUID(activeVendor.user_id) : undefined)),
+      user_id: currentUserId ? ensureUUID(currentUserId) : (activeVendor.user_id ? ensureUUID(activeVendor.user_id) : (activeVendor.userId ? ensureUUID(activeVendor.userId) : undefined)),
+      name: editShopName,
+      ownerName: editOwnerName,
+      location: editLocation,
+      avatar: editAvatar,
+      cacNumber: editCacNumber,
+      whatsappNumber: editWhatsapp,
+      phone: editWhatsapp,
+      email: userEmail || activeVendor.email || "",
+      bankName: editBankName,
+      accountNumber: editAccountNumber,
+    };
+
+    try {
+      // Immediately perform a direct PATCH/UPSERT operation to Supabase on submission
+      const success = await saveSupabaseRecord("vendors", resolvedVendor);
+      if (!success) {
+        throw new Error("Unable to save your store profile directly to Supabase sandbox database.");
+      }
+
+      if (onUpdateVendor) {
+        await onUpdateVendor(resolvedVendor);
+      }
+      setShowEditProfileModal(false);
+    } catch (err: any) {
+      setSaveProfileError(err.message || "An error occurred while saving your store branding choices.");
+    } finally {
+      setIsSavingProfile(false);
     }
-    setShowEditProfileModal(false);
   };
   const averageVendorRating = vendorsList.length > 0 ? (vendorsList.reduce((acc, curr) => acc + curr.rating, 0) / vendorsList.length) : 0;
 
@@ -1344,6 +1366,13 @@ export default function VendorAdmin({
                         <span>{profileUploadError}</span>
                       </p>
                     )}
+
+                    {saveProfileError && (
+                      <p className="text-[10px] text-red-600 font-bold bg-red-50 p-2 rounded-lg border border-red-100 flex items-center space-x-1 mt-1">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>{saveProfileError}</span>
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-1">
@@ -1435,6 +1464,13 @@ export default function VendorAdmin({
                     </div>
                   </div>
 
+                  {saveProfileError && (
+                    <div className="text-[10px] text-red-600 font-bold bg-red-50 p-2 rounded-lg border border-red-100 flex items-center space-x-1 mt-2">
+                      <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                      <span>{saveProfileError}</span>
+                    </div>
+                  )}
+
                   <div className="pt-2 flex justify-end space-x-2">
                     <button
                       type="button"
@@ -1445,10 +1481,11 @@ export default function VendorAdmin({
                     </button>
                     <button
                       type="submit"
-                      disabled={isProfileUploading}
-                      className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-sm active:scale-95 transition-transform disabled:opacity-50"
+                      disabled={isProfileUploading || isSavingProfile}
+                      className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-sm active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
-                      Save Brand Settings
+                      {isSavingProfile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                      <span>{isSavingProfile ? "Saving Settings..." : "Save Brand Settings"}</span>
                     </button>
                   </div>
                 </form>

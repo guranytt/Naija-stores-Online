@@ -680,7 +680,7 @@ export default function App() {
     });
   };
 
-  const handleUpdateVendor = (updatedVendor: Vendor) => {
+  const handleUpdateVendor = async (updatedVendor: Vendor) => {
     const compliantId = ensureUUID(updatedVendor.id);
     const resolvedVendor: Vendor = {
       ...updatedVendor,
@@ -689,18 +689,40 @@ export default function App() {
       user_id: updatedVendor.user_id ? ensureUUID(updatedVendor.user_id) : undefined,
     };
 
+    // Optimistically update local vendors list immediately
     setVendors(prevVendors => {
       const exists = prevVendors.some(v => v.id === resolvedVendor.id);
-      let updated;
       if (exists) {
-        updated = prevVendors.map(v => v.id === resolvedVendor.id ? resolvedVendor : v);
+        return prevVendors.map(v => v.id === resolvedVendor.id ? resolvedVendor : v);
       } else {
-        updated = [...prevVendors, resolvedVendor];
+        return [...prevVendors, resolvedVendor];
       }
-      saveSupabaseRecord("vendors", resolvedVendor);
-      triggerToast(`Store profile updated successfully!`, "success");
-      return updated;
     });
+
+    try {
+      // Save changes to Supabase
+      await saveSupabaseRecord("vendors", resolvedVendor);
+      triggerToast(`Store profile updated successfully!`, "success");
+
+      // Re-fetch vendors from Supabase to guarantee total alignment and persistence
+      const { data: dbVendors } = await getSupabaseData<Vendor>("vendors", []);
+      if (dbVendors) {
+        const mockVendorIds = ["v_heritage", "v_alaba", "v_compvillage", "v_balogun", "v_sheabeauty", "v_snacks", "v_lekki", "v_yaba"];
+        const isVendorIdMock = (id: string) => {
+          if (!id) return false;
+          const idStr = String(id).trim();
+          if (mockVendorIds.includes(idStr)) return true;
+          for (const mvId of mockVendorIds) {
+            if (ensureUUID(mvId) === idStr) return true;
+          }
+          return false;
+        };
+        const nonMockVendors = dbVendors.filter(v => !isVendorIdMock(v.id));
+        setVendors(nonMockVendors);
+      }
+    } catch (err) {
+      console.error("Failed to automatically refresh vendor database:", err);
+    }
   };
 
   const updateMailLogs = async () => {
