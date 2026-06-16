@@ -2347,7 +2347,7 @@ export default function CustomerViews({
                 <div className="grid grid-cols-2 gap-2 border-t border-neutral-200/60 pt-3 text-xs">
                   <div className="p-2 bg-white rounded-xl border border-neutral-150">
                     <p className="text-[9px] font-black text-neutral-400 uppercase tracking-wider">Completed Sales</p>
-                    <p className="font-extrabold text-neutral-800 mt-1">₦{(matchedVendor.salesToday || 750000).toLocaleString()}</p>
+                    <p className="font-extrabold text-neutral-800 mt-1">{formatNaira(matchedVendor.salesToday || 750000)}</p>
                   </div>
                   <div className="p-2 bg-white rounded-xl border border-neutral-150">
                     <p className="text-[9px] font-black text-neutral-400 uppercase tracking-wider">Live Inventory</p>
@@ -2423,14 +2423,22 @@ export default function CustomerViews({
 
                           <div className="flex items-center justify-between border-t border-neutral-50 pt-2.5 mt-auto">
                             <div>
-                              <p className="text-neutral-900 font-extrabold text-sm sm:text-base leading-none">₦{p.price.toLocaleString()}</p>
+                              <p className="text-neutral-900 font-extrabold text-sm sm:text-base leading-none">{formatNaira(p.price)}</p>
                               {p.originalPrice && p.originalPrice > p.price && (
-                                <p className="text-[10px] text-neutral-400 line-through mt-1">₦{p.originalPrice.toLocaleString()}</p>
+                                <p className="text-[10px] text-neutral-400 line-through mt-1">{formatNaira(p.originalPrice)}</p>
                               )}
                             </div>
-                            <span className="w-8 h-8 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition-colors shadow-2xs">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onAddToCart(p, 1);
+                              }}
+                              className="w-8 h-8 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition-all shadow-2xs active:scale-95 hover:scale-105"
+                              title="Add to Cart"
+                            >
                               <Plus className="w-4 h-4 text-white" />
-                            </span>
+                            </button>
                           </div>
                         </div>
                       </motion.div>

@@ -116,20 +116,27 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
           const avatar = item.logo_url || item.avatar || "";
           const bankName = item.bank_name || item.bankName || "";
           const accountNumber = item.account_number || item.accountNumber || "";
+          const physicalLocation = item.physical_location || item.physicalLocation || item.location || "";
+          const phone = item.phone || item.whatsapp_number || item.whatsappNumber || "+234 800 000 0000";
+          const email = item.email || "";
           return {
             ...item,
             name,
             avatar,
             rating: item.rating || 4.5,
-            salesToday: item.salesToday || 0,
-            ordersPending: item.ordersPending || 0,
-            stockAlerts: item.stockAlerts || 0,
+            ratingCount: item.rating_count || item.ratingCount || 10,
+            salesToday: item.sales_today || item.salesToday || 0,
+            ordersPending: item.orders_pending || item.ordersPending || 0,
+            stockAlerts: item.stock_alerts || item.stockAlerts || 0,
             bankName,
             accountNumber,
             cacNumber: item.cac_number || item.cacNumber || "",
             whatsappNumber: item.whatsapp_number || item.whatsappNumber || "",
-            physicalLocation: item.physical_location || item.physicalLocation || "",
+            physicalLocation,
+            location: physicalLocation,
             isVerified: item.is_verified || item.isVerified || false,
+            phone,
+            email,
           };
         }
         if (tableName === "categories") {
@@ -251,8 +258,10 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       payload.account_number = record.accountNumber || record.account_number || "";
       payload.cac_number = record.cacNumber || record.cac_number || "";
       payload.whatsapp_number = record.whatsappNumber || record.whatsapp_number || "";
-      payload.physical_location = record.physicalLocation || record.physical_location || "";
+      payload.physical_location = record.location || record.physicalLocation || record.physical_location || "";
       payload.is_verified = record.isVerified !== undefined ? record.isVerified : (record.is_verified || false);
+      payload.phone = record.phone || record.whatsappNumber || "";
+      payload.email = record.email || "";
 
       // Legacy mapping
       payload.name = record.name || record.business_name || "";
@@ -261,8 +270,10 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       payload.accountNumber = record.accountNumber || record.account_number || "";
       payload.cacNumber = record.cacNumber || record.cac_number || "";
       payload.whatsappNumber = record.whatsappNumber || record.whatsapp_number || "";
-      payload.physicalLocation = record.physicalLocation || record.physical_location || "";
+      payload.physicalLocation = record.location || record.physicalLocation || record.physical_location || "";
       payload.isVerified = record.isVerified !== undefined ? record.isVerified : (record.is_verified || false);
+      payload.phone = record.phone || record.whatsappNumber || "";
+      payload.email = record.email || "";
 
     } else if (tableName === "categories") {
       payload.name = record.name;

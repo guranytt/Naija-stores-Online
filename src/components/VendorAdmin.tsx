@@ -209,9 +209,10 @@ export default function VendorAdmin({
   const [fdError, setFdError] = useState<string | null>(null);
 
   const vendorsList = vendors && vendors.length > 0 ? vendors : [];
+  const stableFallbackId = currentUserId || (userEmail ? `v_fallback_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}` : "v_fallback_temp");
   const activeVendor = vendorsList.find(v => v.email?.toLowerCase() === userEmail?.toLowerCase()) || 
                        {
-                         id: currentUserId || `v_${Date.now()}`,
+                         id: stableFallbackId,
                          name: "My Store",
                          ownerName: "Vendor Owner",
                          email: userEmail || "vendor@naijaonlinestores.com.ng",
@@ -360,7 +361,7 @@ export default function VendorAdmin({
       setEditBankName(activeVendor.bankName || "");
       setEditAccountNumber(activeVendor.accountNumber || "");
     }
-  }, [activeVendor]);
+  }, [activeVendor?.id]);
 
   const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -402,6 +403,8 @@ export default function VendorAdmin({
         avatar: editAvatar,
         cacNumber: editCacNumber,
         whatsappNumber: editWhatsapp,
+        phone: editWhatsapp,
+        email: userEmail || activeVendor.email,
         bankName: editBankName,
         accountNumber: editAccountNumber
       });
@@ -1244,7 +1247,7 @@ export default function VendorAdmin({
           {showEditProfileModal && (
             <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-xs" onClick={() => setShowEditProfileModal(false)} />
-              <div className="relative w-full max-w-md bg-white rounded-3xl shadow-premium p-6 overflow-hidden z-10 border border-neutral-100">
+              <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-premium p-6 z-10 border border-neutral-100 scrollbar-thin scrollbar-thumb-neutral-200">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-black text-neutral-900 tracking-tight">Edit Store Brand Profile</h3>
                   <button onClick={() => setShowEditProfileModal(false)} className="text-neutral-400 hover:text-neutral-600">
@@ -1324,7 +1327,7 @@ export default function VendorAdmin({
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Owner Full Name</label>
                       <input
@@ -1348,7 +1351,7 @@ export default function VendorAdmin({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">CAC Registration No.</label>
                       <input
@@ -1373,7 +1376,7 @@ export default function VendorAdmin({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Settlement Bank</label>
                       <input
