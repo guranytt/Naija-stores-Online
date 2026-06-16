@@ -219,7 +219,11 @@ export default function VendorAdmin({
                          rating: 0,
                          ratingCount: 0,
                          salesToday: 0,
-                         isVerified: false
+                         isVerified: false,
+                         avatar: "",
+                         ordersPending: 0,
+                         stockAlerts: 0,
+                         phone: ""
                        } as Vendor;
 
   const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com";
@@ -2154,15 +2158,30 @@ function EmailAutomationTabContent({
                     <option value="confirm_email">Email Verification Required</option>
                     <option value="password_reset">Account Recovery (Password Reset)</option>
                   </optgroup>
-                  <optgroup label="E-Commerce Flows">
-                    <option value="payment_confirmation">Invoice Paid (Payment Successful)</option>
-                    <option value="delivery_confirmation">Order Shipped & Out for Dispatch</option>
-                    <option value="status_change">Generic Order Status Update</option>
+                  <optgroup label="Customer E-Commerce Flows">
+                    <option value="order_confirmation">Order Received Confirmation</option>
+                    <option value="payment_confirmation">Payment Captured (Successful)</option>
+                    <option value="order_shipped">Order Shipped & Out for Dispatch</option>
+                    <option value="order_delivered">Order Successfully Delivered</option>
+                    <option value="review_request">Review Request & Feedback Survey</option>
+                    <option value="abandoned_cart">Abandoned Cart Recovery Email</option>
+                    <option value="refund_processed">Refund Processed (Escrow Return)</option>
                   </optgroup>
-                  <optgroup label="Vendor Administration">
-                    <option value="vendor_signup">Vendor Registration Received</option>
-                    <option value="vendor_approved">Vendor Approved</option>
-                    <option value="flagged">⚠️ Security Risk Alert (Compliance Review)</option>
+                  <optgroup label="Merchant Onboarding & Alerts">
+                    <option value="vendor_signup">Vendor Application Received</option>
+                    <option value="vendor_approved">Vendor Approved Greeting</option>
+                    <option value="vendor_rejected">Vendor Rejected / Missing Compliance</option>
+                    <option value="new_vendor_order">New Customer Order Alert for Vendors</option>
+                    <option value="low_stock_alerts">Low Stock Threshold Warning</option>
+                  </optgroup>
+                  <optgroup label="Merchant Analytics Digests">
+                    <option value="daily_sales_summary">Daily Sales summary report</option>
+                    <option value="weekly_performance_report">Weekly Business Growth metrics</option>
+                  </optgroup>
+                  <optgroup label="Administrator Alerts">
+                    <option value="admin_new_vendor">Admin Notification: New Vendor Applied</option>
+                    <option value="admin_new_order">Admin Notification: New Order Completed</option>
+                    <option value="admin_payment_received">Admin Notification: Payment Approved</option>
                   </optgroup>
                 </select>
               </div>

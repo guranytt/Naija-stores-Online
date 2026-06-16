@@ -135,8 +135,22 @@ async function startServer() {
         result = await emailService.sendRefundProcessed(to, name, ordId, amount);
       } else if (type === "contact_form") {
         result = await emailService.notifyContactForm(name, to, data?.message || "No message provided");
-      } else if (type === "vendor_new_order") {
+      } else if (type === "vendor_new_order" || type === "new_vendor_order") {
         result = await emailService.sendVendorNewOrderInfo(to, name, ordId, data?.itemsHtml || data?.items || "Items in order");
+      } else if (type === "abandoned_cart") {
+        result = await emailService.sendAbandonedCartEmail(to, name, data?.items || "Items in your cart");
+      } else if (type === "low_stock_alerts" || type === "low_stock_alert") {
+        result = await emailService.sendLowStockAlert(to, name, data?.productName || "Product item", data?.stock || 5);
+      } else if (type === "daily_sales_summary") {
+        result = await emailService.sendDailySalesSummary(to, name, data?.totalGMV || 0, data?.salesCount || 0, data?.pendingOrders || 0);
+      } else if (type === "weekly_performance_report") {
+        result = await emailService.sendWeeklyPerformanceReport(to, name, data?.weeklyGMV || 0, data?.buyerGrowth || 0, data?.bestSellers || ["Laptop Chargers", "USB-C Adapters"]);
+      } else if (type === "review_request") {
+        result = await emailService.sendOrderDeliveredEmail(to, name, ordId, data?.reviewUrl || "https://www.naijaonlinestores.com.ng/dashboard");
+      } else if (type === "admin_new_vendor") {
+        result = await emailService.notifyAdminNewVendor(name, to);
+      } else if (type === "admin_payment_received") {
+        result = await emailService.notifyAdminPaymentReceived(ordId, amount, data?.ref || `PAYSTACK-${ordId}`);
       }
       
       res.json(result);
