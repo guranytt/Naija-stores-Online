@@ -539,17 +539,59 @@ export default function App() {
   useEffect(() => {
     async function initSupabase() {
       try {
+        const mockVendorIds = ["v_heritage", "v_alaba", "v_compvillage", "v_balogun", "v_sheabeauty", "v_snacks", "v_lekki", "v_yaba"];
+        const isVendorIdMock = (id: string) => {
+          if (!id) return false;
+          const idStr = String(id).trim();
+          if (mockVendorIds.includes(idStr)) return true;
+          for (const mvId of mockVendorIds) {
+            if (ensureUUID(mvId) === idStr) return true;
+          }
+          return false;
+        };
+
+        const isProductIdMock = (id: string) => {
+          if (!id) return false;
+          const idStr = String(id).trim();
+          if (/^(p|fs)\d+$/i.test(idStr)) return true;
+          for (let i = 1; i <= 150; i++) {
+            if (ensureUUID(`p${i}`) === idStr || ensureUUID(`fs${i}`) === idStr) {
+              return true;
+            }
+          }
+          return false;
+        };
+
+        const isOrderIdMock = (id: string) => {
+          if (!id) return false;
+          const idStr = String(id).trim();
+          if (idStr.startsWith("NS-")) return true;
+          for (let i = 9941; i <= 9950; i++) {
+            if (ensureUUID(`NS-${i}`) === idStr) return true;
+          }
+          return false;
+        };
+
         // Load Vendors
         const { data: dbVendors, synced: vSynced, error: vError } = await getSupabaseData<Vendor>("vendors", []);
-        if (dbVendors) setVendors(dbVendors);
+        if (dbVendors) {
+          const nonMockVendors = dbVendors.filter(v => !isVendorIdMock(v.id));
+          setVendors(nonMockVendors);
+        }
 
         // Load Products
         const { data: dbProducts, synced: pSynced, error: pError } = await getSupabaseData<Product>("products", []);
-        if (dbProducts) setProducts(dbProducts);
+        if (dbProducts) {
+          const nonMockProducts = dbProducts.filter(p => !isProductIdMock(p.id) && !isVendorIdMock(p.vendorId));
+          setProducts(nonMockProducts);
+        }
 
         // Load Orders
         const { data: dbOrders, synced: oSynced, error: oError } = await getSupabaseData<Order>("orders", []);
-        if (dbOrders) setOrders(dbOrders);
+        if (dbOrders) {
+          const nonMockOrders = dbOrders.filter(o => !isOrderIdMock(o.id));
+          setOrders(nonMockOrders);
+        }
 
         // Load Categories
         const { data: dbCategories, synced: cSynced, error: cError } = await getSupabaseData<Category>("categories", []);
@@ -1026,10 +1068,7 @@ export default function App() {
     triggerToast(`Successfully published ${prod.title} to NaijaStores Catalog.`, "success");
   };
 
-  const linkedProducts = products.filter(p => {
-    const vId = p.vendorId || (p as any).vendor_id;
-    return vId && vendors.some(v => v.id === vId);
-  });
+  const linkedProducts = products;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans select-none antialiased">

@@ -87,6 +87,12 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
       if (queryResult.error) {
         queryResult = await supabase.from("products").select("*");
       }
+    } else if (tableName === "vendors") {
+      // Fetch vendors with their registered user account emails associated elegantly
+      queryResult = await supabase.from("vendors").select("*, users(email)");
+      if (queryResult.error) {
+        queryResult = await supabase.from("vendors").select("*");
+      }
     } else {
       queryResult = await supabase.from(tableName).select("*");
     }
@@ -140,7 +146,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
           const accountNumber = item.account_number || item.accountNumber || "";
           const physicalLocation = item.physical_location || item.physicalLocation || item.location || "";
           const phone = item.phone || item.whatsapp_number || item.whatsappNumber || "+234 800 000 0000";
-          const email = item.email || "";
+          const email = item.email || (item.users as any)?.email || "";
           return {
             ...item,
             name,

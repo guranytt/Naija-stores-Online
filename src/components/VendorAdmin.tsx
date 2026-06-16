@@ -210,8 +210,14 @@ export default function VendorAdmin({
 
   const vendorsList = vendors && vendors.length > 0 ? vendors : [];
   const stableFallbackId = currentUserId || (userEmail ? `v_fallback_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}` : "v_fallback_temp");
-  const activeVendor = vendorsList.find(v => v.email?.toLowerCase() === userEmail?.toLowerCase()) || 
-                       {
+  const activeVendor = vendorsList.find(v => {
+    if (v.user_id && currentUserId && String(v.user_id).toLowerCase() === String(currentUserId).toLowerCase()) return true;
+    if (v.userId && currentUserId && String(v.userId).toLowerCase() === String(currentUserId).toLowerCase()) return true;
+    if (v.email && userEmail && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) return true;
+    if (v.id && currentUserId && String(v.id).toLowerCase() === String(currentUserId).toLowerCase()) return true;
+    if (v.id === stableFallbackId) return true;
+    return false;
+  }) || {
                          id: stableFallbackId,
                          userId: currentUserId || undefined,
                          user_id: currentUserId || undefined,
