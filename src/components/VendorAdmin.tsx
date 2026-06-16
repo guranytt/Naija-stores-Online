@@ -1315,6 +1315,16 @@ export default function VendorAdmin({
                       )}
                     </div>
 
+                    <div className="mt-2">
+                      <input
+                        type="text"
+                        placeholder="Or paste custom logo image URL..."
+                        value={editAvatar}
+                        onChange={(e) => setEditAvatar(e.target.value)}
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-mono"
+                      />
+                    </div>
+
                     {isProfileUploading && (
                       <div className="flex items-center space-x-1 mt-1 text-[10px] font-bold text-orange-600 animate-pulse">
                         <RefreshCw className="w-3 animate-spin" />
