@@ -98,6 +98,24 @@ export const MOCK_CATEGORIES: Category[] = [
     iconName: "ShoppingBag",
     itemCount: 83,
     subcategories: ["Local Snacks", "Nigerian Staples", "Oils & Spices", "Cocoas & Teas"]
+  },
+  {
+    id: "laptops",
+    name: "Laptops",
+    description: "Shop high-performance laptops, notebooks, ultrabooks, and workstations in Nigeria. Perfect configurations for developers, students, and businesses from top brands.",
+    image: "https://images.unsplash.com/photo-1496181130204-755241544e3f?auto=format&fit=crop&w=500&q=80",
+    iconName: "Laptop",
+    itemCount: 45,
+    subcategories: ["MacBook", "HP Laptops", "Dell Inspiron", "Lenovo ThinkPad", "Asus Workstations"]
+  },
+  {
+    id: "gaming",
+    name: "Gaming",
+    description: "Immersive video game consoles, high-end graphics cards, virtual reality headsets, controllers, and premium gaming gear online in Nigeria.",
+    image: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=500&q=80",
+    iconName: "Gamepad2",
+    itemCount: 65,
+    subcategories: ["PlayStation 5", "Xbox Series X", "Nintendo Switch", "Gaming Accessories", "VR headsets"]
   }
 ];
 
@@ -235,6 +253,22 @@ const accessoriesItems = [
   "Bluetooth Audio Receiver"
 ];
 
+const laptopsItems = [
+  "HP Pavilion Slim Laptop",
+  "Apple MacBook Air M3 Ultra",
+  "Dell Inspiron Workstation Pro",
+  "Lenovo ThinkPad Developer Duo",
+  "Asus ROG Strix Gaming Laptop"
+];
+
+const gamingItems = [
+  "Sony PlayStation 5 Console Extreme",
+  "Xbox Series X Wireless Bundle",
+  "Nintendo Switch OLED Screen Setup",
+  "Mechanical Retro Gaming Controller",
+  "VR Headset Quest 3 Pro Bundle"
+];
+
 const categoriesInfo = [
   { id: "fashion", name: "Fashion", minPrice: 5000, maxPrice: 35000, items: fashionItems },
   { id: "electronics", name: "Electronics", minPrice: 10000, maxPrice: 250000, items: electronicsItems },
@@ -244,7 +278,9 @@ const categoriesInfo = [
   { id: "home-kitchen", name: "Home and Kitchen", minPrice: 3000, maxPrice: 80000, items: homeItems },
   { id: "beauty", name: "Beauty", minPrice: 2000, maxPrice: 45000, items: beautyItems },
   { id: "sports", name: "Sports", minPrice: 4000, maxPrice: 60000, items: sportsItems },
-  { id: "grocery", name: "Grocery", minPrice: 1000, maxPrice: 25000, items: groceryItems }
+  { id: "grocery", name: "Grocery", minPrice: 1000, maxPrice: 25000, items: groceryItems },
+  { id: "laptops", name: "Laptops", minPrice: 150000, maxPrice: 1200000, items: laptopsItems },
+  { id: "gaming", name: "Gaming", minPrice: 15000, maxPrice: 650000, items: gamingItems }
 ];
 
 export const MOCK_PRODUCTS: Product[] = [];

@@ -74,66 +74,13 @@ export default function App() {
   const [mailLogs, setMailLogs] = useState<MailLogEntry[]>([]);
   const [autoSendEmails, setAutoSendEmails] = useState<boolean>(true);
 
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      const saved = getCookie("naija_plaza_cart");
-      if (saved) {
-        return JSON.parse(decodeURIComponent(saved));
-      }
-    } catch (e) {
-      console.warn("Could not read cart from cookies: ", e);
-    }
-    return [];
-  });
-
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [categories, setCategories] = useState<Category[]>(() => {
-    try {
-      const saved = localStorage.getItem("NAIJA_CATEGORIES_STATE");
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return [];
-  });
-
-  const [activePolicy, setActivePolicy] = useState<"privacy" | "terms" | "shipping" | "refund" | null>(null);
-
-  // Durable Client State Persistence For Flash Deals
-  const [flashDeals, setFlashDeals] = useState<FlashDealProposal[]>(() => {
-    try {
-      const saved = localStorage.getItem("NAIJA_FLASH_DEALS_PROPOSALS");
-      return saved ? JSON.parse(saved) : [];
-    } catch (_) {
-      return [];
-    }
-  });
-
-  // Supabase Sync States
-  const [dbSyncStatus, setDbSyncStatus] = useState<{
-    connected: boolean;
-    syncedTables: string[];
-    vendorsSynced: boolean;
-    productsSynced: boolean;
-    ordersSynced: boolean;
-    loading: boolean;
-    error?: string;
-  }>({
-    connected: false,
-    syncedTables: [],
-    vendorsSynced: false,
-    productsSynced: false,
-    ordersSynced: false,
-    loading: true
-  });
-  const [copiedSql, setCopiedSql] = useState<boolean>(false);
+  const [selectedVendorSlug, setSelectedVendorSlug] = useState<string>("eko-heritage-weavers");
 
   // Router logic to interpret URL on first load and back/forward
   useEffect(() => {
     const handleUrlChange = () => {
       const path = window.location.pathname;
+      const seoCategories = ["electronics", "fashion", "phones", "laptops", "beauty", "home-kitchen", "sports", "gaming"];
       if (path.startsWith("/cart")) setCurrentScreen("cart");
       else if (path.startsWith("/admin") || path.startsWith("/dashboard")) setCurrentScreen("admin");
       else if (path.startsWith("/tracking")) setCurrentScreen("map");
@@ -149,12 +96,23 @@ export default function App() {
           setCurrentScreen("details");
         }
       }
+      else if (path.startsWith("/vendor/")) {
+        const slug = path.split("/vendor/")[1];
+        if (slug) {
+          setSelectedVendorSlug(slug);
+          setCurrentScreen("vendor");
+        }
+      }
       else if (path.startsWith("/category/")) {
         const cat = path.split("/category/")[1];
         if (cat) {
           setInitialCategory(cat);
           setCurrentScreen("shop");
         }
+      }
+      else if (seoCategories.includes(path.substring(1))) {
+        setInitialCategory(path.substring(1));
+        setCurrentScreen("shop");
       }
       else setCurrentScreen("home");
     };
@@ -167,19 +125,39 @@ export default function App() {
   // Sync URL with current screen changes
   useEffect(() => {
     let newPath = "/";
+    const seoCategories = ["electronics", "fashion", "phones", "laptops", "beauty", "home-kitchen", "sports", "gaming"];
     if (currentScreen === "cart") newPath = "/cart";
     else if (currentScreen === "admin") newPath = "/dashboard";
     else if (currentScreen === "map") newPath = "/tracking";
     else if (currentScreen === "auth") newPath = "/auth";
-    else if (currentScreen === "shop") newPath = window.location.pathname.startsWith("/category/") ? window.location.pathname : "/shop";
+    else if (currentScreen === "shop") {
+      if (seoCategories.includes(initialCategory)) {
+        newPath = `/${initialCategory}`;
+      } else {
+        newPath = window.location.pathname.startsWith("/category/") ? window.location.pathname : "/shop";
+      }
+    }
     else if (currentScreen === "details") newPath = `/product/${selectedProductId}`;
+    else if (currentScreen === "vendor") newPath = `/vendor/${selectedVendorSlug}`;
     
     if (window.location.pathname !== newPath && currentScreen !== "home") {
        window.history.pushState({ screen: currentScreen }, "", newPath);
     } else if (currentScreen === "home" && window.location.pathname !== "/") {
        window.history.pushState({ screen: "home" }, "", "/");
     }
-  }, [currentScreen, selectedProductId]);
+  }, [currentScreen, selectedProductId, initialCategory, selectedVendorSlug]);
+
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = getCookie("naija_plaza_cart");
+      if (saved) {
+        return JSON.parse(decodeURIComponent(saved));
+      }
+    } catch (e) {
+      console.warn("Could not read cart from cookies: ", e);
+    }
+    return [];
+  });
 
   // Automated cart-to-cookie synchronization effect
   useEffect(() => {
@@ -189,6 +167,19 @@ export default function App() {
       console.error("Sync error: ", e);
     }
   }, [cart]);
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [categories, setCategories] = useState<Category[]>(() => {
+    try {
+      const saved = localStorage.getItem("NAIJA_CATEGORIES_STATE");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
 
   // Initial PostHog runtime loading
   useEffect(() => {
@@ -206,12 +197,37 @@ export default function App() {
   useEffect(() => {
     const isPublic = !["admin", "tracking", "checkout", "auth"].includes(currentScreen);
     
-    let title = "NaijaOnlineStores | Online Shopping Marketplace in Nigeria";
-    let desc = "Shop electronics, fashion, home appliances, beauty products, and more on NaijaOnlineStores, Nigeria's trusted online marketplace. Secure payments and nationwide delivery.";
+    let title = "NaijaOnlineStores | Premium Online Shopping Marketplace Nigeria";
+    let desc = "Experience secure, verified online shopping Nigeria. Buy electronics online Nigeria, high-quality fashion wear, devices, and cosmetics on NaijaOnlineStores — Nigeria's trusted online stores with automated escrow checks.";
     let robots = isPublic ? "index, follow" : "noindex, nofollow";
 
+    const slugifyLocal = (text: string) => text.toLowerCase().replace(/[^\w ]+/g, "").replace(/ +/g, "-");
+
+    // Dynamic Title & Description customization
     if (currentScreen === "shop") {
-      title = "Shop Latest Products | NaijaOnlineStores";
+      if (initialCategory && initialCategory !== "all") {
+        const catObj = categories.find(c => c.id === initialCategory);
+        if (catObj) {
+          title = `${catObj.name} | Buy Authentic Products Online Nigeria | NaijaOnlineStores`;
+          desc = `Shop premium ${catObj.name.toLowerCase()} collections online in Nigeria. Verified merchants, escrow logistics protection, and nationwide delivery supported on NaijaOnlineStores.`;
+        } else {
+          title = `${initialCategory.charAt(0).toUpperCase() + initialCategory.slice(1)} | Shop Online Nigeria`;
+        }
+      } else {
+        title = "Shop Direct From Verified Local Wholesalers | NaijaOnlineStores";
+      }
+    } else if (currentScreen === "details" && selectedProductId) {
+      const prod = products.find(p => p.id === selectedProductId);
+      if (prod) {
+        title = `${prod.title} | Buy Online Nigeria | NaijaOnlineStores`;
+        desc = `Get the best deal on ${prod.title} by ${prod.vendorName} on NaijaOnlineStores. Rating: ${prod.rating} ★ (${prod.reviewsCount} reviews). Secure escrow payment & fast delivery across Nigeria.`;
+      }
+    } else if (currentScreen === "vendor" && selectedVendorSlug) {
+      const vend = vendors.find(v => slugifyLocal(v.name) === selectedVendorSlug || v.id === selectedVendorSlug);
+      if (vend) {
+        title = `${vend.name} Storefront | Verified Wholesale Merchant | NaijaOnlineStores`;
+        desc = `Explore and shop the latest collections from ${vend.name} official store in ${vend.location}. Highly rated merchant (${vend.rating} ★) with secure direct payments on NaijaOnlineStores Nigeria.`;
+      }
     } else if (currentScreen === "admin" || currentScreen === "tracking") {
       title = "Dashboard | NaijaOnlineStores";
     }
@@ -257,34 +273,155 @@ export default function App() {
       document.head.appendChild(jsonLd);
     }
     
+    // Base Schema defaults to Organization & Website (Tasks 4 & 5)
     let schemaObj: any = {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "NaijaOnlineStores",
-      "url": "https://www.naijaonlinestores.com.ng"
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://www.naijaonlinestores.com.ng/#organization",
+          "name": "NaijaOnlineStores",
+          "url": "https://www.naijaonlinestores.com.ng",
+          "logo": "https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png",
+          "sameAs": [
+            "https://facebook.com/naijaonlinestores",
+            "https://twitter.com/naijaonlinestores"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.naijaonlinestores.com.ng/#website",
+          "url": "https://www.naijaonlinestores.com.ng",
+          "name": "NaijaOnlineStores",
+          "description": "Multi-vendor ecommerce marketplace in Nigeria connecting shoppers to verified wholesale merchants"
+        }
+      ]
     };
 
+    // Product Schema (Task 2 & 5) and Breadcrumb Schema (Task 6)
     if (currentScreen === "details" && selectedProductId) {
+       const prod = products.find(p => p.id === selectedProductId);
+       if (prod) {
+          schemaObj = {
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "Product",
+                "@id": `https://www.naijaonlinestores.com.ng/product/${prod.id}#product`,
+                "name": prod.title,
+                "description": prod.description || desc,
+                "image": prod.image || "https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png",
+                "sku": prod.id,
+                "offers": {
+                  "@type": "Offer",
+                  "priceCurrency": "NGN",
+                  "price": prod.price,
+                  "itemCondition": prod.condition === "New" ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
+                  "availability": prod.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                  "url": window.location.href,
+                  "seller": {
+                    "@type": "Organization",
+                    "name": prod.vendorName
+                  }
+                },
+                "aggregateRating": {
+                  "@type": "AggregateRating",
+                  "ratingValue": prod.rating || 4.7,
+                  "reviewCount": prod.reviewsCount || 15
+                }
+              },
+              {
+                "@type": "BreadcrumbList",
+                "@id": `https://www.naijaonlinestores.com.ng/product/${prod.id}#breadcrumb`,
+                "itemListElement": [
+                  { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.naijaonlinestores.com.ng" },
+                  { "@type": "ListItem", "position": 2, "name": prod.category || "Shop", "item": `https://www.naijaonlinestores.com.ng/${prod.category ? slugifyLocal(prod.category) : "shop"}` },
+                  { "@type": "ListItem", "position": 3, "name": prod.title, "item": window.location.href }
+                ]
+              }
+            ]
+          };
+       }
+    } 
+    // Category Breadcrumb Schema
+    else if (currentScreen === "shop" && initialCategory && initialCategory !== "all") {
+       const catObj = categories.find(c => c.id === initialCategory);
+       const catName = catObj ? catObj.name : (initialCategory.charAt(0).toUpperCase() + initialCategory.slice(1));
        schemaObj = {
          "@context": "https://schema.org",
-         "@type": "Product",
-         "name": title,
-         "description": desc,
-         "url": window.location.href
+         "@graph": [
+           {
+             "@type": "CollectionPage",
+             "name": catName,
+             "description": desc,
+             "url": window.location.href
+           },
+           {
+             "@type": "BreadcrumbList",
+             "@id": `${window.location.href}#breadcrumb`,
+             "itemListElement": [
+               { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.naijaonlinestores.com.ng" },
+               { "@type": "ListItem", "position": 2, "name": catName, "item": window.location.href }
+             ]
+           }
+         ]
        };
-    } else if (currentScreen === "home") {
-       schemaObj = {
-         "@context": "https://schema.org",
-         "@type": "Organization",
-         "name": "NaijaOnlineStores",
-         "url": "https://www.naijaonlinestores.com.ng",
-         "logo": "https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png"
-       };
+    }
+    // Vendor Storefront & Aggregate Rating Schema (Task 3 & Task 7)
+    else if (currentScreen === "vendor" && selectedVendorSlug) {
+       const vend = vendors.find(v => slugifyLocal(v.name) === selectedVendorSlug || v.id === selectedVendorSlug);
+       if (vend) {
+         schemaObj = {
+           "@context": "https://schema.org",
+           "@graph": [
+             {
+               "@type": "Store",
+               "@id": `https://www.naijaonlinestores.com.ng/vendor/${selectedVendorSlug}#store`,
+               "name": vend.name,
+               "description": desc,
+               "image": vend.avatar || "https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png",
+               "telephone": vend.phone,
+               "email": vend.email,
+               "address": {
+                 "@type": "PostalAddress",
+                 "addressLocality": vend.location,
+                 "addressCountry": "NG"
+               },
+               "aggregateRating": {
+                 "@type": "AggregateRating",
+                 "ratingValue": vend.rating || 4.7,
+                 "ratingCount": vend.ratingCount || 100
+               }
+             },
+             {
+               "@type": "BreadcrumbList",
+               "@id": `https://www.naijaonlinestores.com.ng/vendor/${selectedVendorSlug}#breadcrumb`,
+               "itemListElement": [
+                 { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.naijaonlinestores.com.ng" },
+                 { "@type": "ListItem", "position": 2, "name": "Vendors", "item": "https://www.naijaonlinestores.com.ng/shop" },
+                 { "@type": "ListItem", "position": 3, "name": vend.name, "item": window.location.href }
+               ]
+             }
+           ]
+         };
+       }
     }
 
     jsonLd.textContent = JSON.stringify(schemaObj);
     
-  }, [currentScreen, selectedProductId]);
+  }, [currentScreen, selectedProductId, initialCategory, selectedVendorSlug, products, vendors, categories]);
+
+  const [activePolicy, setActivePolicy] = useState<"privacy" | "terms" | "shipping" | "refund" | null>(null);
+
+  // Durable Client State Persistence For Flash Deals
+  const [flashDeals, setFlashDeals] = useState<FlashDealProposal[]>(() => {
+    try {
+      const saved = localStorage.getItem("NAIJA_FLASH_DEALS_PROPOSALS");
+      return saved ? JSON.parse(saved) : [];
+    } catch (_) {
+      return [];
+    }
+  });
 
   const handleProposeFlashDeal = (newProposal: FlashDealProposal) => {
     setFlashDeals(prev => {
@@ -318,6 +455,25 @@ export default function App() {
       console.error(e);
     }
   };
+
+  // Supabase Sync States
+  const [dbSyncStatus, setDbSyncStatus] = useState<{
+    connected: boolean;
+    syncedTables: string[];
+    vendorsSynced: boolean;
+    productsSynced: boolean;
+    ordersSynced: boolean;
+    loading: boolean;
+    error?: string;
+  }>({
+    connected: false,
+    syncedTables: [],
+    vendorsSynced: false,
+    productsSynced: false,
+    ordersSynced: false,
+    loading: true
+  });
+  const [copiedSql, setCopiedSql] = useState<boolean>(false);
 
   // Synchronize Supabase authentication state changes and roles
   useEffect(() => {
@@ -940,7 +1096,8 @@ export default function App() {
           {(currentScreen === "home" ||
             currentScreen === "shop" ||
             currentScreen === "details" ||
-            currentScreen === "cart") && (
+            currentScreen === "cart" ||
+            currentScreen === "vendor") && (
             <motion.div
               key="customer-views-block"
               initial={{ opacity: 0, y: 15 }}
@@ -967,6 +1124,8 @@ export default function App() {
                 orders={orders}
                 flashDeals={flashDeals}
                 isLoggedIn={!!currentUserId}
+                vendorSlug={selectedVendorSlug}
+                onSelectVendor={setSelectedVendorSlug}
               />
             </motion.div>
           )}

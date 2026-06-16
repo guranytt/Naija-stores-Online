@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home, Eye, Settings2, ShieldAlert } from "lucide-react";
+import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home, Eye, Settings2, ShieldAlert, Store } from "lucide-react";
 import { Product, Category, CartItem, Vendor, Advertisement, Order, FlashDealProposal } from "../types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_ADS, FLASH_SALE_PRODUCTS } from "../data/mockData";
 import { trackProductViewed } from "../lib/posthog";
@@ -88,7 +88,7 @@ export const sponsoredBrandAds = [
 ];
 
 interface CustomerViewsProps {
-  screen: "home" | "shop" | "cart" | "details";
+  screen: "home" | "shop" | "cart" | "details" | "vendor";
   onNavigate: (screen: string) => void;
   selectedProductId: string;
   onSelectProduct: (productId: string) => void;
@@ -106,6 +106,8 @@ interface CustomerViewsProps {
   orders?: Order[];
   flashDeals?: FlashDealProposal[];
   isLoggedIn?: boolean;
+  vendorSlug?: string;
+  onSelectVendor?: (slug: string) => void;
 }
 
 export default function CustomerViews({
@@ -126,7 +128,9 @@ export default function CustomerViews({
   orders = [],
   flashDeals = [],
   isLoggedIn = false,
-  initialCategory = "all"
+  initialCategory = "all",
+  vendorSlug = "eko-heritage-weavers",
+  onSelectVendor
 }: CustomerViewsProps) {
   
   // States for Category Filter inside shop view
@@ -2232,6 +2236,236 @@ export default function CustomerViews({
           )}
         </motion.div>
       )}
+      </AnimatePresence>
+
+      {/* ---------------- 5. VENDOR STOREFRONT SEO PAGE ---------------- */}
+      <AnimatePresence mode="wait">
+      {screen === "vendor" && (() => {
+        const slugifyLocal = (text: string) => text.toLowerCase().replace(/[^\w ]+/g, "").replace(/ +/g, "-");
+        
+        // Find current active vendor matching slug or ID
+        const matchedVendor = vendors.find(v => slugifyLocal(v.name) === vendorSlug || v.id === vendorSlug) || vendors[0] || {
+          id: "v_fallback",
+          name: "Verified Merchant Collective",
+          ownerName: "Naija Stores Merchant",
+          avatar: "",
+          rating: 4.8,
+          ratingCount: 140,
+          salesToday: 145000,
+          ordersPending: 0,
+          stockAlerts: 0,
+          email: "support@naijastores.ng",
+          phone: "+234 800 000 0000",
+          location: "Lagos, Nigeria"
+        };
+        
+        const vendorProducts = products.filter(p => p.vendorId === matchedVendor.id || p.vendorName === matchedVendor.name);
+        
+        // Generate dynamic organic vendor descriptions dynamically for SEO (Satisfies task 12)
+        const generateVendorDesc = (v: any) => {
+          return `${v.name}, located in ${v.location}, is an audited and verified merchant on NaijaOnlineStores marketplace. Rooted in excellent customer service, they showcase high-end products across fashion, electronics, and local home utility collections. Recognized with a ${v.rating.toFixed(1)} ★ rating from over ${v.ratingCount || 100} buyers, they stand as one of the trusted online stores Nigeria rely on for secure payments and reliable escrow logistics.`;
+        };
+
+        return (
+          <motion.div
+            key="vendor-screen"
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={pageTransition}
+            className="space-y-8"
+          >
+            {/* Visual Breadcrumb Section (Task 6) */}
+            <nav className="flex items-center space-x-2 text-xs font-semibold text-neutral-400 tracking-wide text-left" aria-label="Breadcrumb">
+              <a href="/" onClick={(e) => { e.preventDefault(); onNavigate("home"); }} className="hover:text-orange-500 transition-colors">Home</a>
+              <ChevronRight className="w-3 h-3" />
+              <a href="/shop" onClick={(e) => { e.preventDefault(); onNavigate("shop"); }} className="hover:text-orange-500 transition-colors">Vendors</a>
+              <ChevronRight className="w-3 h-3" />
+              <span className="text-neutral-600 font-extrabold truncate" aria-current="page">{matchedVendor.name}</span>
+            </nav>
+
+            {/* Vendor Hero Billboard Profile Card */}
+            <div className="bg-white border border-neutral-150 rounded-3xl p-6 sm:p-8 flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6 shadow-sm relative overflow-hidden text-left bg-linear-to-b from-white to-neutral-50/50">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-2xl pointer-events-none"></div>
+              
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left w-full">
+                {/* Profile Avatar / Initials */}
+                <div className="w-20 h-20 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-black text-2xl shadow-inner border border-orange-200/50 uppercase shrink-0">
+                  {matchedVendor.avatar && !matchedVendor.avatar.startsWith("https://lh3") ? (
+                    <img src={matchedVendor.avatar} alt={matchedVendor.name} className="w-full h-full object-cover rounded-2xl" referrerPolicy="no-referrer" />
+                  ) : (
+                    <span>{matchedVendor.name.charAt(0)}</span>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <h1 className="text-xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight">{matchedVendor.name}</h1>
+                    <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[10px] uppercase px-2.5 py-1 rounded-full border border-emerald-100 tracking-wider flex items-center gap-1 shadow-2xs">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Verified Merchant</span>
+                    </span>
+                  </div>
+                  
+                  <p className="text-xs font-semibold text-neutral-400 flex items-center justify-center sm:justify-start gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
+                    <span>{matchedVendor.location}</span>
+                    <span className="mx-1 text-neutral-200">|</span>
+                    <span>Managing Director: <strong>{matchedVendor.ownerName}</strong></span>
+                  </p>
+
+                  <p className="text-sm font-semibold text-neutral-500 leading-relaxed max-w-2xl mt-2 select-text">
+                    {generateVendorDesc(matchedVendor)}
+                  </p>
+
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-1.5 text-xs text-neutral-400 font-semibold select-all">
+                    <span>Email: <strong className="text-neutral-700">{matchedVendor.email}</strong></span>
+                    <span className="hidden sm:inline text-neutral-200">•</span>
+                    <span>Support Phone: <strong className="text-neutral-700">{matchedVendor.phone}</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Card Board (Task 7 - Aggregate Rating representation) */}
+              <div className="bg-neutral-50 border border-neutral-150 p-5 rounded-2xl w-full lg:w-72 flex flex-col gap-4 text-center">
+                <div>
+                  <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest leading-none">Aggregate Peer Score</h4>
+                  <div className="flex items-center justify-center gap-1.5 mt-2">
+                    <span className="text-3xl font-black text-neutral-800 tracking-tight">{matchedVendor.rating.toFixed(1)}</span>
+                    <div className="flex flex-col items-start leading-none">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(matchedVendor.rating) ? "fill-amber-400 text-amber-400" : "text-neutral-200"}`} />
+                        ))}
+                      </div>
+                      <span className="text-[9px] text-neutral-400 mt-1 font-bold">({matchedVendor.ratingCount || 120} verified checkouts)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 border-t border-neutral-200/60 pt-3 text-xs">
+                  <div className="p-2 bg-white rounded-xl border border-neutral-150">
+                    <p className="text-[9px] font-black text-neutral-400 uppercase tracking-wider">Completed Sales</p>
+                    <p className="font-extrabold text-neutral-800 mt-1">₦{(matchedVendor.salesToday || 750000).toLocaleString()}</p>
+                  </div>
+                  <div className="p-2 bg-white rounded-xl border border-neutral-150">
+                    <p className="text-[9px] font-black text-neutral-400 uppercase tracking-wider">Live Inventory</p>
+                    <p className="font-extrabold text-neutral-800 mt-1">{vendorProducts.length} items</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dynamic Catalog Section */}
+            <div className="space-y-4">
+              <div className="text-left">
+                <h3 className="text-lg sm:text-xl font-black text-neutral-900 tracking-tight">Active Wholesale Inventory ({vendorProducts.length} items)</h3>
+                <p className="text-xs text-neutral-400 font-semibold">Direct escrow items with nationwide delivery and secure checkouts</p>
+              </div>
+
+              {vendorProducts.length === 0 ? (
+                <div className="py-12 bg-white border border-neutral-150 rounded-2xl text-center text-neutral-400 max-w-lg mx-auto space-y-3">
+                  <Store className="w-10 h-10 text-neutral-300 mx-auto" />
+                  <p className="text-sm font-bold text-neutral-700">No active products found in this vendor’s digital shelf.</p>
+                  <p className="text-xs text-neutral-400">Inventory may be restocking or under compliance check.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {vendorProducts.map((p) => {
+                    const discount = p.originalPrice && p.originalPrice > p.price ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0;
+                    return (
+                      <motion.div
+                        key={p.id}
+                        variants={{
+                          hidden: { opacity: 0, y: 15 },
+                          show: { opacity: 1, y: 0 }
+                        }}
+                        whileHover={{ y: -8, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.08), 0 10px 10px -5px rgba(0,0,0,0.03)" }}
+                        className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-2xs group flex flex-col h-full text-left cursor-pointer transition-all relative"
+                        onClick={() => {
+                          onSelectProduct(p.id);
+                          onNavigate("details");
+                        }}
+                      >
+                        {/* Promo ribbon */}
+                        {discount > 0 && (
+                          <span className="absolute top-3 left-3 bg-red-500 text-white font-extrabold text-[9px] uppercase px-2 py-1 rounded-md z-10 shadow-sm leading-none">
+                            -{discount}% OFF
+                          </span>
+                        )}
+
+                        <span className="absolute top-3 right-3 bg-white/90 backdrop-blur-md border border-neutral-100 text-neutral-500 font-black text-[9px] uppercase px-2 py-1 rounded-md z-10 shadow-2xs">
+                          {p.condition || "New"}
+                        </span>
+
+                        <div className="relative aspect-square w-full bg-neutral-50 overflow-hidden border-b border-neutral-100 flex items-center justify-center">
+                          {p.image ? (
+                            <img src={p.image} alt={p.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" referrerPolicy="no-referrer" />
+                          ) : (
+                            <span className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">IMAGING READY</span>
+                          )}
+                        </div>
+
+                        <div className="p-4 flex flex-col flex-grow justify-between gap-3">
+                          <div className="space-y-1">
+                            <p className="text-[9px] font-bold text-orange-500 uppercase truncate mb-0.5">{p.vendorName}</p>
+                            <h4 className="font-extrabold text-neutral-800 text-xs sm:text-sm line-clamp-2 leading-snug group-hover:text-orange-600 transition-colors">{p.title}</h4>
+                            <div className="flex items-center gap-1 pt-0.5">
+                              <div className="flex bg-neutral-50/50 w-fit px-1.5 py-0.5 rounded border border-neutral-100">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <Star key={s} className={`w-3 h-3 ${s <= Math.round(p.rating) ? "fill-amber-400 text-amber-400" : "text-neutral-150"}`} />
+                                ))}
+                              </div>
+                              <span className="text-[9px] text-neutral-400 font-bold">({p.reviewsCount})</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between border-t border-neutral-50 pt-2.5 mt-auto">
+                            <div>
+                              <p className="text-neutral-900 font-extrabold text-sm sm:text-base leading-none">₦{p.price.toLocaleString()}</p>
+                              {p.originalPrice && p.originalPrice > p.price && (
+                                <p className="text-[10px] text-neutral-400 line-through mt-1">₦{p.originalPrice.toLocaleString()}</p>
+                              )}
+                            </div>
+                            <span className="w-8 h-8 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition-colors shadow-2xs">
+                              <Plus className="w-4 h-4 text-white" />
+                            </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Structured Internal Linking Row (Task 10) */}
+            <div className="border-t border-neutral-150 pt-8 mt-12 space-y-4 text-left">
+              <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest leading-none">Discover Other Certified Shops (Nigeria Marketplace)</h4>
+              <div className="flex flex-wrap gap-2">
+                {vendors.filter(v => v.id !== matchedVendor.id).map(v => (
+                  <a
+                    key={v.id}
+                    href={`/vendor/${slugifyLocal(v.name)}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (onSelectVendor) {
+                        onSelectVendor(slugifyLocal(v.name));
+                      }
+                      onNavigate("vendor");
+                      window.scrollTo(0, 0);
+                    }}
+                    className="text-xs font-bold text-orange-600 bg-orange-50/60 border border-orange-100 hover:bg-orange-100/80 px-4 py-2 rounded-xl transition-all"
+                  >
+                    {v.name} &rarr;
+                  </a>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        );
+      })()}
       </AnimatePresence>
 
     </div>
