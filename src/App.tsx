@@ -24,7 +24,7 @@ import { Product, CartItem, Order, Vendor, Category, FlashDealProposal } from ".
 import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS, MOCK_CATEGORIES } from "./data/mockData";
 import { formatNaira } from "./components/CustomerViews";
 import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText, Store, Bug } from "lucide-react";
-import { supabase, getSupabaseData, saveSupabaseRecord, PROVISION_SQL_SCRIPT } from "./supabase";
+import { supabase, getSupabaseData, saveSupabaseRecord, PROVISION_SQL_SCRIPT, ensureUUID } from "./supabase";
 import { sendResendEmail, fetchEmailLogs, MailLogEntry } from "./emailService";
 
 // Standard browser cookie helper functions
@@ -639,15 +639,23 @@ export default function App() {
   };
 
   const handleUpdateVendor = (updatedVendor: Vendor) => {
+    const compliantId = ensureUUID(updatedVendor.id);
+    const resolvedVendor: Vendor = {
+      ...updatedVendor,
+      id: compliantId,
+      userId: updatedVendor.userId ? ensureUUID(updatedVendor.userId) : undefined,
+      user_id: updatedVendor.user_id ? ensureUUID(updatedVendor.user_id) : undefined,
+    };
+
     setVendors(prevVendors => {
-      const exists = prevVendors.some(v => v.id === updatedVendor.id);
+      const exists = prevVendors.some(v => v.id === resolvedVendor.id);
       let updated;
       if (exists) {
-        updated = prevVendors.map(v => v.id === updatedVendor.id ? updatedVendor : v);
+        updated = prevVendors.map(v => v.id === resolvedVendor.id ? resolvedVendor : v);
       } else {
-        updated = [...prevVendors, updatedVendor];
+        updated = [...prevVendors, resolvedVendor];
       }
-      saveSupabaseRecord("vendors", updatedVendor);
+      saveSupabaseRecord("vendors", resolvedVendor);
       triggerToast(`Store profile updated successfully!`, "success");
       return updated;
     });

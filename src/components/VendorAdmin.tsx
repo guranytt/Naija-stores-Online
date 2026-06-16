@@ -213,6 +213,8 @@ export default function VendorAdmin({
   const activeVendor = vendorsList.find(v => v.email?.toLowerCase() === userEmail?.toLowerCase()) || 
                        {
                          id: stableFallbackId,
+                         userId: currentUserId || undefined,
+                         user_id: currentUserId || undefined,
                          name: "My Store",
                          ownerName: "Vendor Owner",
                          email: userEmail || "vendor@naijaonlinestores.com.ng",
@@ -352,7 +354,7 @@ export default function VendorAdmin({
 
   React.useEffect(() => {
     if (activeVendor) {
-      setEditShopName(activeVendor.name);
+      setEditShopName(activeVendor.name || "");
       setEditOwnerName(activeVendor.ownerName || "");
       setEditLocation(activeVendor.location || "");
       setEditAvatar(activeVendor.avatar || "");
@@ -361,7 +363,18 @@ export default function VendorAdmin({
       setEditBankName(activeVendor.bankName || "");
       setEditAccountNumber(activeVendor.accountNumber || "");
     }
-  }, [activeVendor?.id]);
+  }, [
+    activeVendor?.id, 
+    activeVendor?.name, 
+    activeVendor?.ownerName, 
+    activeVendor?.location, 
+    activeVendor?.avatar, 
+    activeVendor?.cacNumber, 
+    activeVendor?.whatsappNumber, 
+    activeVendor?.bankName, 
+    activeVendor?.accountNumber,
+    showEditProfileModal
+  ]);
 
   const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -397,6 +410,8 @@ export default function VendorAdmin({
     if (onUpdateVendor) {
       onUpdateVendor({
         ...activeVendor,
+        userId: currentUserId || activeVendor.userId || activeVendor.user_id,
+        user_id: currentUserId || activeVendor.user_id || activeVendor.userId,
         name: editShopName,
         ownerName: editOwnerName,
         location: editLocation,

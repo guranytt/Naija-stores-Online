@@ -34,6 +34,28 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // Cache table columns dynamically to prevent sending invalid columns that crash requests
 const cachedColumns: Record<string, string[]> = {};
 
+const IS_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function ensureUUID(idValue: any): string {
+  if (!idValue) return "";
+  const idStr = String(idValue).trim();
+  if (IS_UUID_REGEX.test(idStr)) return idStr;
+  
+  // Generate a deterministic version 4-compliant UUID from the non-UUID string structure
+  let hash = 0;
+  for (let i = 0; i < idStr.length; i++) {
+    hash = (hash << 5) - hash + idStr.charCodeAt(i);
+    hash |= 0;
+  }
+  let hex = "";
+  for (let i = 0; i < 32; i++) {
+    const code = Math.abs(hash + i * 2654435761) % 16;
+    hex += code.toString(16);
+  }
+  hex = hex.substring(0, 12) + "4" + hex.substring(13, 16) + "a" + hex.substring(17);
+  return `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}`;
+}
+
 async function getTableColumns(tableName: string): Promise<string[]> {
   if (cachedColumns[tableName]) return cachedColumns[tableName];
   try {
@@ -302,6 +324,20 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       payload.customerName = record.customerName || "Customer";
       payload.status = record.status || "Processing";
       payload.value = Number(record.value || record.total_amount || 0);
+    }
+
+    // Keep UUID compliance for IDs and relevant foreign keys to prevent syntax crashes
+    if (payload.id && (tableName === "vendors" || tableName === "products" || tableName === "categories" || tableName === "orders")) {
+      payload.id = ensureUUID(payload.id);
+    }
+    if (payload.user_id) {
+      payload.user_id = ensureUUID(payload.user_id);
+    }
+    if (payload.vendor_id) {
+      payload.vendor_id = ensureUUID(payload.vendor_id);
+    }
+    if (payload.category_id) {
+      payload.category_id = ensureUUID(payload.category_id);
     }
 
     // Strip unsupported columns to avoid query failure
