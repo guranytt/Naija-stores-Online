@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Store, Mail, Lock, ChevronRight, Package, TrendingUp, ShieldCheck, Sparkles, AlertCircle, CheckCircle2, Landmark } from "lucide-react";
-import { supabase } from "../supabase";
+import { supabase, saveSupabaseRecord } from "../supabase";
 import { sendResendEmail } from "../emailService";
 
 interface VendorAuthProps {
@@ -82,10 +82,11 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
             stockAlerts: 0,
             email: email,
             phone: "+234 800 000 0000",
-            location: "Lagos Mainland, Lagos"
+            location: "Lagos Mainland, Lagos",
+            user_id: data.user?.id
           };
           
-          await supabase.from("vendors").upsert(newVendorEntry);
+          await saveSupabaseRecord("vendors", newVendorEntry);
         } catch (vErr) {
           console.warn("Could not insert vendor to tables, table might not be active yet.", vErr);
         }
@@ -94,20 +95,20 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
         try {
           await sendResendEmail({
             to: email,
-            type: "vendor_signup",
+            template_name: "welcome",
             data: {
-              vendorName: shopName || email.split("@")[0],
-              actionUrl: window.location.origin
+              firstName: shopName || email.split("@")[0],
+              customMessage: "Welcome to NaijaStores! Your vendor account has been created successfully."
             }
           });
 
           // Trigger confirmation email
           await sendResendEmail({
             to: email,
-            type: "confirm_email",
+            template_name: "email_verification",
             data: {
-              customerName: shopName || email.split("@")[0],
-              actionUrl: window.location.origin + "?login=true"
+              firstName: shopName || email.split("@")[0],
+              verificationLink: window.location.origin + "?login=true"
             }
           });
         } catch (e) {

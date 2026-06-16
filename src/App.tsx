@@ -62,6 +62,17 @@ export default function App() {
   const [vendorAuthenticated, setVendorAuthenticated] = useState<boolean>(false);
   const [selectedProductId, setSelectedProductId] = useState<string>("p1");
   const [initialCategory, setInitialCategory] = useState<string>("all");
+  const [searchFilter, setSearchFilter] = useState<string>("");
+  const shouldReduceMotion = useReducedMotion();
+  const [userEmail, setUserEmail] = useState<string>("adminnaijastoresonline@gmail.com");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
+  const [settingsDrawerOpen, setSettingsDrawerOpen] = useState<boolean>(false);
+
+  // Resend Automation states
+  const [mailLogs, setMailLogs] = useState<MailLogEntry[]>([]);
+  const [autoSendEmails, setAutoSendEmails] = useState<boolean>(true);
 
   // Router logic to interpret URL on first load and back/forward
   useEffect(() => {
@@ -367,7 +378,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Sync Supabase on initial render
+  // Sync Supabase on initial render and on auth state change
   useEffect(() => {
     async function initSupabase() {
       try {
@@ -413,7 +424,7 @@ export default function App() {
       }
     }
     initSupabase();
-  }, []);
+  }, [currentUserId]);
 
   // Set up real-time orders sync subscription
   useEffect(() => {
@@ -472,23 +483,18 @@ export default function App() {
 
   const handleUpdateVendor = (updatedVendor: Vendor) => {
     setVendors(prevVendors => {
-      const updated = prevVendors.map(v => v.id === updatedVendor.id ? updatedVendor : v);
+      const exists = prevVendors.some(v => v.id === updatedVendor.id);
+      let updated;
+      if (exists) {
+        updated = prevVendors.map(v => v.id === updatedVendor.id ? updatedVendor : v);
+      } else {
+        updated = [...prevVendors, updatedVendor];
+      }
       saveSupabaseRecord("vendors", updatedVendor);
       triggerToast(`Store profile updated successfully!`, "success");
       return updated;
     });
   };
-  const [searchFilter, setSearchFilter] = useState<string>("");
-  const shouldReduceMotion = useReducedMotion();
-  const [userEmail, setUserEmail] = useState<string>("adminnaijastoresonline@gmail.com");
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
-  const [settingsDrawerOpen, setSettingsDrawerOpen] = useState<boolean>(false);
-
-  // Resend Automation states
-  const [mailLogs, setMailLogs] = useState<MailLogEntry[]>([]);
-  const [autoSendEmails, setAutoSendEmails] = useState<boolean>(true);
 
   const updateMailLogs = async () => {
     const logs = await fetchEmailLogs();
@@ -1009,6 +1015,7 @@ export default function App() {
                 orders={orders}
                 products={products}
                 vendors={vendors}
+                currentUserId={currentUserId}
                 onUpdateVendor={handleUpdateVendor}
                 onReviewOrderFlag={handleReviewOrderFlag}
                 onAddNewProduct={handleAddNewProduct}

@@ -112,9 +112,13 @@ export default function Navbar({
             <div
               onClick={() => onNavigate("home")}
               className="flex items-center space-x-2 cursor-pointer select-none group"
+              itemScope
+              itemType="http://schema.org/Organization"
             >
+              <link itemProp="url" href="https://www.naijaonlinestores.com.ng" />
               <div className="w-10 h-10 rounded-xl bg-orange-500 overflow-hidden flex items-center justify-center font-extrabold text-white text-lg tracking-tighter group-hover:scale-105 transition-transform shadow-md border-2 border-orange-400">
                 <img
+                  itemProp="logo"
                   src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png"
                   alt="Naija Online Stores Logo"
                   className="w-full h-full object-cover"

@@ -20,6 +20,7 @@ interface VendorAdminProps {
   onAddNewProduct?: (product: Product) => void;
   vendors?: Vendor[];
   onUpdateVendor?: (updatedVendor: Vendor) => void;
+  currentUserId?: string | null;
   categories?: Category[];
   onUpdateCategories?: (categories: Category[]) => void;
   
@@ -51,6 +52,7 @@ export default function VendorAdmin({
   onToggleAutoSend = () => {},
   onRefreshMailLogs = () => {},
   userEmail = "adminnaijastoresonline@gmail.com",
+  currentUserId = null,
   categories = [],
   onUpdateCategories,
   flashDeals = [],
@@ -209,7 +211,7 @@ export default function VendorAdmin({
   const vendorsList = vendors && vendors.length > 0 ? vendors : [];
   const activeVendor = vendorsList.find(v => v.email?.toLowerCase() === userEmail?.toLowerCase()) || 
                        {
-                         id: "v_fallback",
+                         id: currentUserId || `v_${Date.now()}`,
                          name: "My Store",
                          ownerName: "Vendor Owner",
                          email: userEmail || "vendor@naijaonlinestores.com.ng",
@@ -1370,23 +1372,14 @@ export default function VendorAdmin({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Settlement Bank</label>
-                      <select
+                      <input
+                        type="text"
                         required
+                        placeholder="e.g. Access Bank"
                         value={editBankName}
                         onChange={(e) => setEditBankName(e.target.value)}
                         className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-medium"
-                      >
-                        <option value="">-- Select Bank --</option>
-                        <option value="Access Bank">Access Bank</option>
-                        <option value="Guaranty Trust Bank">Guaranty Trust Bank (GTB)</option>
-                        <option value="Zenith Bank">Zenith Bank</option>
-                        <option value="United Bank for Africa">United Bank for Africa (UBA)</option>
-                        <option value="Kuda MFB">Kuda Microfinance Bank</option>
-                        <option value="Moniepoint MFB">Moniepoint MFB</option>
-                        <option value="OPay">OPay</option>
-                        <option value="Wema Bank">Wema Bank (ALAT)</option>
-                        <option value="Fidelity Bank">Fidelity Bank</option>
-                      </select>
+                      />
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Settlement Account (NUBAN)</label>
