@@ -74,6 +74,62 @@ export default function App() {
   const [mailLogs, setMailLogs] = useState<MailLogEntry[]>([]);
   const [autoSendEmails, setAutoSendEmails] = useState<boolean>(true);
 
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = getCookie("naija_plaza_cart");
+      if (saved) {
+        return JSON.parse(decodeURIComponent(saved));
+      }
+    } catch (e) {
+      console.warn("Could not read cart from cookies: ", e);
+    }
+    return [];
+  });
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [categories, setCategories] = useState<Category[]>(() => {
+    try {
+      const saved = localStorage.getItem("NAIJA_CATEGORIES_STATE");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
+  const [activePolicy, setActivePolicy] = useState<"privacy" | "terms" | "shipping" | "refund" | null>(null);
+
+  // Durable Client State Persistence For Flash Deals
+  const [flashDeals, setFlashDeals] = useState<FlashDealProposal[]>(() => {
+    try {
+      const saved = localStorage.getItem("NAIJA_FLASH_DEALS_PROPOSALS");
+      return saved ? JSON.parse(saved) : [];
+    } catch (_) {
+      return [];
+    }
+  });
+
+  // Supabase Sync States
+  const [dbSyncStatus, setDbSyncStatus] = useState<{
+    connected: boolean;
+    syncedTables: string[];
+    vendorsSynced: boolean;
+    productsSynced: boolean;
+    ordersSynced: boolean;
+    loading: boolean;
+    error?: string;
+  }>({
+    connected: false,
+    syncedTables: [],
+    vendorsSynced: false,
+    productsSynced: false,
+    ordersSynced: false,
+    loading: true
+  });
+  const [copiedSql, setCopiedSql] = useState<boolean>(false);
+
   // Router logic to interpret URL on first load and back/forward
   useEffect(() => {
     const handleUrlChange = () => {
@@ -124,18 +180,6 @@ export default function App() {
        window.history.pushState({ screen: "home" }, "", "/");
     }
   }, [currentScreen, selectedProductId]);
-
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      const saved = getCookie("naija_plaza_cart");
-      if (saved) {
-        return JSON.parse(decodeURIComponent(saved));
-      }
-    } catch (e) {
-      console.warn("Could not read cart from cookies: ", e);
-    }
-    return [];
-  });
 
   // Automated cart-to-cookie synchronization effect
   useEffect(() => {
@@ -241,30 +285,6 @@ export default function App() {
     jsonLd.textContent = JSON.stringify(schemaObj);
     
   }, [currentScreen, selectedProductId]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [categories, setCategories] = useState<Category[]>(() => {
-    try {
-      const saved = localStorage.getItem("NAIJA_CATEGORIES_STATE");
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return [];
-  });
-
-  const [activePolicy, setActivePolicy] = useState<"privacy" | "terms" | "shipping" | "refund" | null>(null);
-
-  // Durable Client State Persistence For Flash Deals
-  const [flashDeals, setFlashDeals] = useState<FlashDealProposal[]>(() => {
-    try {
-      const saved = localStorage.getItem("NAIJA_FLASH_DEALS_PROPOSALS");
-      return saved ? JSON.parse(saved) : [];
-    } catch (_) {
-      return [];
-    }
-  });
 
   const handleProposeFlashDeal = (newProposal: FlashDealProposal) => {
     setFlashDeals(prev => {
@@ -298,25 +318,6 @@ export default function App() {
       console.error(e);
     }
   };
-
-  // Supabase Sync States
-  const [dbSyncStatus, setDbSyncStatus] = useState<{
-    connected: boolean;
-    syncedTables: string[];
-    vendorsSynced: boolean;
-    productsSynced: boolean;
-    ordersSynced: boolean;
-    loading: boolean;
-    error?: string;
-  }>({
-    connected: false,
-    syncedTables: [],
-    vendorsSynced: false,
-    productsSynced: false,
-    ordersSynced: false,
-    loading: true
-  });
-  const [copiedSql, setCopiedSql] = useState<boolean>(false);
 
   // Synchronize Supabase authentication state changes and roles
   useEffect(() => {
