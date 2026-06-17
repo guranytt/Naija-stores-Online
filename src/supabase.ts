@@ -146,8 +146,6 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
 
           let extraMetadata: any = {};
           if (item.business_description && item.business_description.trim().startsWith("{")) {
-  extraMetadata = JSON.parse(item.business_description);
-} {
             try {
               extraMetadata = JSON.parse(item.business_description);
             } catch (err) {

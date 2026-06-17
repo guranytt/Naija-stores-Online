@@ -718,7 +718,7 @@ export default function App() {
 
     try {
       // Save changes to Supabase
-     
+      await saveSupabaseRecord("vendors", resolvedVendor);
       triggerToast(`Store profile updated successfully!`, "success");
 
       // Re-fetch vendors from Supabase to guarantee total alignment and persistence
@@ -734,21 +734,15 @@ export default function App() {
           }
           return false;
         };
-       const nonMockVendors = dbVendors.filter(v => {
-  if (currentUserId && (v.user_id === currentUserId || v.userId === currentUserId || v.id === ensureUUID(currentUserId))) {
-    return true;  // ← add v.id check
-  }
-  if (v.bank_name || v.bankName || v.account_number || v.accountNumber || v.cac_number || v.cacNumber || v.whatsapp_number || v.whatsappNumber) {
-    return true;
-  }
-  return !isVendorIdMock(v.id);
-}); 
-          if (v.bankName || v.bank_name || v.accountNumber || v.account_number || v.cacNumber || v.cac_number || v.whatsappNumber || v.whatsapp_number) {
-  return true;
-}
+        const nonMockVendors = dbVendors.filter(v => {
+          if (currentUserId && (v.user_id === currentUserId || v.userId === currentUserId || v.id === ensureUUID(currentUserId))) {
+            return true;  // ← add v.id check
+          }
+          if (v.bank_name || v.bankName || v.account_number || v.accountNumber || v.cac_number || v.cacNumber || v.whatsapp_number || v.whatsappNumber) {
+            return true;
           }
           return !isVendorIdMock(v.id);
-        });
+        }); 
         setVendors(nonMockVendors);
       }
     } catch (err) {

@@ -89,6 +89,8 @@ export interface Vendor {
   location: string;
   cacNumber?: string;
   whatsappNumber?: string;
+  cac_number?: string;
+  whatsapp_number?: string;
   bankName?: string;
   accountNumber?: string;
   bank_name?: string;
