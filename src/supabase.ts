@@ -361,13 +361,32 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       payload = filteredPayload;
     }
 
+    if (tableName === "vendors") {
+      try {
+        const response = await fetch("/api/vendor/upsert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          console.warn(`Supabase: Failed to save record to ${tableName} via API:`, result.error);
+          return false;
+        }
+        return true;
+      } catch (err: any) {
+        console.warn(`Supabase: Exception calling API for ${tableName}:`, err);
+        return false;
+      }
+    }
+
     const { error } = await supabase.from(tableName).upsert(payload);
     if (error) {
       console.warn(`Supabase: Failed to save record to ${tableName}:`, error.message);
       return false;
     }
     return true;
-  } catch (err) {
+  } catch (err: any) {
     console.warn(`Supabase: Error in saveSupabaseRecord for ${tableName}:`, err);
     return false;
   }

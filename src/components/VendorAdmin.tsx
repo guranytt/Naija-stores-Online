@@ -221,7 +221,7 @@ export default function VendorAdmin({
     if (v.id === stableFallbackId) return true;
     return false;
   }) || {
-                         id: stableFallbackId,
+                         id: currentUserId ? ensureUUID(currentUserId) : stableFallbackId,
                          userId: currentUserId || undefined,
                          user_id: currentUserId || undefined,
                          name: "My Store",
@@ -422,7 +422,7 @@ export default function VendorAdmin({
     const compliantId = ensureUUID(activeVendor.id);
     const resolvedVendor: Vendor = {
       ...activeVendor,
-      id: compliantId,
+      id: currentUserId ? ensureUUID(currentUserId) : compliantId,
       userId: currentUserId ? ensureUUID(currentUserId) : (activeVendor.userId ? ensureUUID(activeVendor.userId) : (activeVendor.user_id ? ensureUUID(activeVendor.user_id) : undefined)),
       user_id: currentUserId ? ensureUUID(currentUserId) : (activeVendor.user_id ? ensureUUID(activeVendor.user_id) : (activeVendor.userId ? ensureUUID(activeVendor.userId) : undefined)),
       name: editShopName,
@@ -441,7 +441,7 @@ export default function VendorAdmin({
       // Immediately perform a direct PATCH/UPSERT operation to Supabase on submission
       const success = await saveSupabaseRecord("vendors", resolvedVendor);
       if (!success) {
-        throw new Error("Unable to save your store profile directly to Supabase sandbox database.");
+        throw new Error("Unable to save your store profile directly to the backend database.");
       }
 
       if (onUpdateVendor) {

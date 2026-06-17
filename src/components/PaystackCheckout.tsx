@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Lock, CreditCard, Landmark, ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
+import { X, Lock, CreditCard, Landmark, ArrowRight, CheckCircle2, ShieldCheck, AlertCircle } from "lucide-react";
 import { CartItem } from "../types";
 
 interface PaystackOptions {
@@ -51,6 +51,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
   const [paystackLoaded, setPaystackLoaded] = useState(false);
   const [paystackEnv, setPaystackEnv] = useState("test");
   const [createdOrder, setCreatedOrder] = useState<any>(null);
+  const [sdkError, setSdkError] = useState<string | null>(null);
 
   // Fetch configuration on load to show correct environment badge early
   useEffect(() => {
@@ -71,6 +72,11 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
 
   // Load Paystack Inline SDK dynamically
   useEffect(() => {
+    if ((window as any).PaystackPop) {
+      setPaystackLoaded(true);
+      return;
+    }
+
     const existingScript = document.getElementById("paystack-inline-js");
     if (existingScript) {
       setPaystackLoaded(true);
@@ -87,6 +93,12 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
     };
     script.onerror = () => {
       console.error("[PAYSTACK] Failed to load SDK script");
+      // Fallback
+      if ((window as any).PaystackPop) {
+        setPaystackLoaded(true);
+      } else {
+        setSdkError("Failed to load Paystack payment gateway. Please disable your adblocker or check your internet connection.");
+      }
     };
     document.body.appendChild(script);
   }, []);
@@ -513,6 +525,13 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
                   {step === "method" && (
                     <div className="space-y-3">
                       <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 text-left">Choose Payment Method</p>
+
+                      {sdkError && (
+                        <div className="text-[11px] text-red-600 bg-red-50 border border-red-100 rounded-lg p-2.5 flex items-start text-left mb-2">
+                          <AlertCircle className="w-4 h-4 mr-1.5 shrink-0" />
+                          <p>{sdkError}</p>
+                        </div>
+                      )}
 
                       {/* Real Live Sandbox Gateway Gateway Option */}
                       <motion.button
