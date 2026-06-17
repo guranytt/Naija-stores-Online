@@ -202,10 +202,22 @@ async function startServer() {
   // 3b. Paystack Secure Gateway Configuration and Verification
   app.get("/api/paystack/config", (req, res) => {
     try {
-      const paystackEnv = process.env.VITE_PAYSTACK_ENV || process.env.PAYSTACK_ENV || "test";
-      const testKey = process.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || "pk_test_ba74b4817ea9187f26c5cb4ffe0960d1dad0323c";
-      const liveKey = process.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY || process.env.PAYSTACK_LIVE_PUBLIC_KEY || "pk_live_be972002a14fdde6724589c1ab2ee451591c41fc";
+      let paystackEnv = (process.env.VITE_PAYSTACK_ENV || process.env.PAYSTACK_ENV || "test").trim();
+      let testKey = (process.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || "pk_test_ba74b4817ea9187f26c5cb4ffe0960d1dad0323c").trim();
+      let liveKey = (process.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY || process.env.PAYSTACK_LIVE_PUBLIC_KEY || "pk_live_be972002a14fdde6724589c1ab2ee451591c41fc").trim();
       
+      // Clean up wrapping quotes or trailing whitespaces
+      const cleanSecret = (str: string) => {
+        let s = str.trim();
+        if (s.startsWith('"') && s.endsWith('"')) s = s.slice(1, -1);
+        if (s.startsWith("'") && s.endsWith("'")) s = s.slice(1, -1);
+        return s.trim();
+      };
+
+      paystackEnv = cleanSecret(paystackEnv);
+      testKey = cleanSecret(testKey);
+      liveKey = cleanSecret(liveKey);
+
       const publicKey = paystackEnv === "live" ? liveKey : testKey;
       
       res.json({
@@ -363,8 +375,19 @@ async function startServer() {
     }
 
     const amount = Number(amountStr || 0);
-    const paystackEnv = process.env.VITE_PAYSTACK_ENV || process.env.PAYSTACK_ENV || "test";
-    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+    let paystackEnv = (process.env.VITE_PAYSTACK_ENV || process.env.PAYSTACK_ENV || "test").trim();
+    let secretKey = (process.env.PAYSTACK_SECRET_KEY || "").trim();
+
+    // Clean up wrapping quotes or trailing whitespaces
+    const cleanSecret = (str: string) => {
+      let s = str.trim();
+      if (s.startsWith('"') && s.endsWith('"')) s = s.slice(1, -1);
+      if (s.startsWith("'") && s.endsWith("'")) s = s.slice(1, -1);
+      return s.trim();
+    };
+
+    paystackEnv = cleanSecret(paystackEnv);
+    secretKey = cleanSecret(secretKey);
 
     console.log(`[PAYSTACK VERIFY SECURE] Reference: ${reference}, Expected Amount: ${amount}, Email: ${email}`);
 
@@ -528,7 +551,15 @@ async function startServer() {
 
   // Paystack Webhook endpoint to capture direct charge.success signals
   app.post("/api/paystack/webhook", async (req, res) => {
-    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+    let secretKey = (process.env.PAYSTACK_SECRET_KEY || "").trim();
+    if (secretKey.startsWith('"') && secretKey.endsWith('"')) {
+      secretKey = secretKey.slice(1, -1);
+    }
+    if (secretKey.startsWith("'") && secretKey.endsWith("'")) {
+      secretKey = secretKey.slice(1, -1);
+    }
+    secretKey = secretKey.trim();
+
     const signature = req.headers["x-paystack-signature"];
     
     console.log(`[PAYSTACK WEBHOOK] Event received: ${req.body?.event}`);
