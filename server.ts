@@ -484,10 +484,9 @@ async function startServer() {
         }
       }
 
-      const ALLOWED_VENDOR_KEYS = ['id', 'user_id', 'business_name', 'owner_name', 'business_description', 'logo_url', 'approval_status', 'bank_name', 'account_number', 'cac_number', 'whatsapp_number', 'phone', 'email', 'physical_location', 'is_verified'];
-      const safePayload = Object.fromEntries(Object.entries(payload).filter(([k]) => ALLOWED_VENDOR_KEYS.includes(k)));
-      const { data, error } = await supabaseAdmin.from("vendors").upsert(safePayload).select();
-      
+     const ALLOWED = ['id','user_id','business_name','owner_name','business_description','logo_url','approval_status','bank_name','account_number','cac_number','whatsapp_number','phone','email','physical_location','is_verified'];
+const safePayload = Object.fromEntries(Object.entries(payload).filter(([k]) => ALLOWED.includes(k)));
+const { data, error } = await supabaseAdmin.from("vendors").upsert(safePayload).select();
       if (error) {
         console.error("[SERVER] Error upserting vendor:", error);
         return res.status(500).json({ error: error.message });

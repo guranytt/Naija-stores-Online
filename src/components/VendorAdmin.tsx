@@ -433,8 +433,8 @@ export default function VendorAdmin({
       whatsappNumber: editWhatsapp,
       phone: editWhatsapp,
       email: userEmail || activeVendor.email || "",
-      bankName: editBankName,
-      accountNumber: editAccountNumber,
+     bank_name: editBankName,
+account_number: editAccountNumber,
     };
 
     try {
