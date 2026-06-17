@@ -578,14 +578,28 @@ export default function App() {
         // Load Vendors
         const { data: dbVendors, synced: vSynced, error: vError } = await getSupabaseData<Vendor>("vendors", []);
         if (dbVendors) {
-          const nonMockVendors = dbVendors.filter(v => !isVendorIdMock(v.id));
+          const nonMockVendors = dbVendors.filter(v => {
+            if (currentUserId && (v.user_id === currentUserId || v.userId === currentUserId)) {
+              return true;
+            }
+            if (v.bankName || v.accountNumber || v.cacNumber || v.whatsappNumber) {
+              return true;
+            }
+            return !isVendorIdMock(v.id);
+          });
           setVendors(nonMockVendors);
         }
 
         // Load Products
         const { data: dbProducts, synced: pSynced, error: pError } = await getSupabaseData<Product>("products", []);
         if (dbProducts) {
-          const nonMockProducts = dbProducts.filter(p => !isProductIdMock(p.id) && !isVendorIdMock(p.vendorId));
+          const nonMockProducts = dbProducts.filter(p => {
+            const isOurVendor = currentUserId && (p.vendorId === currentUserId || ensureUUID("v_heritage") === p.vendorId);
+            if (isOurVendor) {
+              return true;
+            }
+            return !isProductIdMock(p.id) && !isVendorIdMock(p.vendorId);
+          });
           setProducts(nonMockProducts);
         }
 
@@ -720,7 +734,15 @@ export default function App() {
           }
           return false;
         };
-        const nonMockVendors = dbVendors.filter(v => !isVendorIdMock(v.id));
+         const nonMockVendors = dbVendors.filter(v => {
+          if (currentUserId && (v.user_id === currentUserId || v.userId === currentUserId)) {
+            return true;
+          }
+          if (v.bankName || v.accountNumber || v.cacNumber || v.whatsappNumber) {
+            return true;
+          }
+          return !isVendorIdMock(v.id);
+        });
         setVendors(nonMockVendors);
       }
     } catch (err) {
