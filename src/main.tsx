@@ -6,6 +6,7 @@ import './index.css';
 
 Sentry.init({
   dsn: "https://a68848c350e9185df733bf879936e1a9@o4511534518435840.ingest.de.sentry.io/4511534529183824",
+  release: import.meta.env.VITE_APP_VERSION,
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.replayIntegration(),

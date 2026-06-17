@@ -91,6 +91,8 @@ export interface Vendor {
   whatsappNumber?: string;
   bankName?: string;
   accountNumber?: string;
+  bank_name?: string;
+  account_number?: string;
   userId?: string;
   user_id?: string;
 }

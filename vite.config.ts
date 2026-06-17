@@ -2,6 +2,16 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
+import {execSync} from 'child_process';
+
+// Generate dynamic version code from Git repository
+let gitVersion = '0.0.0';
+try {
+  gitVersion = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+} catch (e) {
+  // Graceful fallback when .git does not exist
+}
+process.env.VITE_APP_VERSION = process.env.VITE_APP_VERSION || gitVersion;
 
 export default defineConfig(() => {
   return {
