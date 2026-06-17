@@ -71,7 +71,7 @@ async function getTableColumns(tableName: string): Promise<string[]> {
   const fallbacks: Record<string, string[]> = {
     categories: ['id', 'name', 'slug', 'image_url'],
     products: ['id', 'vendor_id', 'category_id', 'name', 'slug', 'description', 'price', 'discount_price', 'stock_quantity', 'featured', 'status', 'created_at'],
-    vendors: ['id', 'user_id', 'business_name', 'owner_name', 'business_description', 'logo_url', 'approval_status', 'created_at', 'bank_name', 'account_number', 'bankName', 'accountNumber', 'cac_number', 'whatsapp_number', 'phone', 'email', 'physical_location', 'is_verified'],
+    vendors: ['id', 'user_id', 'business_name', 'owner_name', 'business_description', 'logo_url', 'approval_status', 'created_at', 'bank_name', 'account_number', 'cac_number', 'whatsapp_number', 'phone', 'email', 'physical_location', 'is_verified'],
     orders: ['id', 'user_id', 'total_amount', 'order_status', 'payment_status', 'shipping_address', 'created_at']
   };
   return fallbacks[tableName] || [];
