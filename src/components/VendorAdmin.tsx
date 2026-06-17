@@ -437,6 +437,12 @@ export default function VendorAdmin({
       accountNumber: editAccountNumber,
       bank_name: editBankName,
       account_number: editAccountNumber,
+      business_name: editShopName,
+owner_name: editOwnerName,
+physical_location: editLocation,
+logo_url: editAvatar,
+cac_number: editCacNumber,
+whatsapp_number: editWhatsapp
     };
 
     try {
