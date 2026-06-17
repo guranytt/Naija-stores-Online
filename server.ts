@@ -484,34 +484,9 @@ async function startServer() {
         }
       }
 
-      // Safe columns list directly mapping to public.vendors physical schema
-      const ALLOWED_VENDOR_COLUMNS = [
-        "id",
-        "user_id",
-        "business_name",
-        "owner_name",
-        "business_description",
-        "logo_url",
-        "approval_status",
-        "bank_name",
-        "account_number",
-        "cac_number",
-        "whatsapp_number",
-        "phone",
-        "email",
-        "physical_location",
-        "is_verified",
-        "created_at"
-      ];
-
-      const cleanedPayload: any = {};
-      ALLOWED_VENDOR_COLUMNS.forEach((col) => {
-        if (payload[col] !== undefined) {
-          cleanedPayload[col] = payload[col];
-        }
-      });
-      
-      const { data, error } = await supabaseAdmin.from("vendors").upsert(cleanedPayload).select();
+      const ALLOWED_VENDOR_KEYS = ['id', 'user_id', 'business_name', 'owner_name', 'business_description', 'logo_url', 'approval_status', 'bank_name', 'account_number', 'cac_number', 'whatsapp_number', 'phone', 'email', 'physical_location', 'is_verified'];
+      const safePayload = Object.fromEntries(Object.entries(payload).filter(([k]) => ALLOWED_VENDOR_KEYS.includes(k)));
+      const { data, error } = await supabaseAdmin.from("vendors").upsert(safePayload).select();
       
       if (error) {
         console.error("[SERVER] Error upserting vendor:", error);

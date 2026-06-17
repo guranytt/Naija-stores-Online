@@ -105,6 +105,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
 
     if (data && data.length > 0) {
       const parsedData = data.map((item: any) => {
+        if (!item) return null;
         if (tableName === "products") {
           const title = item.name || item.title || "Naija Choice Product";
           const description = item.description || "";

@@ -66,6 +66,7 @@ export default function App() {
   const shouldReduceMotion = useReducedMotion();
   const [userEmail, setUserEmail] = useState<string>("adminnaijastoresonline@gmail.com");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState<boolean>(false);
   const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState<boolean>(false);
@@ -498,6 +499,7 @@ export default function App() {
         const uEmail = session.user.email || "shopper@example.com";
         setUserEmail(uEmail);
         setCurrentUserId(session.user.id);
+        setAuthReady(true);
         const role = session.user.user_metadata?.role || "customer";
         if (role === "vendor" || role === "admin" || uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com") {
           setVendorAuthenticated(true);
@@ -506,6 +508,7 @@ export default function App() {
         }
       } else {
         setCurrentUserId(null);
+        setAuthReady(true);
       }
     }).catch(err => {
       console.warn("[SUPABASE GETSESSION] Failed to restore session on initialization:", err);
@@ -1091,6 +1094,17 @@ export default function App() {
   };
 
   const linkedProducts = products;
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans antialiased text-slate-500">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-medium">Loading session state...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans select-none antialiased">
