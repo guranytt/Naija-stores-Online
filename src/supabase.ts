@@ -143,10 +143,25 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
         if (tableName === "vendors") {
           const name = item.business_name || item.name || "Naija Store Merchant";
           const avatar = item.logo_url || item.avatar || "";
-          const bankName = item.bank_name || item.bankName || "";
-          const accountNumber = item.account_number || item.accountNumber || "";
-          const physicalLocation = item.physical_location || item.physicalLocation || item.location || "";
-          const phone = item.phone || item.whatsapp_number || item.whatsappNumber || "+234 800 000 0000";
+
+          let extraMetadata: any = {};
+          if (item.business_description && item.business_description.trim().startsWith("{")) {
+            try {
+              extraMetadata = JSON.parse(item.business_description);
+            } catch (err) {
+              console.warn("Could not parse JSON metadata from business_description:", err);
+            }
+          }
+
+          const descriptionVal = extraMetadata.business_description || item.business_description || "";
+          const bankName = extraMetadata.bank_name || item.bank_name || item.bankName || "";
+          const accountNumber = extraMetadata.account_number || item.account_number || item.accountNumber || "";
+          const physicalLocation = extraMetadata.physical_location || item.physical_location || item.physicalLocation || item.location || "";
+          const whatsappNumber = extraMetadata.whatsapp_number || item.whatsapp_number || item.whatsappNumber || "";
+          const cacNumber = extraMetadata.cac_number || item.cac_number || item.cacNumber || "";
+          const isVerified = extraMetadata.is_verified !== undefined ? extraMetadata.is_verified : (item.is_verified || item.isVerified || false);
+
+          const phone = item.phone || whatsappNumber || item.whatsapp_number || item.whatsappNumber || "+234 800 000 0000";
           const email = item.email || (item.users as any)?.email || "";
           return {
             ...item,
@@ -159,14 +174,15 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
             stockAlerts: item.stock_alerts || item.stockAlerts || 0,
             bankName,
             accountNumber,
-            cacNumber: item.cac_number || item.cacNumber || "",
-            whatsappNumber: item.whatsapp_number || item.whatsappNumber || "",
+            cacNumber,
+            whatsappNumber,
             physicalLocation,
             location: physicalLocation,
-            isVerified: item.is_verified || item.isVerified || false,
+            isVerified,
             phone,
             email,
             ownerName: item.owner_name || item.ownerName || "",
+            business_description: descriptionVal,
           };
         }
         if (tableName === "categories") {
@@ -364,10 +380,28 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
 
     if (tableName === "vendors") {
       try {
+        const apiPayload = {
+          ...payload,
+          bankName: record.bankName || record.bank_name,
+          accountNumber: record.accountNumber || record.account_number,
+          cacNumber: record.cacNumber || record.cac_number,
+          whatsappNumber: record.whatsappNumber || record.whatsapp_number,
+          location: record.location || record.physicalLocation || record.physical_location,
+          isVerified: record.isVerified !== undefined ? record.isVerified : record.is_verified,
+          description: record.description || record.business_description,
+          bank_name: record.bankName || record.bank_name,
+          account_number: record.accountNumber || record.account_number,
+          cac_number: record.cacNumber || record.cac_number,
+          whatsapp_number: record.whatsappNumber || record.whatsapp_number,
+          physical_location: record.location || record.physicalLocation || record.physical_location,
+          is_verified: record.isVerified !== undefined ? record.isVerified : record.is_verified,
+          business_description: record.description || record.business_description
+        };
+
         const response = await fetch("/api/vendor/upsert", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(apiPayload)
         });
         const result = await response.json();
         if (!response.ok || !result.success) {

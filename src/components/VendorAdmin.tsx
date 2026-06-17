@@ -669,10 +669,11 @@ export default function VendorAdmin({
                       (e.target as HTMLImageElement).style.display = "none";
                     }}
                   />
-                ) : null}
-                <div className="w-14 h-14 rounded-full bg-orange-100 text-orange-600 font-black text-lg flex items-center justify-center border-2 border-orange-500 shadow-sm uppercase">
-                  {activeVendor.name.charAt(0)}
-                </div>
+                ) : (
+                  <div className="w-14 h-14 rounded-full bg-orange-100 text-orange-600 font-black text-lg flex items-center justify-center border-2 border-orange-500 shadow-sm uppercase">
+                    {activeVendor.name.charAt(0)}
+                  </div>
+                )}
                 {/* Micro hover interaction badge */}
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-neutral-900 border border-white text-white rounded-full flex items-center justify-center text-[10px] shadow-xs">
                   ⚙️
@@ -770,6 +771,76 @@ export default function VendorAdmin({
                 <span>Verified by {vendorRatingCount} customers</span>
               </p>
             </div>
+          </div>
+
+          {/* Brand Settlement & Verification Details */}
+          <div className="bg-white border border-neutral-150 rounded-2xl p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-50 pb-3">
+              <div className="text-left">
+                <h3 className="font-extrabold text-neutral-900 text-sm tracking-tight flex items-center space-x-2">
+                  <span>Merchant Trust, Settlement & Onboarding Profile</span>
+                  {activeVendor.isVerified ? (
+                    <span className="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-2 py-0.5 rounded border border-emerald-100 flex items-center space-x-1">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
+                      <span>Verified Live</span>
+                    </span>
+                  ) : (
+                    <span className="bg-amber-50 text-amber-700 text-[10px] font-extrabold px-2 py-0.5 rounded border border-amber-100 flex items-center space-x-1">
+                      <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                      <span>Verification Pending</span>
+                    </span>
+                  )}
+                </h3>
+                <p className="text-[10px] font-semibold text-neutral-400">Verifiable credentials and direct deposit accounts</p>
+              </div>
+              <button 
+                onClick={() => setShowEditProfileModal(true)}
+                className="text-[11px] bg-orange-50 hover:bg-orange-100 text-orange-600 font-extrabold px-3 py-1.5 rounded-xl border border-orange-150"
+              >
+                ✏️ Edit Brand Credentials
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
+              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 text-left">
+                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Settlement Destination</p>
+                <div className="mt-1.5 space-y-0.5">
+                  <p className="text-xs font-bold text-neutral-800">{activeVendor.bankName || "Not Provided"}</p>
+                  <p className="text-xs font-mono font-medium text-neutral-500 tracking-wider">Acct: {activeVendor.accountNumber || "Not Provided"}</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 text-left">
+                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest font-sans">Business Trust Seal</p>
+                <div className="mt-1.5 space-y-0.5">
+                  <p className="text-xs font-bold text-neutral-800">CAC Code & Legitimacy</p>
+                  <p className="text-xs font-mono font-medium text-neutral-500">Reg: {activeVendor.cacNumber || "Not Registered"}</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 text-left">
+                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest font-sans">Authorized Contact</p>
+                <div className="mt-1.5 space-y-0.5">
+                  <p className="text-xs font-bold text-neutral-800">WhatsApp Sales Mobile</p>
+                  <p className="text-xs font-mono font-medium text-neutral-500">WA: {activeVendor.whatsappNumber || "Not Coupled"}</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 text-left">
+                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest font-sans">Corporate Ownership</p>
+                <div className="mt-1.5 space-y-0.5">
+                  <p className="text-xs font-bold text-neutral-800">{activeVendor.ownerName || "Not Configured"}</p>
+                  <p className="text-xs font-medium text-neutral-500 truncate">{activeVendor.email || "Not Bound"}</p>
+                </div>
+              </div>
+            </div>
+
+            {activeVendor.business_description && (
+              <div className="p-3 bg-orange-50/45 rounded-xl border border-orange-100/40 text-left mt-2">
+                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">Store Overview Statement</p>
+                <p className="text-xs mt-1 text-neutral-600 font-medium leading-relaxed italic">"{activeVendor.business_description}"</p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

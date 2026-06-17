@@ -95,6 +95,8 @@ export interface Vendor {
   account_number?: string;
   userId?: string;
   user_id?: string;
+  isVerified?: boolean;
+  business_description?: string;
 }
 
 export interface Order {

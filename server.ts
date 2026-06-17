@@ -485,9 +485,35 @@ async function startServer() {
         }
       }
 
-     const ALLOWED = ['id','user_id','business_name','owner_name','business_description','logo_url','approval_status','bank_name','account_number','cac_number','whatsapp_number','phone','email','physical_location','is_verified'];
-const safePayload = Object.fromEntries(Object.entries(payload).filter(([k]) => ALLOWED.includes(k)));
-const { data, error } = await supabaseAdmin.from("vendors").upsert(safePayload).select();
+      const PHYSICAL_VENDOR_KEYS = ['id', 'user_id', 'business_name', 'owner_name', 'logo_url', 'approval_status', 'phone', 'email'];
+      
+      const extraMetadata = {
+        bank_name: payload.bank_name || payload.bankName,
+        account_number: payload.account_number || payload.accountNumber,
+        cac_number: payload.cac_number || payload.cacNumber,
+        whatsapp_number: payload.whatsapp_number || payload.whatsappNumber,
+        physical_location: payload.physical_location || payload.physicalLocation || payload.location,
+        is_verified: payload.is_verified !== undefined ? payload.is_verified : payload.isVerified,
+        business_description: payload.business_description || payload.description || ""
+      };
+
+      const finalPayload: any = {};
+      PHYSICAL_VENDOR_KEYS.forEach((k) => {
+        if (payload[k] !== undefined) {
+          finalPayload[k] = payload[k];
+        }
+      });
+
+      if (payload.name && !finalPayload.business_name) {
+        finalPayload.business_name = payload.name;
+      }
+      if (payload.avatar && !finalPayload.logo_url) {
+        finalPayload.logo_url = payload.avatar;
+      }
+
+      finalPayload.business_description = JSON.stringify(extraMetadata);
+
+      const { data, error } = await supabaseAdmin.from("vendors").upsert(finalPayload).select();
       if (error) {
         console.error("[SERVER] Error upserting vendor:", error);
         return res.status(500).json({ error: error.message });
