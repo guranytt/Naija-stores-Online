@@ -144,32 +144,28 @@ export async function sendVendorApproval(to: string, businessName: string) {
 }
 
 /**
- * Fetch logs directly from Supabase email_logs table
+ * Fetch logs securely through our Node.js proxy to avoid PGRST205 / missing table schema errors in client cache.
  */
 export async function fetchEmailLogs(): Promise<any[]> {
   try {
-    const { data, error } = await supabase
-      .from("email_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-      
-    if (error) {
-      console.warn("Error fetching email logs:", error);
-      return [];
+    const response = await fetch("/api/resend/logs");
+    if (!response.ok) {
+      throw new Error(`Proxy log query returned non-ok status: ${response.status}`);
     }
+    const json = await response.json();
+    const logs = json.logs || [];
     
-    // Map to a frontend friendly format for legacy fallback support
-    return (data || []).map(log => ({
+    // Map to a frontend friendly format with support for all variations of DB/local schemas
+    return logs.map((log: any) => ({
       id: log.id,
-      to: log.email,
-      type: log.template_name,
-      status: log.status === 'sent' ? 'Delivered' : log.status === 'failed' ? 'Failed' : 'Simulated',
-      timestamp: log.created_at,
-      error: log.error_message
+      to: log.recipient || log.email || "recipient@example.com",
+      type: log.type || log.template_name || "Notification",
+      status: log.status === 'sent' || log.status === 'Delivered' ? 'Delivered' : (log.status === 'failed' || log.status === 'Failed' ? 'Failed' : 'Simulated'),
+      timestamp: log.created_at || log.timestamp || new Date().toISOString(),
+      error: log.error_message || log.error || null
     }));
-  } catch (err) {
-    console.error("Exception fetching email logs:", err);
+  } catch (err: any) {
+    console.warn("[FETCH MAIL LOGS CLIENT] Proxy fetch bypassed/failed (simulation fallback initiated). Detail:", err.message || err);
     return [];
   }
 }

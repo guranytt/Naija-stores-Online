@@ -738,8 +738,9 @@ export default function App() {
           if (currentUserId && (v.user_id === currentUserId || v.userId === currentUserId)) {
             return true;
           }
-          if (v.bankName || v.accountNumber || v.cacNumber || v.whatsappNumber) {
-            return true;
+          if (v.bankName || v.bank_name || v.accountNumber || v.account_number || v.cacNumber || v.cac_number || v.whatsappNumber || v.whatsapp_number) {
+  return true;
+}
           }
           return !isVendorIdMock(v.id);
         });

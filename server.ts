@@ -161,15 +161,18 @@ async function startServer() {
     }
   });
 
-  // 2. Return compiled mail dispatch logging entries from Database
+  // 2. Return compiled mail dispatch logging entries from Database or Local Backup Fallback
   app.get("/api/resend/logs", async (req, res) => {
     try {
       const { data, error } = await supabaseAdmin.from("email_logs").select("*").order("created_at", { ascending: false }).limit(100);
-      if (error) throw error;
-      res.json({ logs: data });
+      if (error) {
+        console.log("[Mail Service] Using local backup cache for email logs visualization.");
+        return res.json({ logs: emailService.fetchLocalEmailLogs() });
+      }
+      res.json({ logs: data || [] });
     } catch (e: any) {
-      // Fallback
-      res.json({ logs: [] });
+      console.log("[Mail Service] Falling back to local offline journal storage.");
+      res.json({ logs: emailService.fetchLocalEmailLogs() });
     }
   });
 

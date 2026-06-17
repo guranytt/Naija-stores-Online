@@ -146,6 +146,8 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
 
           let extraMetadata: any = {};
           if (item.business_description && item.business_description.trim().startsWith("{")) {
+  extraMetadata = JSON.parse(item.business_description);
+} {
             try {
               extraMetadata = JSON.parse(item.business_description);
             } catch (err) {
@@ -220,7 +222,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
             customerName: parsedMeta.customerName || customerName,
             value,
             status,
-            trackingId: parsedMeta.trackingId || item.trackingId || "TRACK-" + Math.floor(Math.random() * 90000 + 10000),
+           trackingId: parsedMeta.trackingId || item.trackingId || "",
             routeFrom: parsedMeta.routeFrom || item.routeFrom || "Lagos",
             routeTo: parsedMeta.routeTo || item.routeTo || "Abuja",
             deliveryProgress: parsedMeta.deliveryProgress !== undefined ? parsedMeta.deliveryProgress : (item.deliveryProgress || 0),

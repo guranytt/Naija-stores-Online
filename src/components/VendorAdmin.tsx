@@ -420,7 +420,7 @@ export default function VendorAdmin({
     setSaveProfileError(null);
 
     const compliantId = ensureUUID(activeVendor.id);
-    const resolvedVendor: Vendor = {
+     const resolvedVendor: Vendor = {
       ...activeVendor,
       id: currentUserId ? ensureUUID(currentUserId) : compliantId,
       userId: currentUserId ? ensureUUID(currentUserId) : (activeVendor.userId ? ensureUUID(activeVendor.userId) : (activeVendor.user_id ? ensureUUID(activeVendor.user_id) : undefined)),
