@@ -734,15 +734,19 @@ export default function App() {
           }
           return false;
         };
-        const nonMockVendors = dbVendors.filter(v => {
-          if (currentUserId && (v.user_id === currentUserId || v.userId === currentUserId || v.id === ensureUUID(currentUserId))) {
-            return true;  // ← add v.id check
-          }
-          if (v.bank_name || v.bankName || v.account_number || v.accountNumber || v.cac_number || v.cacNumber || v.whatsapp_number || v.whatsappNumber) {
-            return true;
-          }
-          return !isVendorIdMock(v.id);
-        }); 
+     const nonMockVendors = dbVendors.filter(v => {
+  if (currentUserId && (
+    v.user_id === currentUserId || 
+    v.userId === currentUserId || 
+    v.id === ensureUUID(currentUserId)  // ← ADD THIS LINE
+  )) {
+    return true;
+  }
+  if (v.bank_name || v.bankName || v.account_number || v.accountNumber || v.cac_number || v.cacNumber || v.whatsapp_number || v.whatsappNumber) {
+    return true;
+  }
+  return !isVendorIdMock(v.id);
+});
         setVendors(nonMockVendors);
       }
     } catch (err) {
