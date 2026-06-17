@@ -422,7 +422,7 @@ export default function VendorAdmin({
     const compliantId = ensureUUID(activeVendor.id);
      const resolvedVendor: Vendor = {
       ...activeVendor,
-      id: currentUserId ? ensureUUID(currentUserId) : compliantId,
+     id: compliantId,  // keep the vendor's own ID
       userId: currentUserId ? ensureUUID(currentUserId) : (activeVendor.userId ? ensureUUID(activeVendor.userId) : (activeVendor.user_id ? ensureUUID(activeVendor.user_id) : undefined)),
       user_id: currentUserId ? ensureUUID(currentUserId) : (activeVendor.user_id ? ensureUUID(activeVendor.user_id) : (activeVendor.userId ? ensureUUID(activeVendor.userId) : undefined)),
       name: editShopName,
