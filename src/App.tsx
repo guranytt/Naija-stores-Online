@@ -718,7 +718,7 @@ export default function App() {
 
     try {
       // Save changes to Supabase
-      await saveSupabaseRecord("vendors", resolvedVendor);
+     
       triggerToast(`Store profile updated successfully!`, "success");
 
       // Re-fetch vendors from Supabase to guarantee total alignment and persistence
