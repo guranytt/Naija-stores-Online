@@ -99,6 +99,11 @@ export interface Vendor {
   user_id?: string;
   isVerified?: boolean;
   business_description?: string;
+  description?: string;
+  business_name?: string;
+  owner_name?: string;
+  physical_location?: string;
+  logo_url?: string;
 }
 
 export interface Order {

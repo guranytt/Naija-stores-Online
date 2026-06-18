@@ -15,6 +15,7 @@ import { saveSupabaseRecord, ensureUUID } from "../supabase";
 
 
 interface VendorAdminProps {
+  key?: string;
   orders: Order[];
   onReviewOrderFlag: (orderId: string, status: Order["status"]) => void;
   products: Product[];
@@ -192,6 +193,7 @@ export default function VendorAdmin({
   // States for updating vendor profile and branding picture
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editShopName, setEditShopName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const [editOwnerName, setEditOwnerName] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editAvatar, setEditAvatar] = useState("");
@@ -214,11 +216,12 @@ export default function VendorAdmin({
   const vendorsList = vendors && vendors.length > 0 ? vendors : [];
   const stableFallbackId = currentUserId || (userEmail ? `v_fallback_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}` : "v_fallback_temp");
   const activeVendor = vendorsList.find(v => {
-    if (v.user_id && currentUserId && String(v.user_id).toLowerCase() === String(currentUserId).toLowerCase()) return true;
-    if (v.userId && currentUserId && String(v.userId).toLowerCase() === String(currentUserId).toLowerCase()) return true;
+    // Prioritize correct deterministic identification comparisons (such as UUID conversions) to match edited records exactly.
+    if (v.id && (v.id === stableFallbackId || v.id === ensureUUID(stableFallbackId))) return true;
+    if (v.id && currentUserId && (String(v.id).toLowerCase() === String(currentUserId).toLowerCase() || v.id === ensureUUID(currentUserId))) return true;
+    if (v.user_id && currentUserId && (String(v.user_id).toLowerCase() === String(currentUserId).toLowerCase() || ensureUUID(v.user_id) === ensureUUID(currentUserId))) return true;
+    if (v.userId && currentUserId && (String(v.userId).toLowerCase() === String(currentUserId).toLowerCase() || ensureUUID(v.userId) === ensureUUID(currentUserId))) return true;
     if (v.email && userEmail && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) return true;
-    if (v.id && currentUserId && String(v.id).toLowerCase() === String(currentUserId).toLowerCase()) return true;
-    if (v.id === stableFallbackId) return true;
     return false;
   }) || {
                          id: currentUserId ? ensureUUID(currentUserId) : stableFallbackId,
@@ -364,6 +367,7 @@ export default function VendorAdmin({
   React.useEffect(() => {
     if (activeVendor) {
       setEditShopName(activeVendor.name || "");
+      setEditDescription(activeVendor.business_description || activeVendor.description || "");
       setEditOwnerName(activeVendor.ownerName || "");
       setEditLocation(activeVendor.location || "");
       setEditAvatar(activeVendor.avatar || "");
@@ -375,6 +379,8 @@ export default function VendorAdmin({
   }, [
     activeVendor?.id, 
     activeVendor?.name, 
+    activeVendor?.business_description,
+    activeVendor?.description,
     activeVendor?.ownerName, 
     activeVendor?.location, 
     activeVendor?.avatar, 
@@ -442,7 +448,9 @@ owner_name: editOwnerName,
 physical_location: editLocation,
 logo_url: editAvatar,
 cac_number: editCacNumber,
-whatsapp_number: editWhatsapp
+whatsapp_number: editWhatsapp,
+business_description: editDescription,
+description: editDescription
     };
 
     try {
@@ -1463,6 +1471,16 @@ whatsapp_number: editWhatsapp
                       onChange={(e) => setEditShopName(e.target.value)}
                       placeholder="e.g. Balogun Trendsetters"
                       className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Store Description / Motto</label>
+                    <textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      placeholder="e.g. Elegant styles directly sourced from high quality weavers in Lagos"
+                      className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-medium h-16 resize-none"
                     />
                   </div>
 

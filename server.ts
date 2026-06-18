@@ -479,19 +479,29 @@ async function startServer() {
       
       // Ensure payload.id is a valid UUID
       if (!UUID_REGEX.test(payload.id)) {
-        // If it's a fallback string like "v_heritage", convert deterministically or randomize
-        let hash = 0;
+        // High-fidelity deterministic prime hash wheel to prevent modulo-16 entropy squashing collisions
         const idStr = String(payload.id);
+        let h1 = 0xdeadbeef;
+        let h2 = 0x41c64e6d;
+        let h3 = 0x12345678;
+        let h4 = 0x9abcdef0;
+        
         for (let i = 0; i < idStr.length; i++) {
-          hash = (hash << 5) - hash + idStr.charCodeAt(i);
-          hash |= 0;
+          const char = idStr.charCodeAt(i);
+          h1 = Math.imul(h1 ^ char, 2654435761);
+          h2 = Math.imul(h2 ^ char, 1597334677);
+          h3 = Math.imul(h3 ^ char, 3812030037);
+          h4 = Math.imul(h4 ^ char, 4294967291);
         }
-        let hex = "";
-        for (let i = 0; i < 32; i++) {
-          const code = Math.abs(hash + i * 2654435761) % 16;
-          hex += code.toString(16);
-        }
-        payload.id = `${hex.substring(0,8)}-${hex.substring(8,12)}-4${hex.substring(13,16)}-a${hex.substring(17,20)}-${hex.substring(20,32)}`;
+        
+        const toHex = (n: number) => {
+          const u = n >>> 0;
+          return u.toString(16).padStart(8, '0');
+        };
+        
+        let hex = toHex(h1) + toHex(h2) + toHex(h3) + toHex(h4);
+        hex = hex.substring(0, 12) + "4" + hex.substring(13, 16) + "a" + hex.substring(17);
+        payload.id = `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}`;
       }
 
       // Ensure payload.user_id is a valid UUID and exists in users table
@@ -499,45 +509,96 @@ async function startServer() {
         if (!UUID_REGEX.test(payload.user_id)) {
           payload.user_id = null;
         } else {
-          const { data: userExists, error: userCheckError } = await supabaseAdmin
-            .from("users")
-            .select("id")
-            .eq("id", payload.user_id)
-            .maybeSingle();
-            
-          if (userCheckError || !userExists) {
+          try {
+            const { data: userExists, error: userCheckError } = await supabaseAdmin
+              .from("users")
+              .select("id")
+              .eq("id", payload.user_id)
+              .maybeSingle();
+              
+            if (userCheckError || !userExists) {
+              // Automatically provision a user row in public.users to prevent foreign key errors
+              const defaultUserObj = {
+                id: payload.user_id,
+                full_name: payload.ownerName || payload.owner_name || payload.business_name || payload.name || "Naija Merchant",
+                email: payload.email || `vendor_${payload.user_id.substring(0,8)}@example.com`,
+                role: 'vendor'
+              };
+              
+              const { error: insertUserError } = await supabaseAdmin
+                .from("users")
+                .upsert(defaultUserObj);
+              
+              if (insertUserError) {
+                console.error("[SERVER] Failed to auto-provision user in public.users:", insertUserError);
+                payload.user_id = null;
+              }
+            }
+          } catch (err) {
+            console.error("[SERVER] Exception during auto-provisioning check:", err);
             payload.user_id = null;
           }
         }
       }
 
-      const PHYSICAL_VENDOR_KEYS = ['id', 'user_id', 'business_name', 'owner_name', 'logo_url', 'approval_status', 'phone', 'email'];
-      
+      // Dynamically probe the table columns to support backward compatibility with incomplete schemas
+      let dbColumns: string[] = ['id', 'user_id', 'business_name', 'owner_name', 'business_description', 'logo_url', 'approval_status', 'phone', 'email', 'created_at'];
+      try {
+        const { data: colsSample, error: colsErr } = await supabaseAdmin.from("vendors").select("*").limit(1);
+        if (!colsErr && colsSample && colsSample.length > 0) {
+          dbColumns = Object.keys(colsSample[0]);
+        }
+      } catch (colErr) {
+        console.warn("[SERVER] Exception fetching vendors table columns:", colErr);
+      }
+
       const extraMetadata = {
-        bank_name: payload.bank_name || payload.bankName,
-        account_number: payload.account_number || payload.accountNumber,
-        cac_number: payload.cac_number || payload.cacNumber,
-        whatsapp_number: payload.whatsapp_number || payload.whatsappNumber,
-        physical_location: payload.physical_location || payload.physicalLocation || payload.location,
-        is_verified: payload.is_verified !== undefined ? payload.is_verified : payload.isVerified,
+        bank_name: payload.bank_name || payload.bankName || "",
+        account_number: payload.account_number || payload.accountNumber || "",
+        cac_number: payload.cac_number || payload.cacNumber || "",
+        whatsapp_number: payload.whatsapp_number || payload.whatsappNumber || "",
+        physical_location: payload.physical_location || payload.physicalLocation || payload.location || "",
+        is_verified: payload.is_verified !== undefined ? payload.is_verified : (payload.isVerified !== undefined ? payload.isVerified : false),
         business_description: payload.business_description || payload.description || ""
       };
 
       const finalPayload: any = {};
-      PHYSICAL_VENDOR_KEYS.forEach((k) => {
-        if (payload[k] !== undefined) {
-          finalPayload[k] = payload[k];
+      
+      // Crucial: Serialize ALL metadata to JSON business_description. The client-side mapping in src/supabase.ts
+      // will happily parse this JSON structure to restore all extra fields, which keeps backwards compatibility 100% perfect.
+      finalPayload.business_description = JSON.stringify(extraMetadata);
+
+      // Copy core table fields that physically exist in database columns
+      const coreKeys = ['id', 'user_id', 'business_name', 'owner_name', 'logo_url', 'approval_status', 'phone', 'email', 'created_at'];
+      coreKeys.forEach((key) => {
+        if (dbColumns.includes(key) && payload[key] !== undefined) {
+          finalPayload[key] = payload[key];
         }
       });
 
-      if (payload.name && !finalPayload.business_name) {
+      // Maintain legacy/avatar name mapping
+      if (payload.name && dbColumns.includes('business_name') && !finalPayload.business_name) {
         finalPayload.business_name = payload.name;
       }
-      if (payload.avatar && !finalPayload.logo_url) {
+      if (payload.avatar && dbColumns.includes('logo_url') && !finalPayload.logo_url) {
         finalPayload.logo_url = payload.avatar;
       }
 
-      finalPayload.business_description = JSON.stringify(extraMetadata);
+      // Also copy any extra properties directly IF they are available as physical columns
+      const extraKeysMap: Record<string, keyof typeof extraMetadata> = {
+        'bank_name': 'bank_name',
+        'account_number': 'account_number',
+        'cac_number': 'cac_number',
+        'whatsapp_number': 'whatsapp_number',
+        'physical_location': 'physical_location',
+        'is_verified': 'is_verified'
+      };
+
+      Object.entries(extraKeysMap).forEach(([dbCol, metaKey]) => {
+        if (dbColumns.includes(dbCol)) {
+          finalPayload[dbCol] = extraMetadata[metaKey];
+        }
+      });
 
       const { data, error } = await supabaseAdmin.from("vendors").upsert(finalPayload).select();
       if (error) {

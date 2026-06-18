@@ -576,7 +576,16 @@ export default function App() {
         };
 
         // Load Vendors
-        const { data: dbVendors, synced: vSynced, error: vError } = await getSupabaseData<Vendor>("vendors", []);
+        // Wrap your vendor fetch with a timeout to prevent infinite loading
+        const vendorFetchPromise = getSupabaseData<Vendor>("vendors", []);
+        const timeoutPromise = new Promise<{ data: Vendor[]; synced: boolean; error?: string }>(
+          (_, reject) => setTimeout(() => reject(new Error("Vendor fetch timed out")), 8000)
+        );
+
+        const { data: dbVendors, synced: vSynced, error: vError } = await Promise.race([
+          vendorFetchPromise,
+          timeoutPromise,
+        ]).catch(() => ({ data: [] as Vendor[], synced: false, error: "timeout" }));
         if (dbVendors) {
           const nonMockVendors = dbVendors.filter(v => {
             if (currentUserId && (v.user_id === currentUserId || v.userId === currentUserId)) {
@@ -708,9 +717,9 @@ export default function App() {
 
     // Optimistically update local vendors list immediately
     setVendors(prevVendors => {
-      const exists = prevVendors.some(v => v.id === resolvedVendor.id);
+      const exists = prevVendors.some(v => v.id === resolvedVendor.id || (v.email && resolvedVendor.email && String(v.email).toLowerCase() === String(resolvedVendor.email).toLowerCase()));
       if (exists) {
-        return prevVendors.map(v => v.id === resolvedVendor.id ? resolvedVendor : v);
+        return prevVendors.map(v => (v.id === resolvedVendor.id || (v.email && resolvedVendor.email && String(v.email).toLowerCase() === String(resolvedVendor.email).toLowerCase())) ? resolvedVendor : v);
       } else {
         return [...prevVendors, resolvedVendor];
       }
@@ -734,20 +743,20 @@ export default function App() {
           }
           return false;
         };
-     const nonMockVendors = dbVendors.filter(v => {
-  if (currentUserId && (
-    v.user_id === currentUserId || 
-    v.userId === currentUserId || 
-    v.id === ensureUUID(currentUserId)  // ← ADD THIS LINE
-  )) {
-    return true;
-  }
-  if (v.bank_name || v.bankName || v.account_number || v.accountNumber || v.cac_number || v.cacNumber || v.whatsapp_number || v.whatsappNumber) {
-    return true;
-  }
-  return !isVendorIdMock(v.id);
-});
-        setVendors(nonMockVendors);
+      const nonMockVendors = dbVendors.filter(v => {
+        if (currentUserId && (
+          v.user_id === currentUserId || 
+          v.userId === currentUserId || 
+          v.id === ensureUUID(currentUserId)
+        )) {
+          return true;
+        }
+        if (v.bank_name || v.bankName || v.account_number || v.accountNumber || v.cac_number || v.cacNumber || v.whatsapp_number || v.whatsappNumber) {
+          return true;
+        }
+        return !isVendorIdMock(v.id);
+      });
+      setVendors(nonMockVendors);
       }
     } catch (err) {
       console.error("Failed to automatically refresh vendor database:", err);
@@ -757,13 +766,24 @@ export default function App() {
   const updateMailLogs = async () => {
     const logs = await fetchEmailLogs();
     setMailLogs(logs);
+    return logs;
   };
 
   // Poll server mail logs every 4 seconds to keep dashboard in perfect synchronization
+  // Only register interval if the endpoint responds ok (200) to avoid 404 loops in mock/offline setups
   useEffect(() => {
-    updateMailLogs();
-    const interval = setInterval(updateMailLogs, 4000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    fetch("/api/resend/logs").then((res) => {
+      if (res.ok) {
+        updateMailLogs();
+        interval = setInterval(updateMailLogs, 4000);
+      }
+    }).catch((err) => {
+      console.log("Email logs disabled or endpoint not provisioned:", err.message);
+    });
+
+    return () => { if (interval) clearInterval(interval); };
   }, []);
 
   // Direct dispatcher trigger mapper for manual testers
@@ -1280,31 +1300,48 @@ export default function App() {
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              <VendorAdmin
-                orders={orders}
-                products={products}
-                vendors={vendors}
-                currentUserId={currentUserId}
-                onUpdateVendor={handleUpdateVendor}
-                onReviewOrderFlag={handleReviewOrderFlag}
-                onAddNewProduct={handleAddNewProduct}
-                categories={categories}
-                onUpdateCategories={handleUpdateCategories}
-                
-                // Email Automation Props
-                mailLogs={mailLogs}
-                onSendTestEmail={handleSendTestEmail}
-                onPreviewEmail={handlePreviewEmail}
-                autoSendEmails={autoSendEmails}
-                onToggleAutoSend={() => setAutoSendEmails(!autoSendEmails)}
-                onRefreshMailLogs={updateMailLogs}
-                userEmail={userEmail}
+              {(() => {
+                const stableFallbackId = currentUserId || (userEmail ? `v_fallback_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}` : "v_fallback_temp");
+                const foundActive = vendors.find(v => {
+                  if (v.id && (v.id === stableFallbackId || v.id === ensureUUID(stableFallbackId))) return true;
+                  if (v.id && currentUserId && (String(v.id).toLowerCase() === String(currentUserId).toLowerCase() || v.id === ensureUUID(currentUserId))) return true;
+                  if (v.user_id && currentUserId && (String(v.user_id).toLowerCase() === String(currentUserId).toLowerCase() || ensureUUID(v.user_id) === ensureUUID(currentUserId))) return true;
+                  if (v.userId && currentUserId && (String(v.userId).toLowerCase() === String(currentUserId).toLowerCase() || ensureUUID(v.userId) === ensureUUID(currentUserId))) return true;
+                  if (v.email && userEmail && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) return true;
+                  return false;
+                });
+                const keyStr = foundActive 
+                  ? `vendor-admin-${foundActive.id}-${foundActive.name}-${foundActive.avatar || ''}-${foundActive.business_description || foundActive.description || ''}-${foundActive.location || ''}-${foundActive.ownerName || foundActive.owner_name || ''}-${foundActive.whatsappNumber || foundActive.whatsapp_number || ''}-${foundActive.bankName || foundActive.bank_name || ''}-${foundActive.accountNumber || foundActive.account_number || ''}`
+                  : `vendor-admin-fallback-${stableFallbackId}`;
+                return (
+                  <VendorAdmin
+                    key={keyStr}
+                    orders={orders}
+                    products={products}
+                    vendors={vendors}
+                    currentUserId={currentUserId}
+                    onUpdateVendor={handleUpdateVendor}
+                    onReviewOrderFlag={handleReviewOrderFlag}
+                    onAddNewProduct={handleAddNewProduct}
+                    categories={categories}
+                    onUpdateCategories={handleUpdateCategories}
+                    
+                    // Email Automation Props
+                    mailLogs={mailLogs}
+                    onSendTestEmail={handleSendTestEmail}
+                    onPreviewEmail={handlePreviewEmail}
+                    autoSendEmails={autoSendEmails}
+                    onToggleAutoSend={() => setAutoSendEmails(!autoSendEmails)}
+                    onRefreshMailLogs={updateMailLogs}
+                    userEmail={userEmail}
 
-                flashDeals={flashDeals}
-                onProposeFlashDeal={handleProposeFlashDeal}
-                onApproveFlashDeal={handleApproveFlashDeal}
-                onRejectFlashDeal={handleRejectFlashDeal}
-              />
+                    flashDeals={flashDeals}
+                    onProposeFlashDeal={handleProposeFlashDeal}
+                    onApproveFlashDeal={handleApproveFlashDeal}
+                    onRejectFlashDeal={handleRejectFlashDeal}
+                  />
+                );
+              })()}
             </motion.div>
           )}
 
