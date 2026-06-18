@@ -756,7 +756,18 @@ export default function App() {
         }
         return !isVendorIdMock(v.id);
       });
-      setVendors(nonMockVendors);
+      setVendors(prev => {
+  // Always ensure the just-updated vendor is present
+  const exists = nonMockVendors.some(
+    v => v.id === resolvedVendor.id || 
+    (v.email && String(v.email).toLowerCase() === String(resolvedVendor.email).toLowerCase())
+  );
+  return exists
+    ? nonMockVendors.map(v =>
+        v.id === resolvedVendor.id ? resolvedVendor : v
+      )
+    : [...nonMockVendors, resolvedVendor];
+});
       }
     } catch (err) {
       console.error("Failed to automatically refresh vendor database:", err);
