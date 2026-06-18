@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Store, Mail, Lock, ChevronRight, Package, TrendingUp, ShieldCheck, Sparkles, AlertCircle, CheckCircle2, Landmark } from "lucide-react";
+import { Store, Mail, Lock, ChevronRight, Package, TrendingUp, ShieldCheck, Sparkles, AlertCircle, CheckCircle2, Landmark, User, Phone, MapPin, Landmark as BankIcon } from "lucide-react";
 import { supabase, saveSupabaseRecord } from "../supabase";
 import { sendResendEmail } from "../emailService";
 
@@ -13,6 +13,12 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [shopName, setShopName] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [location, setLocation] = useState("Lagos Mainland, Lagos");
+  const [cacNumber, setCacNumber] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -33,8 +39,12 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
             data: {
               role: "vendor",
               shopName: shopName,
-              fullName: shopName,
-              location: "Lagos Mainland, Lagos"
+              fullName: ownerName || shopName,
+              phone: phone,
+              location: location,
+              cacNumber: cacNumber,
+              bankName: bankName,
+              accountNumber: accountNumber
             }
           }
         });
@@ -55,7 +65,12 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
               data: {
                 role: "vendor",
                 shopName: shopName,
-                fullName: shopName
+                fullName: ownerName || shopName,
+                phone: phone,
+                location: location,
+                cacNumber: cacNumber,
+                bankName: bankName,
+                accountNumber: accountNumber
               }
             });
             
@@ -73,7 +88,7 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
           const newVendorEntry = {
             id: data.user?.id || `v_${Date.now()}`,
             name: shopName,
-            ownerName: email.split("@")[0].toUpperCase(),
+            ownerName: ownerName || email.split("@")[0].toUpperCase(),
             avatar: "https://lh3.googleusercontent.com/v_alaba",
             rating: 4.8,
             ratingCount: 1,
@@ -81,8 +96,12 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
             ordersPending: 0,
             stockAlerts: 0,
             email: email,
-            phone: "+234 800 000 0000",
-            location: "Lagos Mainland, Lagos",
+            phone: phone || "+234 800 000 0000",
+            location: location || "Lagos Mainland, Lagos",
+            cacNumber: cacNumber || "",
+            bankName: bankName || "",
+            accountNumber: accountNumber || "",
+            whatsappNumber: phone || "",
             user_id: data.user?.id
           };
           
@@ -222,10 +241,11 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
         )}
 
         <form className="mt-8 space-y-5 relative" onSubmit={handleSubmit}>
-          {isSignUp && (
-            <>
+          {isSignUp ? (
+            <div className="max-h-[380px] overflow-y-auto pr-1.5 space-y-4 select-none">
+              {/* Shop / Business Name */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Shop Name</label>
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Shop Name / Business Title</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Package className="h-4 w-4 text-neutral-400" />
@@ -235,47 +255,212 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
                     required
                     value={shopName}
                     onChange={(e) => setShopName(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all font-semibold"
+                    placeholder="e.g. Alaba Electronics Hub"
+                  />
+                </div>
+              </div>
+
+              {/* Owner Full Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Merchant Owner / Full Name</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={ownerName}
+                    onChange={(e) => setOwnerName(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all font-semibold"
+                    placeholder="e.g. Alhaji Ibrahim Musa"
+                  />
+                </div>
+              </div>
+
+              {/* Contact Phone / WhatsApp */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Phone / WhatsApp Number</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all"
+                    placeholder="+234 803 123 4567"
+                  />
+                </div>
+              </div>
+
+              {/* Physical Location */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">State / Region</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MapPin className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <select
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all font-medium"
+                  >
+                    <option value="Lagos Mainland, Lagos">Lagos Mainland, Lagos</option>
+                    <option value="Lagos Island, Lagos">Lagos Island, Lagos</option>
+                    <option value="Abuja, FCT">Abuja, FCT</option>
+                    <option value="Port Harcourt, Rivers">Port Harcourt, Rivers</option>
+                    <option value="Ibadan, Oyo">Ibadan, Oyo</option>
+                    <option value="Kano, Kano">Kano, Kano</option>
+                    <option value="Enugu, Enugu">Enugu, Enugu</option>
+                    <option value="Anambra, Awka">Anambra, Awka</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* CAC Number */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">CAC Enterprise Number (RC/BN)</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <ShieldCheck className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={cacNumber}
+                    onChange={(e) => setCacNumber(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all font-mono"
+                    placeholder="e.g. BN 140925"
+                  />
+                </div>
+              </div>
+
+              {/* Bank Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Payout Bank Name</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <BankIcon className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <select
+                    required
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all font-medium"
+                  >
+                    <option value="">-- Choose Payout Bank --</option>
+                    <option value="Access Bank">Access Bank</option>
+                    <option value="Guaranty Trust Bank (GTBank)">Guaranty Trust Bank (GTBank)</option>
+                    <option value="Zenith Bank">Zenith Bank</option>
+                    <option value="United Bank for Africa (UBA)">United Bank for Africa (UBA)</option>
+                    <option value="First Bank of Nigeria">First Bank of Nigeria</option>
+                    <option value="Sterling Bank">Sterling Bank</option>
+                    <option value="Stanbic IBTC">Stanbic IBTC</option>
+                    <option value="Wema Bank">Wema Bank</option>
+                    <option value="OPay">OPay</option>
+                    <option value="Palmpay">Palmpay</option>
+                    <option value="Moniepoint">Moniepoint MFB</option>
+                    <option value="Kuda MFB">Kuda MFB</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Bank Account Number */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">10-Digit Payout Account Number</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Landmark className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    maxLength={10}
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ""))}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all font-mono"
+                    placeholder="e.g. 0122345678"
+                  />
+                </div>
+              </div>
+
+              {/* Email Address */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Email Address</label>
+                <div className="relative">
+                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                     <Mail className="h-4 w-4 text-neutral-400" />
+                   </div>
+                   <input
+                     type="email"
+                     required
+                     value={email}
+                     onChange={(e) => setEmail(e.target.value)}
+                     className="block w-full pl-10 pr-3 py-2.5 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all"
+                     placeholder="vendor@naijastores.com"
+                   />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Password</label>
+                <div className="relative">
+                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                     <Lock className="h-4 w-4 text-neutral-400" />
+                   </div>
+                   <input
+                     type="password"
+                     required
+                     value={password}
+                     onChange={(e) => setPassword(e.target.value)}
+                     className="block w-full pl-10 pr-3 py-2.5 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all"
+                     placeholder="••••••••"
+                   />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Email Address</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="block w-full pl-10 pr-3 py-3 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all"
-                    placeholder="e.g. Lagos Tech Hub"
+                    placeholder="vendor@naijastores.com"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Password</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-3 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all"
+                    placeholder="••••••••"
                   />
                 </div>
               </div>
             </>
           )}
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Email Address</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-4 w-4 text-neutral-400" />
-              </div>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="block w-full pl-10 pr-3 py-3 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all"
-                placeholder="vendor@naijastores.com"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Password</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-4 w-4 text-neutral-400" />
-              </div>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full pl-10 pr-3 py-3 border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition-all"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
 
           {!isSignUp && (
             <div className="flex items-center justify-end">
@@ -286,7 +471,7 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
           )}
 
           {isSignUp && (
-            <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-105 text-[10px] md:text-[11px] text-neutral-505 font-medium leading-relaxed text-center select-none">
+            <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 text-[10px] md:text-[11px] text-neutral-550 font-medium leading-relaxed text-center select-none">
               Signing up means you completely agree to our <span className="font-black text-neutral-800 underline">Terms & Conditions</span>, <span className="font-black text-neutral-800 underline">Privacy Policy</span>, and administrative escrow terms.
             </div>
           )}
@@ -294,16 +479,16 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
           <button
             type="submit"
             disabled={isLoading}
-            className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-neutral-900 hover:bg-neutral-800 disabled:opacity-70 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900 shadow-md transform hover:-translate-y-0.5"
+            className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-neutral-900 hover:bg-neutral-800 disabled:opacity-70 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900 shadow-md transform hover:-translate-y-0.5 cursor-pointer"
           >
             {isLoading ? (
-              <span className="flex items-center">
+              <span className="flex items-center animate-pulse">
                 <Sparkles className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
-                Authenticating...
+                Processing...
               </span>
             ) : (
               <span className="flex items-center">
-                {isSignUp ? "Create Vendor Account" : "Access Dashboard"}
+                {isSignUp ? "Submit Merchant Application" : "Access Dashboard"}
                 <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </span>
             )}

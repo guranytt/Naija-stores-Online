@@ -383,10 +383,10 @@ export default function VendorAdmin({
 
   React.useEffect(() => {
     if (activeVendor) {
-      setEditShopName(activeVendor.name || "");
+      setEditShopName(activeVendor.name && activeVendor.name !== "My Store" ? activeVendor.name : "");
       setEditDescription(activeVendor.business_description || activeVendor.description || "");
-      setEditOwnerName(activeVendor.ownerName || "");
-      setEditLocation(activeVendor.location || "");
+      setEditOwnerName(activeVendor.ownerName && activeVendor.ownerName !== "Vendor Owner" ? activeVendor.ownerName : "");
+      setEditLocation(activeVendor.location && activeVendor.location !== "Nigeria" ? activeVendor.location : "");
       setEditAvatar(activeVendor.avatar || "");
       setEditCacNumber(activeVendor.cacNumber || "");
       setEditWhatsapp(activeVendor.whatsappNumber || "");
@@ -407,6 +407,38 @@ export default function VendorAdmin({
     activeVendor?.accountNumber,
     showEditProfileModal
   ]);
+
+  // Use the same mechanism as UserAuthHub to fetch profile data from 'user_metadata' to prepopulate fields
+  React.useEffect(() => {
+    const fetchUserAuthProfile = async () => {
+      // Only attempt if currentUserId is present and we're actively viewing the settings drawer
+      if (currentUserId && showEditProfileModal) {
+        try {
+          const { data: authData, error: authErr } = await supabase.auth.getUser();
+          if (!authErr && authData?.user) {
+            const meta = authData.user.user_metadata || {};
+            
+            // Apply only if the vendor fields are currently empty/default
+            if (!editShopName || editShopName === "My Store") {
+              setEditShopName(meta.shopName || meta.fullName || "");
+            }
+            if (!editOwnerName || editOwnerName === "Vendor Owner") {
+              setEditOwnerName(meta.fullName || "");
+            }
+            if (!editWhatsapp) {
+              setEditWhatsapp(meta.phone || "");
+            }
+            if (!editLocation || editLocation === "Nigeria") {
+              setEditLocation(meta.location || "");
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to load user profile to sync with vendor profile:", e);
+        }
+      }
+    };
+    fetchUserAuthProfile();
+  }, [currentUserId, showEditProfileModal]);
 
   const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -475,6 +507,30 @@ description: editDescription
       const success = await saveSupabaseRecord("vendors", resolvedVendor);
       if (!success) {
         throw new Error("Unable to save your store profile directly to the backend database.");
+      }
+
+      // Keep user connection updated via the same mechanism UserAuthHub uses
+      if (currentUserId) {
+        try {
+          // Sync with Auth metadata
+          await supabase.auth.updateUser({
+            data: {
+              shopName: editShopName,
+              fullName: editOwnerName,
+              phone: editWhatsapp,
+              location: editLocation
+            }
+          });
+          
+          // Sync with public users table
+          await supabase.from("users").upsert({
+            id: currentUserId,
+            full_name: editOwnerName,
+            email: userEmail || activeVendor.email || ""
+          });
+        } catch (syncErr) {
+          console.warn("Silent sync to users metadata failed:", syncErr);
+        }
       }
 
       if (onUpdateVendor) {
