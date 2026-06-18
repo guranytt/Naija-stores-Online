@@ -215,7 +215,25 @@ export default function VendorAdmin({
 
   const vendorsList = vendors && vendors.length > 0 ? vendors : [];
   const stableFallbackId = currentUserId || (userEmail ? `v_fallback_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}` : "v_fallback_temp");
-  const activeVendor = vendorsList.find(v => {
+  const fallbackVendor = {
+    id: currentUserId ? ensureUUID(currentUserId) : stableFallbackId,
+    userId: currentUserId || undefined,
+    user_id: currentUserId || undefined,
+    name: "My Store",
+    ownerName: "Vendor Owner",
+    email: userEmail || "vendor@naijaonlinestores.com.ng",
+    location: "Nigeria",
+    rating: 0,
+    ratingCount: 0,
+    salesToday: 0,
+    isVerified: false,
+    avatar: "",
+    ordersPending: 0,
+    stockAlerts: 0,
+    phone: ""
+  } as Vendor;
+
+  const validMatches = vendorsList.filter(v => {
     // Prioritize correct deterministic identification comparisons (such as UUID conversions) to match edited records exactly.
     if (v.id && (v.id === stableFallbackId || v.id === ensureUUID(stableFallbackId))) return true;
     if (v.id && currentUserId && (String(v.id).toLowerCase() === String(currentUserId).toLowerCase() || v.id === ensureUUID(currentUserId))) return true;
@@ -223,23 +241,14 @@ export default function VendorAdmin({
     if (v.userId && currentUserId && (String(v.userId).toLowerCase() === String(currentUserId).toLowerCase() || ensureUUID(v.userId) === ensureUUID(currentUserId))) return true;
     if (v.email && userEmail && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) return true;
     return false;
-  }) || {
-                         id: currentUserId ? ensureUUID(currentUserId) : stableFallbackId,
-                         userId: currentUserId || undefined,
-                         user_id: currentUserId || undefined,
-                         name: "My Store",
-                         ownerName: "Vendor Owner",
-                         email: userEmail || "vendor@naijaonlinestores.com.ng",
-                         location: "Nigeria",
-                         rating: 0,
-                         ratingCount: 0,
-                         salesToday: 0,
-                         isVerified: false,
-                         avatar: "",
-                         ordersPending: 0,
-                         stockAlerts: 0,
-                         phone: ""
-                       } as Vendor;
+  });
+
+  // Pick the deepest populated vendor if duplicates exist (to conquer DB trigger blanks)
+  const activeVendor = validMatches.length > 0 ? validMatches.sort((a, b) => {
+    let scoreA = (a.cacNumber ? 1 : 0) + (a.bankName ? 1 : 0) + ((a.name && a.name !== "My Store" && a.name !== "Naija Store Merchant") ? 2 : 0) + (a.location && a.location !== "Nigeria" ? 1 : 0);
+    let scoreB = (b.cacNumber ? 1 : 0) + (b.bankName ? 1 : 0) + ((b.name && b.name !== "My Store" && b.name !== "Naija Store Merchant") ? 2 : 0) + (b.location && b.location !== "Nigeria" ? 1 : 0);
+    return scoreB - scoreA;
+  })[0] : fallbackVendor;
 
   const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com";
 

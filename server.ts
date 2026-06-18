@@ -477,6 +477,31 @@ async function startServer() {
 
       const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
       
+      // Try to find an existing vendor by user_id or email to update, avoiding duplicates
+      try {
+        let query = supabaseAdmin.from("vendors").select("id").limit(1);
+        
+        if (payload.user_id) {
+          const { data: byUser } = await supabaseAdmin.from("vendors").select("id").eq("user_id", payload.user_id).limit(1);
+          if (byUser && byUser.length > 0) {
+            payload.id = byUser[0].id;
+          } else if (payload.email) {
+            // Fallback to email searching
+            const { data: byEmail } = await supabaseAdmin.from("vendors").select("id").eq("email", payload.email).limit(1);
+            if (byEmail && byEmail.length > 0) {
+               payload.id = byEmail[0].id;
+            }
+          }
+        } else if (payload.email) {
+            const { data: byEmail } = await supabaseAdmin.from("vendors").select("id").eq("email", payload.email).limit(1);
+            if (byEmail && byEmail.length > 0) {
+               payload.id = byEmail[0].id;
+            }
+        }
+      } catch (err) {
+        console.warn("[SERVER] Error finding existing vendor, proceeding with provided ID:", err);
+      }
+
       // Ensure payload.id is a valid UUID
       if (!UUID_REGEX.test(payload.id)) {
         // High-fidelity deterministic prime hash wheel to prevent modulo-16 entropy squashing collisions
@@ -557,53 +582,50 @@ async function startServer() {
         console.warn("[SERVER] Exception fetching vendors table columns:", colErr);
       }
 
-      const extraMetadata = {
-        bank_name: payload.bank_name || payload.bankName || "",
-        account_number: payload.account_number || payload.accountNumber || "",
-        cac_number: payload.cac_number || payload.cacNumber || "",
-        whatsapp_number: payload.whatsapp_number || payload.whatsappNumber || "",
-        physical_location: payload.physical_location || payload.physicalLocation || payload.location || "",
-        is_verified: payload.is_verified !== undefined ? payload.is_verified : (payload.isVerified !== undefined ? payload.isVerified : false),
-        business_description: payload.business_description || payload.description || ""
-      };
-
+      // Do NOT JSON stringify metadata into business_description! 
+      // Users expect physical text in business_description, not a serialized JSON blob.
       const finalPayload: any = {};
       
-      // Crucial: Serialize ALL metadata to JSON business_description. The client-side mapping in src/supabase.ts
-      // will happily parse this JSON structure to restore all extra fields, which keeps backwards compatibility 100% perfect.
-      finalPayload.business_description = JSON.stringify(extraMetadata);
+      const coreKeys = [
+        'id', 'user_id', 'business_name', 'owner_name', 'logo_url', 'approval_status', 
+        'phone', 'email', 'created_at', 'business_description', 'bank_name', 
+        'account_number', 'cac_number', 'whatsapp_number', 'physical_location', 'is_verified'
+      ];
 
-      // Copy core table fields that physically exist in database columns
-      const coreKeys = ['id', 'user_id', 'business_name', 'owner_name', 'logo_url', 'approval_status', 'phone', 'email', 'created_at'];
       coreKeys.forEach((key) => {
         if (dbColumns.includes(key) && payload[key] !== undefined) {
           finalPayload[key] = payload[key];
         }
       });
 
-      // Maintain legacy/avatar name mapping
+      // Maintain legacy/alias mapping for fields not natively present
       if (payload.name && dbColumns.includes('business_name') && !finalPayload.business_name) {
         finalPayload.business_name = payload.name;
       }
       if (payload.avatar && dbColumns.includes('logo_url') && !finalPayload.logo_url) {
         finalPayload.logo_url = payload.avatar;
       }
-
-      // Also copy any extra properties directly IF they are available as physical columns
-      const extraKeysMap: Record<string, keyof typeof extraMetadata> = {
-        'bank_name': 'bank_name',
-        'account_number': 'account_number',
-        'cac_number': 'cac_number',
-        'whatsapp_number': 'whatsapp_number',
-        'physical_location': 'physical_location',
-        'is_verified': 'is_verified'
-      };
-
-      Object.entries(extraKeysMap).forEach(([dbCol, metaKey]) => {
-        if (dbColumns.includes(dbCol)) {
-          finalPayload[dbCol] = extraMetadata[metaKey];
-        }
-      });
+      if (payload.description && dbColumns.includes('business_description') && !finalPayload.business_description) {
+        finalPayload.business_description = payload.description;
+      }
+      if (payload.bankName && dbColumns.includes('bank_name') && !finalPayload.bank_name) {
+        finalPayload.bank_name = payload.bankName;
+      }
+      if (payload.accountNumber && dbColumns.includes('account_number') && !finalPayload.account_number) {
+        finalPayload.account_number = payload.accountNumber;
+      }
+      if (payload.cacNumber && dbColumns.includes('cac_number') && !finalPayload.cac_number) {
+        finalPayload.cac_number = payload.cacNumber;
+      }
+      if (payload.whatsappNumber && dbColumns.includes('whatsapp_number') && !finalPayload.whatsapp_number) {
+        finalPayload.whatsapp_number = payload.whatsappNumber;
+      }
+      if ((payload.location || payload.physicalLocation) && dbColumns.includes('physical_location') && !finalPayload.physical_location) {
+        finalPayload.physical_location = payload.location || payload.physicalLocation;
+      }
+      if (payload.isVerified !== undefined && dbColumns.includes('is_verified') && finalPayload.is_verified === undefined) {
+        finalPayload.is_verified = payload.isVerified;
+      }
 
       const { data, error } = await supabaseAdmin.from("vendors").upsert(finalPayload).select();
       if (error) {
