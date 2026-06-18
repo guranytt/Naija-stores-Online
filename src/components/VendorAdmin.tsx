@@ -214,9 +214,10 @@ export default function VendorAdmin({
   const [fdError, setFdError] = useState<string | null>(null);
 
   const vendorsList = vendors && vendors.length > 0 ? vendors : [];
-  const stableFallbackId = currentUserId || (userEmail ? `v_fallback_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}` : "v_fallback_temp");
+  const emailFallbackIdStr = userEmail ? `v_fallback_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}` : "v_fallback_temp";
+  const stableFallbackId = currentUserId ? ensureUUID(currentUserId) : ensureUUID(emailFallbackIdStr);
   const fallbackVendor = {
-    id: currentUserId ? ensureUUID(currentUserId) : stableFallbackId,
+    id: stableFallbackId,
     userId: currentUserId || undefined,
     user_id: currentUserId || undefined,
     name: "My Store",
@@ -234,11 +235,18 @@ export default function VendorAdmin({
   } as Vendor;
 
   const validMatches = vendorsList.filter(v => {
-    // Prioritize correct deterministic identification comparisons (such as UUID conversions) to match edited records exactly.
+    if (!v) return false;
+    // Primary ID checks
     if (v.id && (v.id === stableFallbackId || v.id === ensureUUID(stableFallbackId))) return true;
     if (v.id && currentUserId && (String(v.id).toLowerCase() === String(currentUserId).toLowerCase() || v.id === ensureUUID(currentUserId))) return true;
+    // Email hash ID check (in case it was saved before user had a currentUserId)
+    if (v.id && userEmail && v.id === ensureUUID(emailFallbackIdStr)) return true;
+    
+    // User ID checks
     if (v.user_id && currentUserId && (String(v.user_id).toLowerCase() === String(currentUserId).toLowerCase() || ensureUUID(v.user_id) === ensureUUID(currentUserId))) return true;
     if (v.userId && currentUserId && (String(v.userId).toLowerCase() === String(currentUserId).toLowerCase() || ensureUUID(v.userId) === ensureUUID(currentUserId))) return true;
+    
+    // Exact email match (if DB schema supported storing email field properly)
     if (v.email && userEmail && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) return true;
     return false;
   });

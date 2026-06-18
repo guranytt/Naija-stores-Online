@@ -588,6 +588,7 @@ export default function App() {
         ]).catch(() => ({ data: [] as Vendor[], synced: false, error: "timeout" }));
         if (dbVendors) {
           const nonMockVendors = dbVendors.filter(v => {
+            if (!v) return false;
             if (currentUserId && (
               v.user_id === currentUserId ||
               v.userId === currentUserId ||
@@ -595,8 +596,10 @@ export default function App() {
             )) {
               return true;
             }
-            if (userEmail && v.email && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) {
-              return true;
+            if (userEmail) {
+              if (v.email && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) return true;
+              const fallbackId = `v_fallback_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}`;
+              if (v.id === ensureUUID(fallbackId)) return true;
             }
             // Check BOTH snake_case (from Supabase) AND camelCase (legacy)
             if (v.bank_name || v.bankName || v.account_number || v.accountNumber ||
