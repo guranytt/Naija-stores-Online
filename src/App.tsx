@@ -595,6 +595,9 @@ export default function App() {
             )) {
               return true;
             }
+            if (userEmail && v.email && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) {
+              return true;
+            }
             // Check BOTH snake_case (from Supabase) AND camelCase (legacy)
             if (v.bank_name || v.bankName || v.account_number || v.accountNumber ||
                 v.cac_number || v.cacNumber || v.whatsapp_number || v.whatsappNumber) {

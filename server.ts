@@ -542,7 +542,12 @@ async function startServer() {
       }
 
       // Dynamically probe the table columns to support backward compatibility with incomplete schemas
-      let dbColumns: string[] = ['id', 'user_id', 'business_name', 'owner_name', 'business_description', 'logo_url', 'approval_status', 'phone', 'email', 'created_at'];
+      let dbColumns: string[] = [
+        'id', 'user_id', 'business_name', 'owner_name', 'business_description', 
+        'logo_url', 'approval_status', 'phone', 'email', 'created_at',
+        'bank_name', 'account_number', 'cac_number', 'whatsapp_number', 
+        'physical_location', 'is_verified'
+      ];
       try {
         const { data: colsSample, error: colsErr } = await supabaseAdmin.from("vendors").select("*").limit(1);
         if (!colsErr && colsSample && colsSample.length > 0) {
