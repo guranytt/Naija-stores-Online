@@ -658,7 +658,7 @@ export default function App() {
       }
     }
     initSupabase();
-  }, [currentUserId]);
+  }, [currentUserId, userEmail]);
 
   // Set up real-time orders sync subscription
   useEffect(() => {
@@ -752,31 +752,29 @@ export default function App() {
           }
           return false;
         };
-      const nonMockVendors = dbVendors.filter(v => {
-        if (currentUserId && (
-          v.user_id === currentUserId || 
-          v.userId === currentUserId || 
-          v.id === ensureUUID(currentUserId)
-        )) {
-          return true;
-        }
-        if (v.bank_name || v.bankName || v.account_number || v.accountNumber || v.cac_number || v.cacNumber || v.whatsapp_number || v.whatsappNumber) {
-          return true;
-        }
-        return !isVendorIdMock(v.id);
-      });
-      setVendors(prev => {
-  // Always ensure the just-updated vendor is present
-  const exists = nonMockVendors.some(
-    v => v.id === resolvedVendor.id || 
-    (v.email && String(v.email).toLowerCase() === String(resolvedVendor.email).toLowerCase())
-  );
-  return exists
-    ? nonMockVendors.map(v =>
-        v.id === resolvedVendor.id ? resolvedVendor : v
-      )
-    : [...nonMockVendors, resolvedVendor];
-});
+
+        const nonMockVendors = dbVendors.filter(v => {
+          if (updatedVendor.user_id && v.user_id === updatedVendor.user_id) return true;
+          if (updatedVendor.userId && v.userId === updatedVendor.userId) return true;
+          if (updatedVendor.email && v.email === updatedVendor.email) return true;
+          if (currentUserId && (v.user_id === currentUserId || v.userId === currentUserId || v.id === ensureUUID(currentUserId))) return true;
+          if (userEmail && v.email && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) return true;
+          if (v.bank_name || v.bankName || v.account_number || v.accountNumber || v.cac_number || v.cacNumber || v.whatsapp_number || v.whatsappNumber) return true;
+          return !isVendorIdMock(v.id);
+        });
+
+        // Always ensure the newly updated vendor remains explicitly if the server lag drops it
+        setVendors(prev => {
+          let matched = false;
+          const updated = nonMockVendors.map(v => {
+            if (v.id === resolvedVendor.id || v.email === resolvedVendor.email || (v.user_id && v.user_id === resolvedVendor.user_id)) {
+              matched = true;
+              return { ...v, ...resolvedVendor, id: v.id || resolvedVendor.id };
+            }
+            return v;
+          });
+          return matched ? updated : [...nonMockVendors, resolvedVendor];
+        });
       }
     } catch (err) {
       console.error("Failed to automatically refresh vendor database:", err);
