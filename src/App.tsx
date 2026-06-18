@@ -588,10 +588,16 @@ export default function App() {
         ]).catch(() => ({ data: [] as Vendor[], synced: false, error: "timeout" }));
         if (dbVendors) {
           const nonMockVendors = dbVendors.filter(v => {
-            if (currentUserId && (v.user_id === currentUserId || v.userId === currentUserId)) {
+            if (currentUserId && (
+              v.user_id === currentUserId ||
+              v.userId === currentUserId ||
+              v.id === ensureUUID(currentUserId)
+            )) {
               return true;
             }
-            if (v.bankName || v.accountNumber || v.cacNumber || v.whatsappNumber) {
+            // Check BOTH snake_case (from Supabase) AND camelCase (legacy)
+            if (v.bank_name || v.bankName || v.account_number || v.accountNumber ||
+                v.cac_number || v.cacNumber || v.whatsapp_number || v.whatsappNumber) {
               return true;
             }
             return !isVendorIdMock(v.id);
