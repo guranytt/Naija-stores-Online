@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /checkout/
+Disallow: /api/
+
+Crawl-delay: 1
+
+Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml

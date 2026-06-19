@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-container { width: 100% !important; padding: 12px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  
+  <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; color: #f8fafc; line-height: 1px;">
+    Your shipment dispatch has departed safely.
+  </div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; padding: 32px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" class="email-container" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
+          <tr>
+            <td>
+              
+  <!-- Logo & Header -->
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin-bottom: 24px; width: 100%;">
+    <tr>
+      <td align="center">
+        <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" 
+             alt="Naija Online Stores Logo" 
+             width="72" 
+             height="72" 
+             style="display: block; width: 72px; height: 72px; border-radius: 18px; object-fit: cover; border: 2px solid #f97316; box-shadow: 0 4px 10px rgba(0,0,0,0.05);" />
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding-top: 10px;">
+        <h2 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">Naija Online Stores</h2>
+        <span style="display: inline-block; font-size: 10px; font-weight: 800; color: #f97316; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px;">Premium Escrow Marketplace</span>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Content Card Opening -->
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; padding: 40px 32px; border-radius: 24px; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(15,23,42,0.03), 0 4px 6px -4px rgba(15,23,42,0.03); margin-bottom: 24px;">
+    <tr>
+      <td>
+        <!-- Badge Title / Event Pill -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 24px;">
+          <tr>
+            <td style="background-color: #fdf2e9; padding: 6px 14px; border-radius: 9999px; border: 1px solid #ffedd5;">
+              <p style="margin: 0; color: #ea580c; font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1;">
+                Order Shipped 🚚
+              </p>
+            </td>
+          </tr>
+        </table>
+  
+              
+    <h3 style="margin: 0 0 16px; color: #0f172a; font-size: 20px; font-weight: 800;">Your Order Status is Now: Shipped!</h3>
+    <p style="margin: 0 0 14px;">Greetings {{ .Data.customerName }}, the platform systems have logged an update for order <strong>#{{ .Data.orderId }}</strong>.</p>
+    <p style="margin: 0 0 14px;">Current Status: <span style="background-color: #fff7ed; color: #f97316; padding: 4px 10px; font-weight: bold; border-radius: 6px; font-size: 13px; border: 1px solid #ffedd5;">SHIPPED</span></p>
+    
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin: 24px 0;">
+      <h4 style="margin: 0 0 12px; color: #0f172a; font-size: 13px; font-weight: 700;">🚚 Waybill Log</h4>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.5;">
+        <tr>
+          <td style="color: #64748b; padding: 4px 0;">Tracking Number:</td>
+          <td align="right" style="color: #0f172a; font-weight: bold; font-family: monospace; padding: 4px 0;">{{ .Data.trackingId }}</td>
+        </tr>
+      </table>
+    </div>
+
+    
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 28px 0;">
+    <tr>
+      <td align="center">
+        <a href="https://www.naijaonlinestores.com.ng/dashboard" target="_blank" style="background-color: #f97316; color: #ffffff; padding: 14px 34px; border-radius: 14px; text-decoration: none; display: inline-block; font-weight: 700; font-size: 13px; text-align: center; box-shadow: 0 4px 12px rgba(249,115,22,0.15); letter-spacing: -0.1px;">
+          Track Shipment Progress
+        </a>
+      </td>
+    </tr>
+  </table>
+  
+              
+      </td>
+    </tr>
+  </table>
+
+  <!-- Footer Areas -->
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" align="center" style="color: #64748b; font-size: 12px; line-height: 1.6; text-align: center; padding: 0 16px;">
+    <tr>
+      <td align="center">
+        <p style="margin: 0; font-weight: 700;">Secure Escrow Protection Enabled 🔐</p>
+        <p style="margin: 4px 0 16px; font-size: 11px; max-width: 450px;">Shopper payments are held securely and released only once they confirm standard compliance and flawless hardware receiving status.</p>
+        
+        <p style="margin: 0 0 4px; font-weight: 500;">Support: <a href="mailto:admin@naijaonlinestores.com.ng" style="color: #f97316; font-weight: 600; text-decoration: none;">admin@naijaonlinestores.com.ng</a> | Call: +234 800 000 0000</p>
+        <p style="margin: 0;">© 2026 Naija Online Stores Ltd. Computer Village • Balogun • Alaba Markets.</p>
+      </td>
+    </tr>
+  </table>
+  
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
