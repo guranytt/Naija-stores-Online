@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /checkout/
+Disallow: /api/
+
+# Fast crawling for Google Search
+Crawl-delay: 1
+
+# If a sitemap exists, point to it
+Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml
