@@ -287,11 +287,16 @@ Return valid JSON only matching this schema exactly:
 
   // Explicit endpoints required by user
   app.post("/api/send-welcome-email", async (req, res) => {
-    const { email, name } = req.body;
+    const { email, name, role } = req.body;
     if (!email) return res.status(400).json({ error: "Missing email" });
     
     try {
-      const result = await emailService.sendWelcomeEmail(email, name || "Valued User");
+      let result;
+      if (role === "vendor") {
+        result = await emailService.sendVendorWelcomeEmail(email, name || "Vendor");
+      } else {
+        result = await emailService.sendWelcomeEmail(email, name || "Valued User");
+      }
       if (result.success) {
         res.status(200).json({ success: true, message: "Welcome email sent" });
       } else {

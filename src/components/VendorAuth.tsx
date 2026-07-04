@@ -75,7 +75,7 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin + "?login=true",
+            emailRedirectTo: window.location.origin + "/admin",
             data: {
               full_name: ownerName || shopName,
               role: "vendor"

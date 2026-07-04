@@ -186,7 +186,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin + "?login=true",
+            emailRedirectTo: window.location.origin + "/auth",
             data: payload
           }
         });

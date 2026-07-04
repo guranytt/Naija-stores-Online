@@ -474,6 +474,18 @@ export default function App() {
 
     // Listen for auth level events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (_event === 'SIGNED_UP' && session?.user) {
+        fetch('/api/send-welcome-email', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ 
+            email: session.user.email, 
+            name: session.user.user_metadata?.full_name, 
+            role: session.user.user_metadata?.role || 'customer' 
+          }) 
+        }).catch(console.error);
+      }
+      
       if (session?.user) {
         const uEmail = session.user.email || "shopper@example.com";
         setUserEmail(uEmail);
