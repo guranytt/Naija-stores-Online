@@ -9,6 +9,7 @@ import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, Shie
 import { Product, Category, CartItem, Vendor, Advertisement, Order, FlashDealProposal } from "../types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_ADS, FLASH_SALE_PRODUCTS } from "../data/mockData";
 import { trackProductViewed } from "../lib/posthog";
+import HomePage from "./HomePage";
 import AboutPage from "./AboutPage";
 import ContactPage from "./ContactPage";
 import SellPage from "./SellPage";

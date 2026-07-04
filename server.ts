@@ -562,24 +562,56 @@ Return valid JSON only matching this schema exactly:
         return null;
       }
 
-      // Notify vendor via Web Push irrespective of whether they are on the app
-      let targetVendorId = "v_fallback"; 
+      // Group cart items by vendorId
+      const vendorItems: Record<string, any[]> = {};
       if (cart && cart.length > 0) {
-        const firstItem = cart[0];
-        targetVendorId = firstItem.product?.vendorId || firstItem.vendorId || "v_fallback";
+        cart.forEach((item: any) => {
+          const vId = item.product?.vendorId || item.vendorId || "v_fallback";
+          if (!vendorItems[vId]) vendorItems[vId] = [];
+          vendorItems[vId].push(item);
+        });
+      } else {
+        vendorItems["v_fallback"] = [];
       }
 
-      const subs = vendorSubscriptions[targetVendorId] || [];
-      const payloadString = JSON.stringify({
-        title: "New Payment Received!",
-        body: `Order #${orderId} for ₦${orderValue.toLocaleString()} has been paid by ${customerName}.`,
-        url: "/admin"
-      });
-      subs.forEach(sub => {
-        webpush.sendNotification(sub, payloadString).catch(err => {
-          console.error("Push notification send error:", err);
+      // Notify vendors via Web Push and Email
+      for (const [vId, items] of Object.entries(vendorItems)) {
+        // Push notification
+        const subs = vendorSubscriptions[vId] || [];
+        const payloadString = JSON.stringify({
+          title: "New Payment Received!",
+          body: `Order #${orderId} contains ${items.length} item(s) from your store paid by ${customerName}.`,
+          url: "/admin"
         });
-      });
+        subs.forEach(sub => {
+          webpush.sendNotification(sub, payloadString).catch(err => {
+            console.error("Push notification send error:", err);
+          });
+        });
+
+        // Email notification
+        if (vId !== "v_fallback") {
+          try {
+            const { data: vendorData } = await supabaseAdmin
+              .from("vendors")
+              .select("email, business_name")
+              .eq("id", vId)
+              .single();
+              
+            if (vendorData && vendorData.email) {
+              const itemsHtml = items.map(i => `<li>${i.product?.name || i.name} (x${i.quantity || 1})</li>`).join("");
+              await emailService.sendVendorNewOrderInfo(
+                vendorData.email,
+                vendorData.business_name || "Vendor",
+                orderId,
+                `<ul>${itemsHtml}</ul><br/><p><strong>Buyer:</strong> ${customerName}</p><p><strong>Delivery:</strong> ${deliveryAddress || "Address verified by Paystack Gateway"}</p>`
+              ).catch(e => console.error(`Error sending vendor email to ${vendorData.email}:`, e));
+            }
+          } catch (e) {
+            console.error(`Failed to send email to vendor ${vId}`, e);
+          }
+        }
+      }
 
       // Send payment confirmation email and order confirmation email
       await emailService.sendPaymentSuccessful(email, customerName, orderId, orderValue).catch(err => console.error("Error sending payment email:", err));
