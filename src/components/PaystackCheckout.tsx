@@ -4,9 +4,24 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { X, Lock, CreditCard, Landmark, ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "motion/react";
+import { X, Lock, CreditCard, Landmark, ArrowRight, CheckCircle2, ShieldCheck, AlertCircle } from "lucide-react";
 import { CartItem } from "../types";
+import GracefulErrorScreen from "./GracefulErrorScreen";
+
+function AnimatedCurrency({ value }: { value: number }) {
+  const count = useMotionValue(value);
+  const rounded = useTransform(count, (latest) =>
+    new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(latest)
+  );
+
+  useEffect(() => {
+    const controls = animate(count, value, { duration: 0.5, ease: "easeOut" });
+    return () => controls.stop();
+  }, [value, count]);
+
+  return <motion.span>{rounded}</motion.span>;
+}
 
 interface PaystackOptions {
   key: string;
@@ -32,38 +47,84 @@ declare global {
 interface PaystackCheckoutProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (method: string, order?: any) => void;
+  onSuccess: (method: string, order?: any, checkoutEmail?: string) => void;
   amount: number; // In Naira (₦)
   email: string;
   cart: CartItem[];
   userId?: string;
+  deliveryAddress?: string;
+  deliveryZones?: any[];
 }
 
-export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, email, cart, userId }: PaystackCheckoutProps) {
-  const [step, setStep] = useState<"method" | "card" | "bank" | "transfer" | "otp" | "success">("method");
+export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, email, cart, userId, deliveryAddress: initialDeliveryAddress, deliveryZones = [] }: PaystackCheckoutProps) {
+  const [step, setStep] = useState<"address" | "method" | "card" | "bank" | "transfer" | "otp" | "success">("address");
+  const [deliveryAddress, setDeliveryAddress] = useState(initialDeliveryAddress || "");
+  const [checkoutEmail, setCheckoutEmail] = useState(email || "");
+  const [checkoutPhone, setCheckoutPhone] = useState("");
+  const [buyerName, setBuyerName] = useState("");
+  const [country, setCountry] = useState("Nigeria");
+  const [stateLoc, setStateLoc] = useState("");
+  const [city, setCity] = useState("");
+  const [lga, setLga] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+
+  const calculatedDeliveryFee = React.useMemo(() => {
+    if (!deliveryZones || deliveryZones.length === 0) return 0;
+    if (!stateLoc) return 0;
+    const exactMatch = deliveryZones.find(z => z.state.toLowerCase() === stateLoc.toLowerCase() && z.city.toLowerCase() === city.toLowerCase());
+    if (exactMatch) return exactMatch.fee;
+    const stateMatch = deliveryZones.find(z => z.state.toLowerCase() === stateLoc.toLowerCase() && z.city === "*");
+    if (stateMatch) return stateMatch.fee;
+    return 1500;
+  }, [stateLoc, city, deliveryZones]);
+
+  const totalAmount = amount + calculatedDeliveryFee;
+
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
+
+  useEffect(() => {
+    try {
+      const savedPhone = localStorage.getItem("naija_customer_phone");
+      if (savedPhone) setCheckoutPhone(savedPhone);
+      const savedEmail = localStorage.getItem("naija_customer_email");
+      if (savedEmail) setCheckoutEmail(savedEmail);
+      else if (email) setCheckoutEmail(email);
+    } catch(e) {}
+  }, [email]);
   const [cvv, setCvv] = useState("");
   const [otp, setOtp] = useState("");
   const [selectedBank, setSelectedBank] = useState("");
   const [loading, setLoading] = useState(false);
   const [loaderMessage, setLoaderMessage] = useState("Verifying connection...");
   const [paystackLoaded, setPaystackLoaded] = useState(false);
-  const [paystackEnv, setPaystackEnv] = useState("test");
+  const [paystackEnv, setPaystackEnv] = useState("live");
   const [createdOrder, setCreatedOrder] = useState<any>(null);
+  const [sdkError, setSdkError] = useState<string | null>(null);
 
-  // Fetch configuration on load to show correct environment badge early
+  const [paystackConfig, setPaystackConfig] = useState<any>(null);
+
+  // Fetch configuration on load to show correct environment badge early and avoid async popup blocking
   useEffect(() => {
-    const directEnv = import.meta.env.VITE_PAYSTACK_ENV;
-    if (directEnv) {
-      setPaystackEnv(directEnv);
+    // Check client-side environment variables first for Vercel deployments
+    const clientSideKey = import.meta.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY || import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+    if (clientSideKey) {
+      setPaystackEnv("live");
+      setPaystackConfig({ success: true, publicKey: clientSideKey, env: "live" });
       return;
     }
+
     fetch("/api/paystack/config")
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) return {};
+        const text = await res.text();
+        return text ? JSON.parse(text) : {};
+      })
       .then(data => {
-        if (data.success && data.env) {
-          setPaystackEnv(data.env);
+        if (data.success && data.publicKey) {
+          setPaystackEnv(data.env || "live");
+          setPaystackConfig(data);
         }
       })
       .catch(err => console.warn("[PAYSTACK] Failed to fetch server config early:", err));
@@ -71,6 +132,11 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
 
   // Load Paystack Inline SDK dynamically
   useEffect(() => {
+    if ((window as any).PaystackPop) {
+      setPaystackLoaded(true);
+      return;
+    }
+
     const existingScript = document.getElementById("paystack-inline-js");
     if (existingScript) {
       setPaystackLoaded(true);
@@ -86,12 +152,18 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
       console.log("[PAYSTACK] SDK script loaded successfully");
     };
     script.onerror = () => {
-      console.error("[PAYSTACK] Failed to load SDK script");
+      console.warn("[PAYSTACK] Failed to load SDK script");
+      // Fallback
+      if ((window as any).PaystackPop) {
+        setPaystackLoaded(true);
+      } else {
+        setSdkError("Failed to load Paystack payment gateway. Please disable your adblocker or check your internet connection.");
+      }
     };
     document.body.appendChild(script);
   }, []);
 
-  const handleRealPaystackPayment = async () => {
+  const handleRealPaystackPayment = (isBankTransferOnly = false) => {
     if (!paystackLoaded || !window.PaystackPop) {
       alert("Paystack secure gateway script is initializing. Please try again in a few seconds.");
       return;
@@ -101,24 +173,10 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
     setLoaderMessage("Establishing secure connection with Paystack...");
 
     try {
-      // First try Vite injected environemnt variable securely
-      const directKey = import.meta.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY || import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
-      const directEnv = import.meta.env.VITE_PAYSTACK_ENV || "test";
-      
-      let configData: any = {
-        success: !!directKey,
-        publicKey: directKey,
-        env: directEnv
-      };
+      const configData = paystackConfig;
 
-      // Fallback to server config if no static build variables exist
-      if (!configData.publicKey) {
-        const configRes = await fetch("/api/paystack/config");
-        configData = await configRes.json();
-      }
-
-      if (!configData.success || !configData.publicKey) {
-        throw new Error(configData.error || "Could not retrieve secure paystack config");
+      if (!configData || !configData.success || !configData.publicKey) {
+        throw new Error(configData?.error || "Could not retrieve secure paystack config. Please refresh the page.");
       }
 
       console.log(`[PAYSTACK SECURE LAUNCH] Gateway initialized with environment: '${configData.env}'`);
@@ -126,7 +184,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
       setLoading(false);
 
       const referenceCode = "NJS-PSTK-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
-      const paymentAmountKobo = Math.round(amount * 100);
+      const paymentAmountKobo = Math.round(totalAmount * 100);
 
       const handleSuccess = (response: any) => {
         const transactionRef = response.reference || response.trxref;
@@ -139,13 +197,31 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             reference: transactionRef,
-            amount: amount,
-            email: email,
+            amount: totalAmount,
+            email: checkoutEmail,
             userId: userId,
-            cart: cart
+            cart: cart,
+            deliveryAddress: deliveryAddress,
+            phoneNumber: checkoutPhone,
+            buyerName,
+            country,
+            state: stateLoc,
+            city,
+            lga,
+            postalCode,
+            deliveryNotes,
+            deliveryFee: calculatedDeliveryFee
           })
         })
-          .then(res => res.json())
+          .then(async res => {
+            const text = await res.text();
+            if (!text) return { success: false, error: "Empty response from server" };
+            try {
+              return JSON.parse(text);
+            } catch (e) {
+              return { success: false, error: "Invalid response format from server" };
+            }
+          })
           .then(verifyData => {
             if (verifyData.success) {
               if (verifyData.order) {
@@ -153,11 +229,11 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
               }
               setStep("success");
             } else {
-              alert(`Transaction Integrity Violation: ${verifyData.error || "Verification failed"}`);
+              setSdkError(`Transaction Integrity Violation: ${verifyData.error || "Verification failed"}`);
             }
           })
           .catch(verifyErr => {
-            console.error("[PAYSTACK VERIFY ERR] Fallback simulation trigger:", verifyErr);
+            console.warn("[PAYSTACK VERIFY ERR] Fallback simulation trigger:", verifyErr);
             // Default verification fail-safe (allow user view fallback success if server has hiccups)
             setStep("success");
           })
@@ -170,26 +246,35 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
         console.log("[PAYSTACK SECURE WINDOW CLOSED]");
       };
 
+      const simplifiedCart = cart.map(item => ({ id: item.product?.id, q: item.quantity, size: item.selectedSize, color: item.selectedColor }));
+
       // Check whether modern constructor is available (Paystack Inline SDK V2)
       let initializedWithNewSdk = false;
       try {
         if (typeof window.PaystackPop !== "undefined" && typeof (window.PaystackPop as any) === "function") {
           const paystackPopInstance = new (window.PaystackPop as any)();
           if (paystackPopInstance && typeof paystackPopInstance.newTransaction === "function") {
-            paystackPopInstance.newTransaction({
+            const txConfig: any = {
               key: configData.publicKey,
-              email: email || "customer@example.com",
+              email: checkoutEmail || email || "customer@example.com",
               amount: paymentAmountKobo,
               currency: "NGN",
               ref: referenceCode,
               metadata: {
-                email: email || "customer@example.com",
-                userId: userId || "",
-                cart: cart
+                custom_fields: [
+                  { display_name: "User ID", variable_name: "userId", value: String(userId || "") },
+                  { display_name: "Cart Data", variable_name: "cart", value: JSON.stringify(simplifiedCart) },
+                  { display_name: "Delivery Address", variable_name: "deliveryAddress", value: String(deliveryAddress || "") },
+                  { display_name: "Phone Number", variable_name: "phoneNumber", value: String(checkoutPhone || "") }
+                ]
               },
               onSuccess: handleSuccess,
               onCancel: handleClose
-            });
+            };
+            if (isBankTransferOnly === true) {
+              txConfig.channels = ['bank_transfer'];
+            }
+            paystackPopInstance.newTransaction(txConfig);
             initializedWithNewSdk = true;
             setLoading(false);
           }
@@ -199,27 +284,42 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
       }
 
       if (!initializedWithNewSdk) {
-        // Fallback to legacy window.PaystackPop.setup API (Paystack Inline SDK V1)
-        const handler = window.PaystackPop.setup({
+        console.log("[PAYSTACK DEBUG] Initializing V1 setup with config:", {
           key: configData.publicKey,
-          email: email || "customer@example.com",
+          email: checkoutEmail || email || "customer@example.com",
+          amount: paymentAmountKobo,
+          currency: "NGN",
+          ref: referenceCode
+        });
+        // Fallback to legacy window.PaystackPop.setup API (Paystack Inline SDK V1)
+        const v1Config: any = {
+          key: configData.publicKey,
+          email: checkoutEmail || email || "customer@example.com",
           amount: paymentAmountKobo,
           currency: "NGN",
           ref: referenceCode,
           metadata: {
-            email: email || "customer@example.com",
-            userId: userId || "",
-            cart: cart
+            custom_fields: [
+              { display_name: "User ID", variable_name: "userId", value: String(userId || "") },
+              { display_name: "Cart Data", variable_name: "cart", value: JSON.stringify(simplifiedCart) },
+              { display_name: "Delivery Address", variable_name: "deliveryAddress", value: String(deliveryAddress || "") },
+              { display_name: "Phone Number", variable_name: "phoneNumber", value: String(checkoutPhone || "") }
+            ]
           },
           callback: handleSuccess,
           onClose: handleClose
-        });
+        };
+        if (isBankTransferOnly === true) {
+          v1Config.channels = ['bank_transfer'];
+        }
+        const handler = window.PaystackPop.setup(v1Config);
         handler.openIframe();
         setLoading(false);
       }
     } catch (err: any) {
+      console.warn("[PAYSTACK ERROR]", err);
       setLoading(false);
-      alert(`Payment initialization failed: ${err.message || "Please contact administrator"}`);
+      setSdkError(`Payment initialization failed: ${err.message || "Please contact administrator"}`);
     }
   };
 
@@ -248,7 +348,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
     style: "currency",
     currency: "NGN",
     minimumFractionDigits: 2
-  }).format(amount);
+  }).format(totalAmount);
 
   const banks = [
     "Guaranty Trust Bank (GTB)",
@@ -262,7 +362,8 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
 
   useEffect(() => {
     if (isOpen) {
-      setStep("method");
+      setStep("address");
+      setDeliveryAddress(initialDeliveryAddress || "");
       setCardNumber("");
       setExpiry("");
       setCvv("");
@@ -282,23 +383,42 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           reference,
-          amount,
-          email,
+          amount: totalAmount,
+          email: checkoutEmail,
           userId,
-          cart
+          cart,
+          deliveryAddress,
+          phoneNumber: checkoutPhone,
+          buyerName,
+          country,
+          state: stateLoc,
+          city,
+          lga,
+          postalCode,
+          deliveryNotes,
+          deliveryFee: calculatedDeliveryFee
         })
       });
-      const verifyData = await verifyRes.json();
+      let verifyData: any = {};
+      try {
+        const text = await verifyRes.text();
+        if (text) {
+          verifyData = JSON.parse(text);
+        }
+      } catch (e) {
+        throw new Error("Invalid response format from server");
+      }
+      
       if (verifyData.success) {
         if (verifyData.order) {
           setCreatedOrder(verifyData.order);
         }
         setStep("success");
       } else {
-        alert(`Secure Verification Failed: ${verifyData.error || "Please check inputs."}`);
+        setSdkError(`Secure Verification Failed: ${verifyData.error || "Please check inputs."}`);
       }
     } catch (err: any) {
-      console.error("[SIMULATOR VERIFY ERR]", err);
+      console.warn("[SIMULATOR VERIFY ERR]", err);
       setStep("success");
     } finally {
       setLoading(false);
@@ -332,7 +452,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
   };
 
   const handleFinalSuccess = () => {
-    onSuccess(step === "success" ? "Paystack Standard" : "Direct Paystack", createdOrder);
+    onSuccess(step === "success" ? "Paystack Standard" : "Direct Paystack", createdOrder, checkoutEmail);
     onClose();
   };  // Stepper state points representation
   let activeStepperIndex = 1;
@@ -342,6 +462,17 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
   else if (step === "success") activeStepperIndex = 3;
 
   if (!isOpen) return null;
+
+  if (sdkError) {
+    return (
+      <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-xs" onClick={onClose} />
+        <div className="relative z-10 w-full max-w-md">
+          <GracefulErrorScreen reset={() => { setSdkError(null); onClose(); }} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AnimatePresence>
@@ -360,10 +491,10 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
           initial={{ scale: 0.95, opacity: 0, y: 15 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 15 }}
-          className="relative w-full max-w-md bg-white rounded-2xl shadow-premium overflow-hidden text-neutral-800 z-10 font-sans"
+          className="relative w-full max-w-md max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-premium overflow-hidden text-neutral-800 z-10 font-sans"
         >
           {/* Paystack Top Ribbon */}
-          <div className="bg-cyan-500 text-white px-4 py-3 flex justify-between items-center bg-radial from-cyan-600 to-cyan-500">
+          <div className="shrink-0 bg-cyan-500 text-white px-4 py-3 flex justify-between items-center bg-radial from-cyan-600 to-cyan-500">
             <div className="flex items-center space-x-2">
               <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
               <p className="text-xs font-bold tracking-widest uppercase">Paystack Secure Portal</p>
@@ -373,18 +504,19 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
                 onClick={onClose}
                 className="hover:bg-white/15 p-1 rounded-full transition-colors text-white"
                 id="close-paystack"
+                aria-label="Close Paystack"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          <div className="p-6">
+          <div className="p-6 overflow-y-auto flex-1 min-h-0">
             {/* Amount / Header */}
             {step !== "success" && (
               <div className="text-center mb-6">
                 <p className="text-xs text-neutral-400 font-semibold tracking-wide uppercase">Pay NaijaStores Online</p>
-                <h3 className="text-2xl font-extrabold text-neutral-900 tracking-tight mt-1">{formattedAmount}</h3>
+                <h3 className="text-2xl font-extrabold text-neutral-900 tracking-tight mt-1"><AnimatedCurrency value={totalAmount} /></h3>
                 <p className="text-xs text-neutral-500 mt-0.5">{email}</p>
               </div>
             )}
@@ -510,6 +642,123 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
                   exit={{ opacity: 0, x: -25 }}
                   transition={{ type: "spring", stiffness: 350, damping: 25 }}
                 >
+                  {step === "address" && (
+                    <div className="space-y-4">
+                      <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 text-left">Contact & Delivery Information</p>
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-neutral-700">Email Address</label>
+                          <input
+                            type="email"
+                            value={checkoutEmail}
+                            onChange={(e) => setCheckoutEmail(e.target.value)}
+                            placeholder="your.email@example.com"
+                            className="w-full p-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-sm bg-neutral-50/50"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-neutral-700">Buyer Name</label>
+                          <input
+                            type="text"
+                            value={buyerName}
+                            onChange={(e) => setBuyerName(e.target.value)}
+                            placeholder="John Doe"
+                            className="w-full p-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-sm bg-neutral-50/50"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-neutral-700">Phone Number</label>
+                          <input
+                            type="tel"
+                            value={checkoutPhone}
+                            onChange={(e) => setCheckoutPhone(e.target.value)}
+                            placeholder="+234..."
+                            className="w-full p-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-sm bg-neutral-50/50"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-neutral-700">Delivery Address</label>
+                          <textarea
+                            value={deliveryAddress}
+                            onChange={(e) => setDeliveryAddress(e.target.value)}
+                            placeholder="Enter your full delivery address..."
+                            className="w-full p-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 min-h-[60px] resize-none text-sm bg-neutral-50/50"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-neutral-700">Country</label>
+                            <input type="text" value={country} onChange={e => setCountry(e.target.value)} className="w-full p-3 border border-neutral-200 rounded-xl text-sm" placeholder="Country" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-neutral-700">State</label>
+                            <input type="text" value={stateLoc} onChange={e => setStateLoc(e.target.value)} className="w-full p-3 border border-neutral-200 rounded-xl text-sm" placeholder="State" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-neutral-700">City</label>
+                            <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full p-3 border border-neutral-200 rounded-xl text-sm" placeholder="City" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-neutral-700">Postal Code</label>
+                            <input type="text" value={postalCode} onChange={e => setPostalCode(e.target.value)} className="w-full p-3 border border-neutral-200 rounded-xl text-sm" placeholder="Zip/Postal Code" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-neutral-700">LGA / Region</label>
+                          <input type="text" value={lga} onChange={e => setLga(e.target.value)} className="w-full p-3 border border-neutral-200 rounded-xl text-sm" placeholder="Local Government Area" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-neutral-700">Delivery Notes</label>
+                          <input type="text" value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)} className="w-full p-3 border border-neutral-200 rounded-xl text-sm" placeholder="Any special instructions..." />
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-xl">
+                        <div className="flex justify-between text-xs text-neutral-500 mb-1">
+                          <span>Subtotal</span>
+                          <AnimatedCurrency value={amount} />
+                        </div>
+                        <div className="flex justify-between text-xs text-neutral-500 mb-2 border-b border-neutral-200 pb-2">
+                          <span>Delivery Fee (Dynamic)</span>
+                          <AnimatedCurrency value={calculatedDeliveryFee} />
+                        </div>
+                        <div className="flex justify-between font-bold text-neutral-900">
+                          <span>Total Payable</span>
+                          <AnimatedCurrency value={totalAmount} />
+                        </div>
+                      </div>
+
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          if (!checkoutEmail.trim() || !checkoutEmail.includes("@")) {
+                            alert("Please enter a valid email address");
+                            return;
+                          }
+                          if (!checkoutPhone.trim() || checkoutPhone.length < 8) {
+                            alert("Please enter a valid phone number");
+                            return;
+                          }
+                          if (!deliveryAddress.trim()) {
+                            alert("Please enter a delivery address");
+                            return;
+                          }
+                          
+                          try {
+                            localStorage.setItem("naija_customer_phone", checkoutPhone);
+                            localStorage.setItem("naija_customer_email", checkoutEmail);
+                          } catch(e) {}
+                          
+                          setStep("method");
+                        }}
+                        className="w-full p-4 rounded-xl bg-neutral-900 text-white font-bold tracking-wide mt-4 shadow-xl shadow-neutral-900/20"
+                      >
+                        Continue to Payment
+                      </motion.button>
+                    </div>
+                  )}
+
                   {step === "method" && (
                     <div className="space-y-3">
                       <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2 text-left">Choose Payment Method</p>
@@ -541,7 +790,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
                       <motion.button
                         whileHover={{ scale: 1.02, borderColor: "#06b6d4" }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => setStep("transfer")}
+                        onClick={() => handleRealPaystackPayment(true)}
                         className="w-full flex items-center justify-between p-4 rounded-xl border border-neutral-200 hover:border-cyan-500 hover:bg-cyan-50/20 transition-all text-left bg-white cursor-pointer group"
                       >
                         <div className="flex items-center space-x-3">

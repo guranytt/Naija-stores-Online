@@ -1,7 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || "https://jmmfogjefenmjqspspyg.supabase.co";
-const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptbWZvZ2plZmVubWpxc3BzcHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NjkwODEsImV4cCI6MjA5NjI0NTA4MX0.ah-wpbhIJKcF9fs4UVpXCAVwq5Bw10aTNPdtJxyPg3M";
+// @ts-ignore
+const envSupabaseUrl = typeof process !== 'undefined' && process.env && (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) ? (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) : undefined;
+// @ts-ignore
+const envSupabaseKey = typeof process !== 'undefined' && process.env && (process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY) ? (process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY) : undefined;
+
+// Statically accessible for Vite replacements:
+// @ts-ignore
+const viteSupabaseUrl = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_URL : undefined;
+// @ts-ignore
+const viteSupabaseKey = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_ANON_KEY : undefined;
+
+const SUPABASE_URL = viteSupabaseUrl || envSupabaseUrl || "https://qlavqcvsdeggafsrntff.supabase.co";
+const SUPABASE_ANON_KEY = viteSupabaseKey || envSupabaseKey || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsYXZxY3ZzZGVnZ2Fmc3JudGZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2NjUyMTgsImV4cCI6MjA5NzI0MTIxOH0.gsPRdFPvCjuVo3wAb2qKJ8KjTMg7lKmToQ5RR5Z3uOg";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -11,7 +22,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   global: {
     fetch: async (url, options) => {
       try {
-        const res = await window.fetch(url, options);
+        const res = await globalThis.fetch(url, options);
         return res;
       } catch (err: any) {
         console.warn("[SUPABASE FETCH SHIELD] Intercepted and blocked uncaught fetch crash:", err.message || err);
@@ -31,6 +42,22 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 });
 
+// Helper to update Supabase Authorization with Clerk issued JWT
+export function setSupabaseToken(token: string) {
+  if (token) {
+    try {
+      supabase.realtime.setAuth(token);
+      (supabase as any).headers = {
+        ...((supabase as any).headers || {}),
+        Authorization: `Bearer ${token}`,
+      };
+      supabase.auth.setSession({ access_token: token, refresh_token: "" }).catch(() => {});
+    } catch (e) {
+      console.warn("Could not set dynamic Supabase session headers:", e);
+    }
+  }
+}
+
 // Cache table columns dynamically to prevent sending invalid columns that crash requests
 const cachedColumns: Record<string, string[]> = {};
 
@@ -41,212 +68,249 @@ export function ensureUUID(idValue: any): string {
   const idStr = String(idValue).trim();
   if (IS_UUID_REGEX.test(idStr)) return idStr;
   
-  // Generate a deterministic version 4-compliant UUID from the non-UUID string structure
-  let hash = 0;
+  // High-fidelity deterministic prime hash wheel to prevent modulo-16 entropy squashing collisions
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c64e6d;
+  let h3 = 0x12345678;
+  let h4 = 0x9abcdef0;
+  
   for (let i = 0; i < idStr.length; i++) {
-    hash = (hash << 5) - hash + idStr.charCodeAt(i);
-    hash |= 0;
+    const char = idStr.charCodeAt(i);
+    h1 = Math.imul(h1 ^ char, 2654435761);
+    h2 = Math.imul(h2 ^ char, 1597334677);
+    h3 = Math.imul(h3 ^ char, 3812030037);
+    h4 = Math.imul(h4 ^ char, 4294967291);
   }
-  let hex = "";
-  for (let i = 0; i < 32; i++) {
-    const code = Math.abs(hash + i * 2654435761) % 16;
-    hex += code.toString(16);
-  }
+  
+  const toHex = (n: number) => {
+    const u = n >>> 0;
+    return u.toString(16).padStart(8, '0');
+  };
+  
+  let hex = toHex(h1) + toHex(h2) + toHex(h3) + toHex(h4);
   hex = hex.substring(0, 12) + "4" + hex.substring(13, 16) + "a" + hex.substring(17);
   return `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}`;
 }
 
 async function getTableColumns(tableName: string): Promise<string[]> {
-  if (cachedColumns[tableName]) return cachedColumns[tableName];
-  // Fast path fallback based on user schema to avoid select(*) queries
   const fallbacks: Record<string, string[]> = {
     categories: ['id', 'name', 'slug', 'image_url'],
     products: ['id', 'vendor_id', 'category_id', 'name', 'slug', 'description', 'price', 'discount_price', 'stock_quantity', 'featured', 'status', 'created_at'],
-    vendors: ['id', 'user_id', 'business_name', 'business_description', 'logo_url', 'approval_status', 'created_at', 'bank_name', 'account_number', 'bankName', 'accountNumber', 'cac_number', 'whatsapp_number', 'physical_location', 'is_verified'],
+    vendors: ['id', 'user_id', 'business_name', 'owner_name', 'business_description', 'logo_url', 'approval_status', 'created_at', 'bank_name', 'account_number', 'cac_number', 'whatsapp_number', 'phone', 'email', 'physical_location', 'is_verified'],
     orders: ['id', 'user_id', 'total_amount', 'order_status', 'payment_status', 'shipping_address', 'created_at']
   };
-
-  if (fallbacks[tableName]) {
-    cachedColumns[tableName] = fallbacks[tableName];
-    return fallbacks[tableName];
-  }
-
-  try {
-    const { data, error } = await supabase.from(tableName).select("*").limit(1);
-    if (!error && data && data.length > 0) {
-      cachedColumns[tableName] = Object.keys(data[0]);
-      return cachedColumns[tableName];
-    }
-  } catch (e) {
-    console.warn(`Could not inspect table columns for ${tableName}:`, e);
-  }
-  return [];
+  return fallbacks[tableName] || [];
 }
 
-export interface FetchOptions {
-  limit?: number;
-  offset?: number;
-  selectColumns?: string;
-  filters?: Record<string, any>;
-  gte?: Record<string, string>; // greater than filters for dates
-}
+// Simple in-memory cache to prevent duplicate calls per page load
+const queryCache: Record<string, { data: any; timestamp: number }> = {};
+const CACHE_TTL = 60 * 1000; // 60 seconds
 
 // Helper to check if tables exist and fetch data, or return initial state
-export async function getSupabaseData<T>(tableName: string, fallbackData: T[], options?: FetchOptions): Promise<{ data: T[]; synced: boolean; error?: string }> {
+export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): Promise<{ data: T[]; synced: boolean; error?: string }> {
+  const cacheKey = tableName;
+  if (queryCache[cacheKey] && Date.now() - queryCache[cacheKey].timestamp < CACHE_TTL) {
+    return { data: queryCache[cacheKey].data, synced: true };
+  }
+
   try {
-    let selectString = options?.selectColumns;
-    
-    // Provide explicit selections to avoid select(*)
-    if (!selectString) {
-      if (tableName === "products") {
-        selectString = "id, vendor_id, category_id, name, slug, description, price, discount_price, stock_quantity, featured, status, created_at, product_images(image_url)";
-      } else if (tableName === "vendors") {
-        selectString = "id, user_id, business_name, business_description, logo_url, approval_status, created_at, bank_name, account_number, cac_number, whatsapp_number, physical_location, is_verified";
-      } else if (tableName === "orders") {
-        selectString = "id, user_id, total_amount, order_status, payment_status, shipping_address, created_at";
-      } else if (tableName === "categories") {
-        selectString = "id, name, slug, image_url";
-      } else {
-        selectString = "*"; // Fallback for unknown tables
+    let queryResult: any;
+    if (tableName === "categories") {
+      try {
+        const response = await fetch(`/api/categories?_t=${Date.now()}`, { cache: "no-store" });
+        if (response.ok) {
+          const resJson = await response.json();
+          queryResult = { data: resJson.data, error: resJson.error };
+        } else {
+          queryResult = { data: null, error: new Error("Fetch failed") };
+        }
+      } catch (e: any) {
+        queryResult = { data: null, error: e };
       }
-    }
-
-    let query = supabase.from(tableName).select(selectString);
-
-    if (options?.filters) {
-      for (const [key, value] of Object.entries(options.filters)) {
-        query = query.eq(key, value);
+    } else if (tableName === "products") {
+      try {
+        const response = await fetch(`/api/products`, { cache: "default" });
+        if (response.ok) {
+          const resJson = await response.json();
+          queryResult = { data: resJson.data, error: resJson.error };
+        } else {
+          queryResult = { data: null, error: new Error("Fetch failed") };
+        }
+      } catch (e: any) {
+        queryResult = { data: null, error: e };
       }
-    }
-
-    if (options?.gte) {
-      for (const [key, value] of Object.entries(options.gte)) {
-        query = query.gte(key, value);
+    } else if (tableName === "vendors") {
+      try {
+        const response = await fetch(`/api/vendors`, { cache: "default" });
+        if (response.ok) {
+          const resJson = await response.json();
+          queryResult = { data: resJson.data, error: resJson.error };
+        } else {
+          queryResult = { data: null, error: new Error("Fetch failed") };
+        }
+      } catch (e: any) {
+        queryResult = { data: null, error: e };
       }
-    }
-
-    if (options?.limit) {
-      query = query.limit(options.limit);
-      if (options?.offset) {
-        query = query.range(options.offset, options.offset + options.limit - 1);
-      }
-    }
-
-    // specific ordering to ensure newest items are fetched first
-    if (tableName === "products" || tableName === "orders") {
-      query = query.order("created_at", { ascending: false });
-    }
-
-    let queryResult = await query;
-    
-    // Fallback if product_images join fails
-    if (queryResult.error && tableName === "products" && selectString.includes("product_images")) {
-      console.warn("Product images join failed, retrying without product_images.");
-      query = supabase.from("products").select("id, vendor_id, category_id, name, slug, description, price, discount_price, stock_quantity, featured, status, created_at");
-      if (options?.filters) {
-        for (const [key, value] of Object.entries(options.filters)) query = query.eq(key, value);
-      }
-      if (options?.limit) {
-        query = query.limit(options.limit);
-        if (options?.offset) query = query.range(options.offset, options.offset + options.limit - 1);
-      }
-      query = query.order("created_at", { ascending: false });
-      queryResult = await query;
-    }
-
-    if (import.meta.env?.DEV) {
-      console.log(`[Supabase Query Monitoring] Table: ${tableName}`, { 
-        limit: options?.limit, offset: options?.offset, 
-        rowCount: queryResult.data?.length || 0 
-      });
+    } else if (tableName === "orders") {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      queryResult = await supabase
+        .from("orders")
+        .select("id, user_id, order_status, status, total_amount, value, shipping_address, trackingId, routeFrom, routeTo, deliveryProgress, currentCity, productIds, created_at, date, items")
+        .gte("created_at", thirtyDaysAgo.toISOString())
+        .limit(100);
+    } else {
+      queryResult = await supabase.from(tableName).select("id, created_at").limit(100);
     }
 
     const { data, error } = queryResult;
+    
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[Supabase Query Monitor] Table: ${tableName} | Rows: ${data ? data.length : 0} | Estimated Size: ${data ? JSON.stringify(data).length : 0} bytes`);
+    }
+
     if (error) {
       console.warn(`Supabase: Table "${tableName}" is not yet provisioned. Falling back to high-fidelity simulated state. Error:`, error.message);
+      if (tableName === "products" || tableName === "vendors" || tableName === "orders") {
+        return { data: [], synced: false, error: error.message };
+      }
       return { data: fallbackData, synced: false, error: error.message };
     }
 
     if (data && data.length > 0) {
       const parsedData = data.map((item: any) => {
+        if (!item) return null;
         if (tableName === "products") {
-          const title = item.name || item.title || "Naija Choice Product";
-          const description = item.description || "";
-          const price = Number(item.price || 0);
-          const originalPrice = Number(item.discount_price || item.originalPrice || price);
+          let extraMetadata: any = {};
+          if (item.description && typeof item.description === "string" && item.description.trim().startsWith("{")) {
+            try {
+              extraMetadata = JSON.parse(item.description);
+            } catch (err) {
+              console.warn("Could not parse JSON metadata from description:", err);
+            }
+          }
+
+          const title = extraMetadata.title || extraMetadata.name || item.name || item.title || "Naija Choice Product";
+          const descriptionVal = extraMetadata.description || (item.description && !item.description.trim().startsWith("{") ? item.description : "");
+          const price = Number(extraMetadata.price !== undefined ? extraMetadata.price : (item.price || 0));
+          const originalPrice = Number(extraMetadata.originalPrice || extraMetadata.discount_price || item.discount_price || item.originalPrice || extraMetadata.price || price);
           // Try loading image from joined product_images table, or property image_url/image fallback
-          const image = (item.product_images && item.product_images[0]?.image_url) || item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
-          const rating = Number(item.rating || 4.5);
-          const reviewsCount = Number(item.reviewsCount || 0);
+          const image = extraMetadata.image || extraMetadata.image_url || (item.product_images && item.product_images[0]?.image_url) || item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
+          const rating = Number(item.rating || extraMetadata.rating || 0);
+          const reviewsCount = Number(item.reviewsCount || extraMetadata.reviewsCount || 0);
           // Category mapping support
-          const category = item.category || (item.categories?.name) || "General";
-          const vendorId = item.vendor_id || item.vendorId || "v_heritage";
-          const vendorName = item.vendorName || "Eko Heritage Weavers";
-          const stock = Number(item.stock_quantity !== undefined ? item.stock_quantity : (item.stock !== undefined ? item.stock : 10));
+          const category = extraMetadata.category || item.category || (item.categories?.name) || "General";
+          const categoryId = item.category_id || extraMetadata.categoryId || extraMetadata.category_id || (item.categories?.category_id) || (item.categories?.id) || "";
+          const categorySlug = extraMetadata.categorySlug || item.categorySlug || (item.categories?.slug) || "";
+
+          const vendorId = extraMetadata.vendorId || extraMetadata.vendor_id || item.vendor_id || item.vendorId || undefined;
+          const vendorName = extraMetadata.vendorName || extraMetadata.vendor_name || item.vendorName || "Eko Heritage Weavers";
+          const stock = Number(extraMetadata.stock !== undefined ? extraMetadata.stock : (extraMetadata.stock_quantity !== undefined ? extraMetadata.stock_quantity : (item.stock_quantity !== undefined ? item.stock_quantity : (item.stock !== undefined ? item.stock : 10))));
+
+          // Optional properties
+          const sizesRaw = extraMetadata.sizes || item.sizes;
+          const colorsRaw = extraMetadata.colors || item.colors;
+          const highlightsRaw = extraMetadata.highlights || item.highlights;
+          const whatsInTheBoxRaw = extraMetadata.whatsInTheBox || item.whatsInTheBox;
 
           return {
             ...item,
+            ...extraMetadata, // Spreading extraMetadata ensures we retain arbitrary UI properties like 'condition', 'commissionPercentage' etc!
             title,
-            description,
+            description: descriptionVal,
             price,
             originalPrice,
             image,
             rating,
             reviewsCount,
             category,
+            categoryId,
+            categorySlug,
             vendorId,
             vendorName,
             stock,
-            sizes: typeof item.sizes === "string" ? (item.sizes ? item.sizes.split(",") : []) : (Array.isArray(item.sizes) ? item.sizes : []),
-            colors: typeof item.colors === "string" ? (item.colors ? item.colors.split(",") : []) : (Array.isArray(item.colors) ? item.colors : []),
-            highlights: typeof item.highlights === "string" ? (item.highlights ? item.highlights.split(",") : []) : (Array.isArray(item.highlights) ? item.highlights : []),
-            whatsInTheBox: typeof item.whatsInTheBox === "string" ? (item.whatsInTheBox ? item.whatsInTheBox.split(",") : []) : (Array.isArray(item.whatsInTheBox) ? item.whatsInTheBox : [])
+            sizes: typeof sizesRaw === "string" ? (sizesRaw ? sizesRaw.split(",") : []) : (Array.isArray(sizesRaw) ? sizesRaw : []),
+            colors: typeof colorsRaw === "string" ? (colorsRaw ? colorsRaw.split(",") : []) : (Array.isArray(colorsRaw) ? colorsRaw : []),
+            highlights: typeof highlightsRaw === "string" ? (highlightsRaw ? highlightsRaw.split(",") : []) : (Array.isArray(highlightsRaw) ? highlightsRaw : []),
+            whatsInTheBox: typeof whatsInTheBoxRaw === "string" ? (whatsInTheBoxRaw ? whatsInTheBoxRaw.split(",") : []) : (Array.isArray(whatsInTheBoxRaw) ? whatsInTheBoxRaw : []),
+            externalLink: extraMetadata.externalLink || extraMetadata.external_link || item.external_link || undefined
           };
         }
         if (tableName === "vendors") {
           const name = item.business_name || item.name || "Naija Store Merchant";
           const avatar = item.logo_url || item.avatar || "";
-          const bankName = item.bank_name || item.bankName || "";
-          const accountNumber = item.account_number || item.accountNumber || "";
-          const physicalLocation = item.physical_location || item.physicalLocation || item.location || "";
-          const phone = item.phone || item.whatsapp_number || item.whatsappNumber || "+234 800 000 0000";
-          const email = item.email || "";
+
+          let extraMetadata: any = {};
+          if (item.business_description && item.business_description.trim().startsWith("{")) {
+            try {
+              extraMetadata = JSON.parse(item.business_description);
+            } catch (err) {
+              console.warn("Could not parse JSON metadata from business_description:", err);
+            }
+          }
+
+          const descriptionVal = extraMetadata.business_description || item.business_description || "";
+          const bankName = extraMetadata.bank_name || item.bank_name || item.bankName || "";
+          const accountNumber = extraMetadata.account_number || item.account_number || item.accountNumber || "";
+          const physicalLocation = extraMetadata.physical_location || item.physical_location || item.physicalLocation || item.location || "";
+          const whatsappNumber = extraMetadata.whatsapp_number || item.whatsapp_number || item.whatsappNumber || "";
+          const cacNumber = extraMetadata.cac_number || item.cac_number || item.cacNumber || "";
+          const isVerified = extraMetadata.is_verified !== undefined ? extraMetadata.is_verified : (item.is_verified || item.isVerified || false);
+
+          const phone = item.phone || whatsappNumber || item.whatsapp_number || item.whatsappNumber || "+234 800 000 0000";
+          const email = item.email || (item.users as any)?.email || "";
           return {
             ...item,
             name,
             avatar,
-            rating: item.rating || 4.5,
-            ratingCount: item.rating_count || item.ratingCount || 10,
+            rating: item.rating || 0,
+            ratingCount: item.rating_count || item.ratingCount || 0,
             salesToday: item.sales_today || item.salesToday || 0,
             ordersPending: item.orders_pending || item.ordersPending || 0,
             stockAlerts: item.stock_alerts || item.stockAlerts || 0,
             bankName,
             accountNumber,
-            cacNumber: item.cac_number || item.cacNumber || "",
-            whatsappNumber: item.whatsapp_number || item.whatsappNumber || "",
+            cacNumber,
+            whatsappNumber,
             physicalLocation,
             location: physicalLocation,
-            isVerified: item.is_verified || item.isVerified || false,
+            isVerified,
             phone,
             email,
+            ownerName: item.owner_name || item.ownerName || "",
+            business_description: descriptionVal,
           };
         }
         if (tableName === "categories") {
+          let meta: any = {};
+          if (item.image_url && typeof item.image_url === "string" && item.image_url.trim().startsWith("{")) {
+            try {
+              meta = JSON.parse(item.image_url);
+            } catch (e) {}
+          }
           const name = item.name || "General";
-          const image = item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
-          const description = item.description || `${name} items and products`;
-          const iconName = item.icon_name || item.iconName || "Package";
-          const itemCount = Number(item.itemCount || 0);
-          const subcategories = typeof item.subcategories === "string" ? (item.subcategories ? item.subcategories.split(",") : []) : (Array.isArray(item.subcategories) ? item.subcategories : []);
+          const image = meta.url || item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
+          const description = meta.description || item.description || `${name} items and products`;
+          const iconName = meta.icon_name || meta.iconName || item.icon_name || item.iconName || "Package";
+          const itemCount = Number(meta.item_count || meta.itemCount || item.item_count || item.itemCount || 0);
+          const subcategoriesRaw = meta.subcategories || item.subcategories;
+          const subcategories = typeof subcategoriesRaw === "string" ? (subcategoriesRaw ? subcategoriesRaw.split(",") : []) : (Array.isArray(subcategoriesRaw) ? subcategoriesRaw : []);
+          const categoryId = item.id || "";
 
           return {
             ...item,
+            ...meta,
             name,
             image,
             description,
             iconName,
             itemCount,
-            subcategories
+            subcategories,
+            categoryId,
+            category_id: categoryId,
+            status: meta.status || item.status || "active",
+            sortOrder: meta.sort_order || meta.sortOrder || item.sort_order || item.sortOrder || 0,
+            defaultCommissionPercentage: meta.default_commission_percentage || meta.defaultCommissionPercentage || item.default_commission_percentage || item.defaultCommissionPercentage || 5.0
           };
         }
         if (tableName === "orders") {
@@ -266,46 +330,84 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], o
             customerName: parsedMeta.customerName || customerName,
             value,
             status,
-            trackingId: parsedMeta.trackingId || item.trackingId || "TRACK-" + Math.floor(Math.random() * 90000 + 10000),
+           trackingId: parsedMeta.trackingId || item.trackingId || "",
             routeFrom: parsedMeta.routeFrom || item.routeFrom || "Lagos",
             routeTo: parsedMeta.routeTo || item.routeTo || "Abuja",
             deliveryProgress: parsedMeta.deliveryProgress !== undefined ? parsedMeta.deliveryProgress : (item.deliveryProgress || 0),
             currentCity: parsedMeta.currentCity || item.currentCity || "Lagos",
             productIds: parsedMeta.productIds || item.productIds || [],
-            location: parsedMeta.shipping_address || item.shipping_address || ""
+            location: parsedMeta.shipping_address || item.shipping_address || "",
+            deliveryAddress: parsedMeta.shipping_address || item.shipping_address || item.deliveryAddress || "",
+            phoneNumber: parsedMeta.phoneNumber || item.phoneNumber || "",
+            emailAddress: parsedMeta.emailAddress || item.emailAddress || ""
           };
         }
         return item;
       });
-      return { data: parsedData as T[], synced: true };
+      const finalData = parsedData as T[];
+      queryCache[cacheKey] = { data: finalData, timestamp: Date.now() };
+      return { data: finalData, synced: true };
     }
 
-    // Seed empty table
-    try {
-      const seedData = fallbackData.map((item: any) => {
-        if (tableName === "products") {
-          return {
-            ...item,
-            sizes: Array.isArray(item.sizes) ? item.sizes.join(",") : item.sizes,
-            colors: Array.isArray(item.colors) ? item.colors.join(",") : item.colors,
-            highlights: Array.isArray(item.highlights) ? item.highlights.join(",") : item.highlights,
-            whatsInTheBox: Array.isArray(item.whatsInTheBox) ? item.whatsInTheBox.join(",") : item.whatsInTheBox
-          };
-        }
-        return item;
-      });
-      const { error: insertError } = await supabase.from(tableName).insert(seedData);
-      if (!insertError) {
-        console.log(`Supabase: Seeded table "${tableName}" with initial data.`);
-        return { data: fallbackData, synced: true };
-      }
-    } catch {
-      // Ignore seeding errors
+    // If data is empty but no error, just return empty array
+    if (!data || data.length === 0) {
+      queryCache[cacheKey] = { data: [], timestamp: Date.now() };
+      return { data: [], synced: true };
     }
-    return { data: fallbackData, synced: true };
+
   } catch (err: any) {
+    if (tableName === "products" || tableName === "vendors" || tableName === "orders") {
+      return { data: [], synced: false, error: err?.message || "Connection failure" };
+    }
     return { data: fallbackData, synced: false, error: err?.message || "Connection failure" };
   }
+}
+
+// Cache resolved categories
+const categoryResolverCache: Record<string, string> = {};
+
+export async function saveSupabaseBatchRecords(tableName: string, records: any[]): Promise<boolean> {
+  if (records.length === 0) return true;
+  if (tableName === "categories") {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token || "";
+      const payloads = records.map(record => {
+        const catId = ensureUUID(record.id);
+        return {
+          id: catId,
+          name: record.name,
+          slug: record.slug || (record.name.toLowerCase().trim().replace(/[^a-z0-9]/g, "-") + "-" + Date.now()),
+          image_url: record.image || record.image_url || "",
+          description: record.description || "",
+          icon_name: record.iconName || record.icon_name || "Package",
+          item_count: record.itemCount || record.item_count || 0,
+          subcategories: record.subcategories || [],
+          status: record.status || "active",
+          sort_order: record.sortOrder || record.sort_order || 0,
+          default_commission_percentage: record.defaultCommissionPercentage || record.default_commission_percentage || 5.0,
+        };
+      });
+      const response = await fetch("/api/category/upsert", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-mock-user-id": "mock-user",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payloads)
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) return true;
+      }
+      return false;
+    } catch (err: any) {
+      console.warn(`Supabase batch upsert failed for ${tableName}. Error:`, err.message);
+      return false;
+    }
+  }
+  return false;
 }
 
 // Helper to save or update an record in Supabase with mapping and column filtering
@@ -314,24 +416,142 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
     let payload = { ...record };
 
     if (tableName === "products") {
+      // Find category_id based on record.category text or record.category_id
+      let resolvedCategoryId = record.categoryId || record.category_id;
+      
+      // If resolvedCategoryId is a UUID, look up categories table by ID to find the category_id string (e.g., 'fashion')
+      if (resolvedCategoryId && IS_UUID_REGEX.test(resolvedCategoryId)) {
+        try {
+          const { data: catData } = await supabase
+            .from("categories")
+            .select("id")
+            .eq("id", resolvedCategoryId)
+            .limit(1);
+          if (catData && catData.length > 0) {
+            resolvedCategoryId = catData[0].id;
+          }
+        } catch (e) {
+          console.warn("Failed to lookup category_id by UUID:", resolvedCategoryId, e);
+        }
+      } else if (resolvedCategoryId) {
+        // If it's a non-UUID category identifier (like 'fashion'), look up by slug or name
+        try {
+          const { data: catData } = await supabase
+            .from("categories")
+            .select("id")
+            .eq("slug", resolvedCategoryId)
+            .limit(1);
+          if (catData && catData.length > 0) {
+            resolvedCategoryId = catData[0].id;
+          } else {
+            // Check if matches category name ilike
+            const { data: catDataByName } = await supabase
+              .from("categories")
+              .select("id")
+              .ilike("name", resolvedCategoryId)
+              .limit(1);
+            if (catDataByName && catDataByName.length > 0) {
+              resolvedCategoryId = catDataByName[0].id;
+            } else {
+              resolvedCategoryId = undefined;
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to lookup category UUID from string:", resolvedCategoryId, e);
+          resolvedCategoryId = undefined;
+        }
+      }
+
+      if (!resolvedCategoryId && record.category) {
+        if (categoryResolverCache[record.category]) {
+          resolvedCategoryId = categoryResolverCache[record.category];
+        } else {
+          // Query Category from Categories table
+          try {
+            const { data: catData } = await supabase
+              .from("categories")
+              .select("id")
+              .or(`name.ilike.${record.category},slug.ilike.${record.category}`)
+              .limit(1);
+            if (catData && catData.length > 0) {
+              resolvedCategoryId = catData[0].id;
+              categoryResolverCache[record.category] = resolvedCategoryId;
+            } else {
+              // Category does not exist yet, let's auto-create it so it carries into Supabase!
+              const catSlug = record.category.toLowerCase().trim().replace(/[^a-z0-9]/g, "-");
+              const generatedId = ensureUUID(catSlug);
+              
+              const catPayload = {
+                id: generatedId,
+                name: record.category,
+                slug: catSlug,
+                image_url: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600"
+              };
+
+              try {
+                const { data: sessionData } = await supabase.auth.getSession();
+                const token = sessionData.session?.access_token || "";
+                
+                const catRes = await fetch("/api/category/upsert", {
+                  method: "POST",
+                  headers: { 
+                    "Content-Type": "application/json",
+                    "x-mock-user-id": "mock-user",
+                    ...(token ? { "Authorization": `Bearer ${token}` } : {})
+                  },
+                  body: JSON.stringify(catPayload)
+                });
+                
+                if (catRes.ok) {
+                  const result = await catRes.json();
+                  if (result.success && result.data && result.data.length > 0) {
+                     resolvedCategoryId = result.data[0].id;
+                     categoryResolverCache[record.category] = resolvedCategoryId;
+                  } else {
+                     resolvedCategoryId = generatedId;
+                     categoryResolverCache[record.category] = resolvedCategoryId;
+                  }
+                } else {
+                  resolvedCategoryId = generatedId;
+                  categoryResolverCache[record.category] = resolvedCategoryId;
+                }
+              } catch (err) {
+                 resolvedCategoryId = generatedId;
+                 categoryResolverCache[record.category] = resolvedCategoryId;
+              }
+            }
+          } catch (e) {
+            console.warn("Failed to auto-resolve category id for:", record.category, e);
+          }
+        }
+      }
+
+      if (!resolvedCategoryId) {
+        throw new Error(`Category resolution failed. No valid category found or created for: ${record.category || record.categoryId || record.category_id || "Unknown"}`);
+      }
+
       // User's Schema mapping
       payload.name = record.title || record.name;
-      payload.slug = record.slug || (record.title || record.name || "product").toLowerCase().trim().replace(/[^a-z0-9]/g, "-");
-      payload.description = record.description;
+      payload.slug = record.slug || ((record.title || record.name || "product").toLowerCase().trim().replace(/[^a-z0-9]/g, "-") + "-" + Date.now());
+      
+      // Parse entire record as a string into description for site-wide UI display and persistence
+      payload.description = JSON.stringify(record);
+
       payload.price = Number(record.price || 0);
       payload.discount_price = Number(record.originalPrice || record.discount_price || record.price || 0);
       payload.stock_quantity = Number(record.stock !== undefined ? record.stock : record.stock_quantity || 10);
       payload.featured = record.featured || false;
       payload.status = record.status || "active";
-      payload.vendor_id = record.vendorId || record.vendor_id || "v_heritage";
-      payload.category_id = record.categoryId || record.category_id;
+      payload.vendor_id = record.vendorId || record.vendor_id || undefined;
+      payload.category_id = resolvedCategoryId;
+      payload.external_link = record.externalLink || record.external_link || undefined;
 
       // Legacy/Compatibility mapping
       payload.title = record.title || record.name;
       payload.originalPrice = Number(record.originalPrice || record.price || 0);
       payload.image = record.image || record.image_url;
       payload.stock = Number(record.stock !== undefined ? record.stock : 10);
-      payload.vendorId = record.vendorId || "v_heritage";
+      payload.vendorId = record.vendorId || undefined;
       payload.vendorName = record.vendorName || "Eko Heritage Weavers";
       payload.category = record.category || "General";
       payload.sizes = Array.isArray(record.sizes) ? record.sizes.join(",") : record.sizes;
@@ -354,6 +574,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       payload.is_verified = record.isVerified !== undefined ? record.isVerified : (record.is_verified || false);
       payload.phone = record.phone || record.whatsappNumber || "";
       payload.email = record.email || "";
+      payload.owner_name = record.ownerName || record.owner_name || "";
 
       // Legacy mapping
       payload.name = record.name || record.business_name || "";
@@ -366,11 +587,25 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       payload.isVerified = record.isVerified !== undefined ? record.isVerified : (record.is_verified || false);
       payload.phone = record.phone || record.whatsappNumber || "";
       payload.email = record.email || "";
+      payload.ownerName = record.ownerName || record.owner_name || "";
 
     } else if (tableName === "categories") {
+      const catId = record.id || record.slug || ensureUUID(record.id);
+      payload.id = catId;
       payload.name = record.name;
-      payload.slug = record.slug || record.name.toLowerCase().trim().replace(/[^a-z0-9]/g, "-");
-      payload.image_url = record.image || record.image_url || "";
+      payload.slug = record.slug || (record.name.toLowerCase().trim().replace(/[^a-z0-9]/g, "-") + "-" + Date.now());
+      
+      const meta = {
+        url: record.image || record.image_url || "",
+        description: record.description || "",
+        icon_name: record.iconName || record.icon_name || "Package",
+        item_count: record.itemCount || record.item_count || 0,
+        subcategories: record.subcategories || [],
+        status: record.status || "active",
+        sort_order: record.sortOrder || record.sort_order || 0,
+        default_commission_percentage: record.defaultCommissionPercentage || record.default_commission_percentage || 5.0,
+      };
+      payload.image_url = JSON.stringify(meta);
 
     } else if (tableName === "orders") {
       // User's Schema mapping
@@ -382,7 +617,9 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
         currentCity: record.currentCity,
         productIds: record.productIds,
         customerName: record.customerName,
-        shipping_address: record.shipping_address || record.location || ""
+        shipping_address: record.shipping_address || record.location || record.deliveryAddress || "",
+        phoneNumber: record.phoneNumber,
+        emailAddress: record.emailAddress
       };
       payload.total_amount = Number(record.value || record.total_amount || 0);
       payload.order_status = record.status || record.order_status || "processing";
@@ -402,12 +639,17 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
     }
     if (payload.user_id) {
       payload.user_id = ensureUUID(payload.user_id);
+    } else {
+      delete payload.user_id;
     }
     if (payload.vendor_id) {
       payload.vendor_id = ensureUUID(payload.vendor_id);
+    } else {
+      delete payload.vendor_id;
     }
-    if (payload.category_id) {
-      payload.category_id = ensureUUID(payload.category_id);
+    // Let category_id remain as the raw text string (matching category_id in categories table)
+    if (!payload.category_id) {
+      delete payload.category_id;
     }
 
     // Strip unsupported columns to avoid query failure
@@ -422,13 +664,99 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       payload = filteredPayload;
     }
 
+    if (tableName === "vendors") {
+      try {
+        const apiPayload = {
+          ...payload,
+          bankName: record.bankName || record.bank_name,
+          accountNumber: record.accountNumber || record.account_number,
+          cacNumber: record.cacNumber || record.cac_number,
+          whatsappNumber: record.whatsappNumber || record.whatsapp_number,
+          location: record.location || record.physicalLocation || record.physical_location,
+          isVerified: record.isVerified !== undefined ? record.isVerified : record.is_verified,
+          description: record.description || record.business_description,
+          bank_name: record.bankName || record.bank_name,
+          account_number: record.accountNumber || record.account_number,
+          cac_number: record.cacNumber || record.cac_number,
+          whatsapp_number: record.whatsappNumber || record.whatsapp_number,
+          physical_location: record.location || record.physicalLocation || record.physical_location,
+          is_verified: record.isVerified !== undefined ? record.isVerified : record.is_verified,
+          business_description: record.description || record.business_description
+        };
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token || "";
+
+        const response = await fetch("/api/vendor/upsert", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "x-mock-user-id": "mock-user",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(apiPayload)
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) return true;
+        }
+        console.warn(`Supabase: API upsert failed for ${tableName}, falling back to direct client upsert.`);
+      } catch (err: any) {
+        console.warn(`Supabase: Exception calling API for ${tableName}, falling back to direct client upsert. Error:`, err.message);
+      }
+    } else if (tableName === "products") {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token || "";
+
+        const response = await fetch("/api/product/upsert", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "x-mock-user-id": "mock-user",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) return true;
+        }
+        console.warn(`Supabase: API upsert failed for ${tableName}, falling back to direct client upsert.`);
+      } catch (err: any) {
+        console.warn(`Supabase: Exception calling API for ${tableName}, falling back to direct client upsert. Error:`, err.message);
+      }
+    } else if (tableName === "categories") {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token || "";
+
+        const response = await fetch("/api/category/upsert", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "x-mock-user-id": "mock-user",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) return true;
+        }
+        console.warn(`Supabase: API upsert failed for ${tableName}, falling back to direct client upsert.`);
+      } catch (err: any) {
+        console.warn(`Supabase: Exception calling API for ${tableName}, falling back to direct client upsert. Error:`, err.message);
+      }
+    }
+
     const { error } = await supabase.from(tableName).upsert(payload);
     if (error) {
       console.warn(`Supabase: Failed to save record to ${tableName}:`, error.message);
       return false;
     }
     return true;
-  } catch (err) {
+  } catch (err: any) {
     console.warn(`Supabase: Error in saveSupabaseRecord for ${tableName}:`, err);
     return false;
   }
@@ -464,6 +792,7 @@ create table public.vendors (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.users(id) on delete cascade,
   business_name text not null,
+  owner_name text,
   business_description text,
   logo_url text,
   approval_status approval_status default 'pending',
@@ -471,6 +800,8 @@ create table public.vendors (
   account_number text,
   cac_number text,
   whatsapp_number text,
+  phone text,
+  email text,
   physical_location text,
   is_verified boolean default false,
   created_at timestamp default now()
@@ -483,6 +814,7 @@ create table public.categories (
   slug text unique not null,
   image_url text
 );
+alter publication supabase_realtime add table public.categories;
 
 -- 6. Products Table
 create table public.products (
@@ -497,6 +829,13 @@ create table public.products (
   stock_quantity int default 0,
   featured boolean default false,
   status product_status default 'active',
+  seo_title text,
+  seo_description text,
+  product_tags text[],
+  search_keywords text[],
+  highlights text[],
+  specifications text,
+  external_link text,
   created_at timestamp default now()
 );
 
@@ -583,10 +922,16 @@ create table public.email_logs (
 );
 
 -- Indexes
-create index idx_products_vendor on public.products(vendor_id);
-create index idx_products_category on public.products(category_id);
-create index idx_order_items_order on public.order_items(order_id);
-create index idx_reviews_product on public.reviews(product_id);
+create index if not exists idx_products_vendor on public.products(vendor_id);
+create index if not exists idx_products_category on public.products(category_id);
+create index if not exists idx_products_created_at on public.products(created_at);
+create index if not exists idx_order_items_order on public.order_items(order_id);
+create index if not exists idx_order_items_product on public.order_items(product_id);
+create index if not exists idx_reviews_product on public.reviews(product_id);
+create index if not exists idx_orders_user_id on public.orders(user_id);
+create index if not exists idx_orders_created_at on public.orders(created_at);
+create index if not exists idx_vendors_user_id on public.vendors(user_id);
+create index if not exists idx_vendors_created_at on public.vendors(created_at);
 
 -- RLS Settings
 alter table public.users enable row level security;
@@ -632,6 +977,25 @@ create policy "Allow admins to manage categories" on public.categories
       where id = auth.uid() and role = 'admin'
     )
   );
+
+create policy "Allow admins to insert categories" on public.categories
+  for insert with check (
+    exists (
+      select 1 from public.users 
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+create policy "Allow admins to view email logs" on public.email_logs
+  for select using (
+    exists (
+      select 1 from public.users 
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+create policy "Allow internal service to insert logs" on public.email_logs
+  for insert with check (true);
 
 -- Secure Orders: Users see own, Vendors see all relevant/incoming
 create policy "Allow anyone to create orders" on public.orders
@@ -729,6 +1093,31 @@ begin
     )
     on conflict (id) do nothing;
   end if;
+
+  -- Send admin notification email via webhook relay (fails silently on purpose if relay down)
+  begin
+    perform http_post(
+      'https://ais-dev-brqsexjwpwzbfwju74h6mt-9956629845.europe-west2.run.app/api/internal/webhook/admin-notify',
+      json_build_object(
+        'to', 'adminnaijastoresonline@gmail.com',
+        'template_name', 'admin_new_account',
+        'data', json_build_object(
+          'fullName', coalesce(new.raw_user_meta_data->>'fullName', new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+          'emailAddress', new.email,
+          'phoneNumber', coalesce(new.phone, new.raw_user_meta_data->>'phone', 'N/A'),
+          'accountType', coalesce((new.raw_user_meta_data->>'role')::text, 'customer'),
+          'businessName', case when coalesce((new.raw_user_meta_data->>'role')::text, 'customer') = 'vendor' then coalesce(new.raw_user_meta_data->>'shopName', new.raw_user_meta_data->>'business_name', split_part(new.email, '@', 1) || ' Store') else null end,
+          'registrationDate', new.created_at,
+          'userId', new.id,
+          'signInProvider', 'Email/Password',
+          'adminDashboardLink', 'https://ais-dev-brqsexjwpwzbfwju74h6mt-9956629845.europe-west2.run.app/admin'
+        )
+      )::text,
+      'application/json'
+    );
+  exception when others then
+    -- Do nothing on webhook failure
+  end;
 
   return new;
 end;

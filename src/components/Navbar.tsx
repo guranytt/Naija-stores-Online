@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { ShoppingCart, Search, Store, Map, LayoutDashboard, UserCircle, Menu, X, Landmark, BadgeCheck, ChevronDown, ChevronUp, Package, ShoppingBag } from "lucide-react";
+import { ShoppingCart, Search, Store, Map, LayoutDashboard, UserCircle, Menu, X, Landmark, BadgeCheck, ChevronDown, ChevronUp, Package as PackageIcon, ShoppingBag } from "lucide-react";
 import { Category } from "../types";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 
@@ -18,6 +18,7 @@ interface NavbarProps {
   categories?: Category[];
   products?: import("../types").Product[];
   isLoggedIn?: boolean;
+  onSelectCategory?: (catId: string) => void;
 }
 
 export default function Navbar({ 
@@ -29,12 +30,14 @@ export default function Navbar({
   userEmail, 
   categories = [],
   products = [],
-  isLoggedIn = false
+  isLoggedIn = false,
+  onSelectCategory
 }: NavbarProps) {
   const [searchVal, setSearchVal] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoriesMenuOpen, setCategoriesMenuOpen] = useState(false);
+  const [desktopCategoriesOpen, setDesktopCategoriesOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [cartBounced, setCartBounced] = useState(false);
   const shouldReduceMotion = useReducedMotion();
@@ -86,7 +89,9 @@ export default function Navbar({
   const menuItems = [
     { id: "home", label: "Marketplace", icon: Store },
     { id: "shop", label: "Categories", icon: Store },
-    { id: "map", label: "My Orders", icon: Package },
+    { id: "stores", label: "All Stores", icon: Store },
+    { id: "map", label: "My Orders", icon: PackageIcon },
+    { id: "sell", label: "Sell with us", icon: Store },
     { id: "admin", label: "Vendor Admin", icon: LayoutDashboard },
   ];
 
@@ -287,7 +292,7 @@ export default function Navbar({
                                 >
                                   {p.image ? (
                                     <div className="w-7 h-7 rounded-md overflow-hidden bg-neutral-100 shrink-0">
-                                      <img src={p.image} className="w-full h-full object-cover" alt="" />
+                                      <img loading="lazy" src={p.image} className="w-full h-full object-cover" alt="" />
                                     </div>
                                   ) : (
                                     <div className="w-7 h-7 rounded-md bg-emerald-50 shrink-0 flex items-center justify-center">
@@ -322,6 +327,66 @@ export default function Navbar({
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentScreen === item.id;
+              
+              if (item.id === "shop") {
+                return (
+                  <div key={item.id} className="relative group" onMouseEnter={() => setDesktopCategoriesOpen(true)} onMouseLeave={() => setDesktopCategoriesOpen(false)}>
+                    <button
+                      onClick={() => onNavigate(item.id)}
+                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-bold tracking-wide transition-all relative ${
+                        isActive
+                          ? "text-emerald-900 bg-emerald-50 font-extrabold"
+                          : "text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50/50"
+                      }`}
+                      id={`nav-link-${item.id}`}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeNavHighlight"
+                          className="absolute inset-0 bg-emerald-100/50 rounded-lg border border-emerald-100 -z-10"
+                          transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                        />
+                      )}
+                      <Icon className={`w-4 h-4 ${isActive ? "text-orange-500" : "text-orange-400"}`} />
+                      <span>{item.label}</span>
+                      <ChevronDown className="w-3 h-3 opacity-60 ml-1" />
+                    </button>
+
+                    <AnimatePresence>
+                      {desktopCategoriesOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10, transition: { duration: 0.1 } }}
+                          className="absolute top-full left-0 mt-2 w-56 bg-white border border-emerald-100 rounded-2xl shadow-xl overflow-hidden z-50 flex flex-col"
+                        >
+                          <div className="max-h-80 overflow-y-auto p-2 space-y-1">
+                            {categories.map((cat) => (
+                              <button
+                                key={cat.id}
+                                onClick={() => {
+                                  setDesktopCategoriesOpen(false);
+                                  if (onSelectCategory) {
+                                    onSelectCategory(cat.id);
+                                  } else {
+                                    onSearch(cat.name);
+                                    setSearchVal(cat.name);
+                                    onNavigate("shop");
+                                  }
+                                }}
+                                className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-emerald-800 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                              >
+                                {cat.name}
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              }
+
               return (
                 <button
                   key={item.id}
@@ -489,55 +554,24 @@ export default function Navbar({
                               transition={{ duration: 0.2 }}
                               className="pl-6 pr-2 py-1.5 space-y-2 flex flex-col items-stretch text-left border-l-2 border-orange-500/30 ml-6 mt-1 overflow-hidden"
                             >
-                              {categories.map((cat) => {
-                                const isCatExpanded = !!expandedCategories[`mob_shop_${cat.id}`];
-                                return (
-                                  <div key={cat.id} className="flex flex-col">
-                                    <button
-                                      onClick={() => {
-                                        setExpandedCategories(prev => ({
-                                          ...prev,
-                                          [`mob_shop_${cat.id}`]: !prev[`mob_shop_${cat.id}`]
-                                        }));
-                                      }}
-                                      className="w-full flex items-center justify-between py-1 text-xs font-semibold text-emerald-200 hover:text-white transition-colors text-left"
-                                    >
-                                      <span>{cat.name}</span>
-                                      {isCatExpanded ? <ChevronUp className="w-3.5 h-3.5 text-orange-400" /> : <ChevronDown className="w-3.5 h-3.5 text-emerald-400" />}
-                                    </button>
-
-                                    {isCatExpanded && (
-                                      <div className="pl-3 py-1 space-y-1 border-l border-emerald-800/60 mt-0.5 flex flex-col items-stretch">
-                                        <button
-                                          onClick={() => {
-                                            onSearch(cat.name);
-                                            setSearchVal(cat.name);
-                                            onNavigate("shop");
-                                            setMobileMenuOpen(false);
-                                          }}
-                                          className="text-left text-[10px] text-orange-400 hover:text-white font-bold tracking-wider py-0.5"
-                                        >
-                                          ⚡ All {cat.name}
-                                        </button>
-                                        {cat.subcategories && cat.subcategories.map((subcat) => (
-                                          <button
-                                            key={subcat}
-                                            onClick={() => {
-                                              onSearch(subcat);
-                                              setSearchVal(subcat);
-                                              onNavigate("shop");
-                                              setMobileMenuOpen(false);
-                                            }}
-                                            className="text-left text-[11px] text-zinc-300 hover:text-white hover:underline py-0.5"
-                                          >
-                                            • {subcat}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                              {categories.map((cat) => (
+                                <button
+                                  key={cat.id}
+                                  onClick={() => {
+                                    if (onSelectCategory) {
+                                      onSelectCategory(cat.id);
+                                    } else {
+                                      onSearch(cat.name);
+                                      setSearchVal(cat.name);
+                                      onNavigate("shop");
+                                    }
+                                    setMobileMenuOpen(false);
+                                  }}
+                                  className="w-full flex items-center justify-between py-1.5 text-xs font-semibold text-emerald-200 hover:text-white transition-colors text-left"
+                                >
+                                  <span>{cat.name}</span>
+                                </button>
+                              ))}
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -569,66 +603,24 @@ export default function Navbar({
               <div className="mt-6 flex-1 flex flex-col min-h-0 overflow-hidden">
                 <h3 className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-3 text-left shrink-0">Shop by Category</h3>
                 <div className="space-y-2 overflow-y-auto pr-1 flex-grow">
-                  {categories.map((cat) => {
-                    const isExpanded = !!expandedCategories[cat.id];
-                    return (
-                      <div key={cat.id} className="bg-white/5 rounded-xl border border-white/5 overflow-hidden transition-all">
-                        <button
-                          onClick={() => toggleCategoryExpand(cat.id)}
-                          className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-bold text-emerald-100 hover:bg-white/5 hover:text-white transition-all text-left"
-                        >
-                          <span className="truncate mr-2">{cat.name}</span>
-                          <span className="flex items-center space-x-1.5 shrink-0">
-                            {isExpanded ? (
-                              <ChevronUp className="w-3.5 h-3.5 text-emerald-300" />
-                            ) : (
-                              <ChevronDown className="w-3.5 h-3.5 text-emerald-400/80" />
-                            )}
-                          </span>
-                        </button>
-
-                        <AnimatePresence initial={false}>
-                          {isExpanded && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="bg-emerald-950/45 px-2 pb-2 space-y-1 text-left border-t border-white/5"
-                            >
-                              {/* "Show All in Category" header link */}
-                              <button
-                                onClick={() => {
-                                  onSearch(cat.name);
-                                  setSearchVal(cat.name);
-                                  onNavigate("shop");
-                                  setMobileMenuOpen(false);
-                                }}
-                                className="w-full text-left px-2 py-1.5 text-[10px] text-orange-400 font-extrabold hover:text-white select-none block transition-colors"
-                              >
-                                ⚡ ALL {cat.name.toUpperCase()} PRODUCTS
-                              </button>
-                              
-                              {cat.subcategories && cat.subcategories.map((subcat) => (
-                                <button
-                                  key={subcat}
-                                  onClick={() => {
-                                    onSearch(subcat);
-                                    setSearchVal(subcat);
-                                    onNavigate("shop");
-                                    setMobileMenuOpen(false);
-                                  }}
-                                  className="w-full text-left px-2 py-1.5 text-[11px] text-emerald-200/90 hover:text-white hover:bg-white/5 rounded transition-colors block"
-                                >
-                                  • {subcat}
-                                </button>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    );
-                  })}
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        if (onSelectCategory) {
+                          onSelectCategory(cat.id);
+                        } else {
+                          onSearch(cat.name);
+                          setSearchVal(cat.name);
+                          onNavigate("shop");
+                        }
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-bold text-emerald-100 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 hover:text-white transition-all text-left"
+                    >
+                      <span className="truncate mr-2">{cat.name}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 

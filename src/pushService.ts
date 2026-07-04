@@ -1,5 +1,7 @@
 // src/pushService.ts
 
+import { supabase } from "./supabase";
+
 const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -49,10 +51,16 @@ export async function requestPushPermissionAndSubscribe(vendorId: string) {
       });
     }
 
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token || "";
+
     // Send subscription to backend
     const res = await fetch("/api/push/subscribe", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({
         vendorId,
         subscription,

@@ -23,6 +23,8 @@ export interface Product {
   rating: number;
   reviewsCount: number;
   category: string;
+  categoryId?: string;
+  categorySlug?: string;
   subCategory?: string;
   condition?: "New" | "Fairly Used";
   commissionPercentage?: number;
@@ -31,6 +33,7 @@ export interface Product {
   sizes?: string[];
   colors?: string[];
   stock: number;
+  deliveryDays?: number;
   isBestSeller?: boolean;
   isTrending?: boolean;
   isNew?: boolean;
@@ -38,10 +41,16 @@ export interface Product {
   highlights?: string[];
   whatsInTheBox?: string[];
   tags?: string[];
+  seoTitle?: string;
+  seoDescription?: string;
+  searchKeywords?: string[];
+  specifications?: string;
+  externalLink?: string;
 }
 
 export interface Category {
   id: string;
+  categoryId?: string;
   name: string;
   description: string;
   image: string;
@@ -49,6 +58,9 @@ export interface Category {
   itemCount: number;
   subcategories: string[];
   status?: "active" | "pending" | "rejected";
+  slug?: string;
+  defaultCommissionPercentage?: number;
+  sortOrder?: number;
 }
 
 export interface Advertisement {
@@ -89,16 +101,31 @@ export interface Vendor {
   location: string;
   cacNumber?: string;
   whatsappNumber?: string;
+  cac_number?: string;
+  whatsapp_number?: string;
   bankName?: string;
   accountNumber?: string;
+  bank_name?: string;
+  account_number?: string;
   userId?: string;
   user_id?: string;
+  isVerified?: boolean;
+  business_description?: string;
+  description?: string;
+  business_name?: string;
+  owner_name?: string;
+  physical_location?: string;
+  logo_url?: string;
+  approval_status?: string;
 }
 
 export interface Order {
   id: string;
   user_id?: string;
   customerName: string;
+  deliveryAddress?: string;
+  phoneNumber?: string;
+  emailAddress?: string;
   status: "Delivered" | "Processing" | "Shipped" | "Flagged";
   date: string;
   value: number; // In Nigerian Naira (₦)
@@ -109,6 +136,8 @@ export interface Order {
   deliveryProgress: number; // 0 to 100
   currentCity: string;
   productIds?: string[];
+  receiptPrompted?: boolean;
+  receiptConfirmed?: boolean;
 }
 
 export interface AdminTeamMember {

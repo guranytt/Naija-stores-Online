@@ -6,6 +6,7 @@ import './index.css';
 
 Sentry.init({
   dsn: "https://a68848c350e9185df733bf879936e1a9@o4511534518435840.ingest.de.sentry.io/4511534529183824",
+  release: import.meta.env.VITE_APP_VERSION,
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.replayIntegration(),
@@ -13,6 +14,17 @@ Sentry.init({
   tracesSampleRate: 1.0,
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
+  beforeSend(event, hint) {
+    const errorMsg = hint.originalException ? String(hint.originalException) : "";
+    if (
+      errorMsg.includes("Invalid Refresh Token") || 
+      errorMsg.includes("Refresh Token Not Found") ||
+      errorMsg.includes("refresh_token_not_found")
+    ) {
+      return null;
+    }
+    return event;
+  }
 });
 
 // Gracefully catch and handle any unhandled rejections related to Supabase refresh tokens

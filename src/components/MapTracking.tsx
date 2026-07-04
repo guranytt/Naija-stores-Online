@@ -28,9 +28,10 @@ import { Order } from "../types";
 interface MapTrackingProps {
   orders: Order[];
   onUpdateOrderProgress: (orderId: string, progress: number, currentCity: string, status?: Order["status"]) => void;
+  onConfirmReceipt?: (orderId: string) => void;
 }
 
-export default function MapTracking({ orders, onUpdateOrderProgress }: MapTrackingProps) {
+export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmReceipt }: MapTrackingProps) {
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [isSimulating, setIsSimulating] = useState(false);
   const [simSpeed, setSimSpeed] = useState<number>(400); // ms per step
@@ -378,6 +379,14 @@ export default function MapTracking({ orders, onUpdateOrderProgress }: MapTracki
                 <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider pl-1">Logistics Agent Manual Controls</span>
                 
                 <div className="flex gap-2">
+                  {onConfirmReceipt && activeOrder.receiptPrompted && !activeOrder.receiptConfirmed && (
+                    <button
+                      onClick={() => onConfirmReceipt(activeOrder.id)}
+                      className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-black rounded-xl transition-all shadow shadow-orange-200 active:scale-95 animate-bounce"
+                    >
+                      Confirm I have received this package
+                    </button>
+                  )}
                   {isSimulating ? (
                     <button
                       onClick={stopSim}

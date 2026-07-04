@@ -1,31 +1,26 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useEffect } from "react";
-import useSWR from "swr";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Navbar from "./components/Navbar";
-import CustomerViews from "./components/CustomerViews";
-import MapTracking from "./components/MapTracking";
-import VendorAdmin from "./components/VendorAdmin";
-import VendorAuth from "./components/VendorAuth";
-import UserAuthHub from "./components/UserAuthHub";
-import PaystackCheckout from "./components/PaystackCheckout";
-import CookiePopup from "./components/CookiePopup";
-import PolicyOverlay from "./components/PolicyOverlay";
+
+const CustomerViews = lazy(() => import("./components/CustomerViews"));
+const MapTracking = lazy(() => import("./components/MapTracking"));
+const VendorAdmin = lazy(() => import("./components/VendorAdmin"));
+const VendorAuth = lazy(() => import("./components/VendorAuth"));
+const UserAuthHub = lazy(() => import("./components/UserAuthHub"));
+const PaystackCheckout = lazy(() => import("./components/PaystackCheckout"));
+const CookiePopup = lazy(() => import("./components/CookiePopup"));
+const PolicyOverlay = lazy(() => import("./components/PolicyOverlay"));
+const FAQWidget = lazy(() => import("./components/FAQWidget"));
+
 import { initPostHog, trackAddToCart, trackCheckoutStarted, trackPaymentCompleted, trackOrderCompleted } from "./lib/posthog";
-import { Product, CartItem, Order, Vendor, Category, FlashDealProposal } from "./types";
-import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS, MOCK_CATEGORIES } from "./data/mockData";
-import { formatNaira } from "./components/CustomerViews";
-import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText, Store, Bug } from "lucide-react";
-import { supabase, getSupabaseData, saveSupabaseRecord, PROVISION_SQL_SCRIPT, ensureUUID } from "./supabase";
+import { Product, CartItem, Order, Vendor, Category, FlashDealProposal, Advertisement } from "./types";
+import { useSEO } from "./hooks/useSEO";
+import { fetchAndEnrichCategories } from "./services/categoriesService";
+import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS, MOCK_ADS } from "./data/mockData";
+import { formatNaira } from "./utils";
+import { useStore } from "./store/useStore";
+import { Info, Settings, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText, Store, Bug, RefreshCw } from "lucide-react";
+import { supabase, getSupabaseData, saveSupabaseRecord, saveSupabaseBatchRecords, PROVISION_SQL_SCRIPT, ensureUUID, setSupabaseToken } from "./supabase";
 import { sendResendEmail, fetchEmailLogs, MailLogEntry } from "./emailService";
 
 // Standard browser cookie helper functions
@@ -39,7 +34,7 @@ function getCookie(name: string): string {
       if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
     }
   } catch (e) {
-    console.error("Fail reading cookie: ", e);
+    console.warn("Fail reading cookie: ", e);
   }
   return "";
 }
@@ -54,28 +49,131 @@ function setCookie(name: string, value: string, days = 7) {
     }
     document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
   } catch (e) {
-    console.error("Fail writing cookie: ", e);
+    console.warn("Fail writing cookie: ", e);
+  }
+}
+
+import GracefulErrorScreen from "./components/GracefulErrorScreen";
+
+const slugifyLocal = (text: string) => text.toLowerCase().replace(/[^\w ]+/g, "").replace(/ +/g, "-");
+
+const mockVendorIds = ["v_heritage", "v_alaba", "v_compvillage", "v_balogun", "v_sheabeauty", "v_snacks", "v_lekki", "v_yaba"];
+const isVendorIdMock = (id: string) => {
+  if (!id) return false;
+  const idStr = String(id).trim();
+  if (mockVendorIds.includes(idStr)) return true;
+  for (const mvId of mockVendorIds) {
+    if (ensureUUID(mvId) === idStr) return true;
+  }
+  return false;
+};
+
+const isProductIdMock = (id: string) => {
+  if (!id) return false;
+  const idStr = String(id).trim();
+  if (/^(p|fs)\d+$/i.test(idStr)) return true;
+  for (let i = 1; i <= 150; i++) {
+    if (ensureUUID(`p${i}`) === idStr || ensureUUID(`fs${i}`) === idStr) {
+      return true;
+    }
+  }
+  return false;
+};
+
+const isOrderIdMock = (id: string) => {
+  if (!id) return false;
+  const idStr = String(id).trim();
+  if (idStr.startsWith("NS-")) return true;
+  for (let i = 9941; i <= 9950; i++) {
+    if (ensureUUID(`NS-${i}`) === idStr) return true;
+  }
+  return false;
+};
+
+class ErrorBoundary extends React.Component<{ fallback?: React.ReactNode, children: React.ReactNode }, any> {
+  state = { hasError: false, error: null };
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      // @ts-ignore
+      return this.props.fallback || <GracefulErrorScreen />;
+    }
+    // @ts-ignore
+    return this.props.children;
   }
 }
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<string>("home");
-  const [vendorAuthenticated, setVendorAuthenticated] = useState<boolean>(false);
-  const [selectedProductId, setSelectedProductId] = useState<string>("p1");
-  const [initialCategory, setInitialCategory] = useState<string>("all");
-  const [searchFilter, setSearchFilter] = useState<string>("");
+
+  const {
+    currentScreen, setCurrentScreen,
+    selectedProductId, setSelectedProductId,
+    selectedVendorSlug, setSelectedVendorSlug,
+    initialCategory, setInitialCategory,
+    searchFilter, setSearchFilter,
+    isCheckoutOpen, setIsCheckoutOpen,
+    settingsDrawerOpen, setSettingsDrawerOpen,
+    
+    currentUserId, setCurrentUserId,
+    userEmail, setUserEmail,
+    vendorAuthenticated, setVendorAuthenticated,
+    authReady, setAuthReady,
+    
+    products, setProducts,
+    vendors, setVendors,
+    categories, setCategories,
+    orders, setOrders,
+    ads, setAds,
+    flashDeals, setFlashDeals,
+    deliveryZones, setDeliveryZones,
+    
+    cart, setCart,
+    addToCart: handleAddToCart,
+    updateCartQty: handleUpdateCartQty,
+    removeFromCart: handleRemoveFromCart,
+    clearCart,
+    checkoutAmount, setCheckoutAmount,
+    
+    userBankName, setUserBankName,
+    userBankAccountNumber, setUserBankAccountNumber,
+    userCacNumber, setUserCacNumber,
+    userStoreName, setUserStoreName,
+    userOwnerName, setUserOwnerName,
+    userAvatar, setUserAvatar,
+    userWhatsappNumber, setUserWhatsappNumber,
+    userLocation, setUserLocation
+  } = useStore();
+  // replaced by useStore
+  // replaced by useStore
+  // replaced by useStore
+  // replaced by useStore
+  // replaced by useStore
   const shouldReduceMotion = useReducedMotion();
-  const [userEmail, setUserEmail] = useState<string>("adminnaijastoresonline@gmail.com");
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
-  const [settingsDrawerOpen, setSettingsDrawerOpen] = useState<boolean>(false);
+  // replaced by useStore
+  const [userDeliveryAddress, setUserDeliveryAddress] = useState<string>("");
+  // replaced by useStore
+  // replaced by useStore
+  // replaced by useStore
+  // replaced by useStore
+  // replaced by useStore
 
   // Resend Automation states
   const [mailLogs, setMailLogs] = useState<MailLogEntry[]>([]);
   const [autoSendEmails, setAutoSendEmails] = useState<boolean>(true);
 
-  const [selectedVendorSlug, setSelectedVendorSlug] = useState<string>("eko-heritage-weavers");
+  // replaced by useStore
 
   // Router logic to interpret URL on first load and back/forward
   useEffect(() => {
@@ -83,6 +181,11 @@ export default function App() {
       const path = window.location.pathname;
       const seoCategories = ["electronics", "fashion", "phones", "laptops", "beauty", "home-kitchen", "sports", "gaming"];
       if (path.startsWith("/cart")) setCurrentScreen("cart");
+      else if (path.startsWith("/about")) setCurrentScreen("about");
+      else if (path.startsWith("/contact")) setCurrentScreen("contact");
+      else if (path.startsWith("/sell")) setCurrentScreen("sell");
+      else if (path.startsWith("/faq")) setCurrentScreen("faq");
+      else if (path.startsWith("/stores")) setCurrentScreen("stores");
       else if (path.startsWith("/admin") || path.startsWith("/dashboard")) setCurrentScreen("admin");
       else if (path.startsWith("/tracking")) setCurrentScreen("map");
       else if (path.startsWith("/auth")) setCurrentScreen("auth");
@@ -91,15 +194,33 @@ export default function App() {
         setInitialCategory("all");
       }
       else if (path.startsWith("/product/")) {
-        const id = path.split("/product/")[1];
-        if (id) {
+        const raw = path.split("/product/")[1];
+        if (raw) {
+          let id = raw.split("-")[0];
+          const uuidMatch = raw.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+          if (uuidMatch) {
+            id = uuidMatch[0];
+          } else if (raw.startsWith("p") || raw.startsWith("v")) {
+            // retain existing behavior for mock ids
+            id = raw.split("-")[0];
+          }
           setSelectedProductId(id);
           setCurrentScreen("details");
         }
       }
       else if (path.startsWith("/vendor/")) {
-        const slug = path.split("/vendor/")[1];
-        if (slug) {
+        const raw = path.split("/vendor/")[1];
+        if (raw) {
+          let slug = raw;
+          const uuidMatch = raw.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+          if (uuidMatch) {
+            slug = uuidMatch[0];
+          } else if (raw.startsWith("v_") || raw.startsWith("vendor")) {
+            slug = raw.split("-")[0];
+          } else {
+            // Decoding the raw component in case there are encoded characters
+            slug = decodeURIComponent(raw);
+          }
           setSelectedVendorSlug(slug);
           setCurrentScreen("vendor");
         }
@@ -128,6 +249,11 @@ export default function App() {
     let newPath = "/";
     const seoCategories = ["electronics", "fashion", "phones", "laptops", "beauty", "home-kitchen", "sports", "gaming"];
     if (currentScreen === "cart") newPath = "/cart";
+    else if (currentScreen === "about") newPath = "/about";
+    else if (currentScreen === "contact") newPath = "/contact";
+    else if (currentScreen === "sell") newPath = "/sell";
+    else if (currentScreen === "faq") newPath = "/faq";
+    else if (currentScreen === "stores") newPath = "/stores";
     else if (currentScreen === "admin") newPath = "/dashboard";
     else if (currentScreen === "map") newPath = "/tracking";
     else if (currentScreen === "auth") newPath = "/auth";
@@ -138,8 +264,16 @@ export default function App() {
         newPath = window.location.pathname.startsWith("/category/") ? window.location.pathname : "/shop";
       }
     }
-    else if (currentScreen === "details") newPath = `/product/${selectedProductId}`;
-    else if (currentScreen === "vendor") newPath = `/vendor/${selectedVendorSlug}`;
+    else if (currentScreen === "details") {
+      const prod = products.find(p => p.id === selectedProductId);
+      const slug = prod ? slugifyLocal(prod.title) : "";
+      newPath = `/product/${selectedProductId}${slug ? `-${slug}` : ""}`;
+    }
+    else if (currentScreen === "vendor") {
+      const vend = vendors.find(v => v.id === selectedVendorSlug || slugifyLocal(v.name) === selectedVendorSlug);
+      const slug = vend ? slugifyLocal(vend.name) : selectedVendorSlug;
+      newPath = `/vendor/${selectedVendorSlug}${slug && slug !== selectedVendorSlug ? `-${slug}` : ""}`;
+    }
     
     if (window.location.pathname !== newPath && currentScreen !== "home") {
        window.history.pushState({ screen: currentScreen }, "", newPath);
@@ -148,39 +282,43 @@ export default function App() {
     }
   }, [currentScreen, selectedProductId, initialCategory, selectedVendorSlug]);
 
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      const saved = getCookie("naija_plaza_cart");
-      if (saved) {
-        return JSON.parse(decodeURIComponent(saved));
-      }
-    } catch (e) {
-      console.warn("Could not read cart from cookies: ", e);
-    }
-    return [];
-  });
-
-  // Automated cart-to-cookie synchronization effect
+  // Synchronize category state across tabs via BroadcastChannel
   useEffect(() => {
-    try {
-      setCookie("naija_plaza_cart", encodeURIComponent(JSON.stringify(cart)), 14);
-    } catch (e) {
-      console.error("Sync error: ", e);
-    }
-  }, [cart]);
+    const channel = new BroadcastChannel('categories_sync_channel');
+    channel.onmessage = (event) => {
+      if (event.data?.type === 'CATEGORIES_UPDATED' && event.data?.categories) {
+        setCategories(event.data.categories);
+      } else if (event.data?.type === 'FORCE_REFETCH') {
+        fetchAndEnrichCategories().then((data) => {
+          if (data) {
+            const finalCats = data.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+            setCategories(finalCats);
+            try { localStorage.setItem("NAIJA_CATEGORIES_STATE", JSON.stringify(finalCats)); } catch(e) {}
+          }
+        });
+      }
+    };
+    return () => channel.close();
+  }, []);
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [categories, setCategories] = useState<Category[]>(() => {
-    try {
-      const saved = localStorage.getItem("NAIJA_CATEGORIES_STATE");
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return [];
-  });
+  // complex state replaced by useStore
+
+
+  // complex state replaced by useStore
+
+
+  // complex state replaced by useStore
+
+
+  // complex state replaced by useStore
+
+  // complex state replaced by useStore
+
+  // complex state replaced by useStore
+
+
+  // complex state replaced by useStore
+
 
   // Initial PostHog runtime loading
   useEffect(() => {
@@ -194,266 +332,36 @@ export default function App() {
     }
   }, []);
 
-  // Update SEO metadata dynamically
-  useEffect(() => {
-    const isPublic = !["admin", "tracking", "checkout", "auth"].includes(currentScreen);
-    
-    let title = "NaijaOnlineStores | Premium Online Shopping Marketplace Nigeria";
-    let desc = "Experience secure, verified online shopping Nigeria. Buy electronics online Nigeria, high-quality fashion wear, devices, and cosmetics on NaijaOnlineStores — Nigeria's trusted online stores with automated escrow checks.";
-    let robots = isPublic ? "index, follow" : "noindex, nofollow";
-
-    const slugifyLocal = (text: string) => text.toLowerCase().replace(/[^\w ]+/g, "").replace(/ +/g, "-");
-
-    // Dynamic Title & Description customization
-    if (currentScreen === "shop") {
-      if (initialCategory && initialCategory !== "all") {
-        const catObj = categories.find(c => c.id === initialCategory);
-        if (catObj) {
-          title = `${catObj.name} | Buy Authentic Products Online Nigeria | NaijaOnlineStores`;
-          desc = `Shop premium ${catObj.name.toLowerCase()} collections online in Nigeria. Verified merchants, escrow logistics protection, and nationwide delivery supported on NaijaOnlineStores.`;
-        } else {
-          title = `${initialCategory.charAt(0).toUpperCase() + initialCategory.slice(1)} | Shop Online Nigeria`;
-        }
-      } else {
-        title = "Shop Direct From Verified Local Wholesalers | NaijaOnlineStores";
-      }
-    } else if (currentScreen === "details" && selectedProductId) {
-      const prod = products.find(p => p.id === selectedProductId);
-      if (prod) {
-        title = `${prod.title} | Buy Online Nigeria | NaijaOnlineStores`;
-        desc = `Get the best deal on ${prod.title} by ${prod.vendorName} on NaijaOnlineStores. Rating: ${prod.rating} ★ (${prod.reviewsCount} reviews). Secure escrow payment & fast delivery across Nigeria.`;
-      }
-    } else if (currentScreen === "vendor" && selectedVendorSlug) {
-      const vend = vendors.find(v => slugifyLocal(v.name) === selectedVendorSlug || v.id === selectedVendorSlug);
-      if (vend) {
-        title = `${vend.name} Storefront | Verified Wholesale Merchant | NaijaOnlineStores`;
-        desc = `Explore and shop the latest collections from ${vend.name} official store in ${vend.location}. Highly rated merchant (${vend.rating} ★) with secure direct payments on NaijaOnlineStores Nigeria.`;
-      }
-    } else if (currentScreen === "admin" || currentScreen === "tracking") {
-      title = "Dashboard | NaijaOnlineStores";
-    }
-
-    // Update <title>
-    document.title = title;
-
-    // Update Meta Tags
-    const setMeta = (name: string, content: string, property: boolean = false) => {
-      let el = document.querySelector(property ? `meta[property="${name}"]` : `meta[name="${name}"]`);
-      if (!el) {
-        el = document.createElement("meta");
-        if (property) el.setAttribute("property", name);
-        else el.setAttribute("name", name);
-        document.head.appendChild(el);
-      }
-      el.setAttribute("content", content);
-    };
-
-    setMeta("description", desc);
-    setMeta("robots", robots);
-    setMeta("og:title", title, true);
-    setMeta("og:description", desc, true);
-    setMeta("og:url", window.location.href, true);
-    setMeta("twitter:title", title);
-    setMeta("twitter:description", desc);
-
-    // Update Canonical
-    let canonical = document.querySelector("link[rel='canonical']");
-    if (!canonical) {
-      canonical = document.createElement("link");
-      canonical.setAttribute("rel", "canonical");
-      document.head.appendChild(canonical);
-    }
-    canonical.setAttribute("href", window.location.href.split("?")[0]);
-    
-    // Structured Data (JSON-LD)
-    let jsonLd = document.querySelector("#json-ld-seo");
-    if (!jsonLd) {
-      jsonLd = document.createElement("script");
-      jsonLd.id = "json-ld-seo";
-      jsonLd.setAttribute("type", "application/ld+json");
-      document.head.appendChild(jsonLd);
-    }
-    
-    // Base Schema defaults to Organization & Website (Tasks 4 & 5)
-    let schemaObj: any = {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "Organization",
-          "@id": "https://www.naijaonlinestores.com.ng/#organization",
-          "name": "NaijaOnlineStores",
-          "url": "https://www.naijaonlinestores.com.ng",
-          "logo": "https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png",
-          "sameAs": [
-            "https://facebook.com/naijaonlinestores",
-            "https://twitter.com/naijaonlinestores"
-          ]
-        },
-        {
-          "@type": "WebSite",
-          "@id": "https://www.naijaonlinestores.com.ng/#website",
-          "url": "https://www.naijaonlinestores.com.ng",
-          "name": "NaijaOnlineStores",
-          "description": "Multi-vendor ecommerce marketplace in Nigeria connecting shoppers to verified wholesale merchants"
-        }
-      ]
-    };
-
-    // Product Schema (Task 2 & 5) and Breadcrumb Schema (Task 6)
-    if (currentScreen === "details" && selectedProductId) {
-       const prod = products.find(p => p.id === selectedProductId);
-       if (prod) {
-          schemaObj = {
-            "@context": "https://schema.org",
-            "@graph": [
-              {
-                "@type": "Product",
-                "@id": `https://www.naijaonlinestores.com.ng/product/${prod.id}#product`,
-                "name": prod.title,
-                "description": prod.description || desc,
-                "image": prod.image || "https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png",
-                "sku": prod.id,
-                "offers": {
-                  "@type": "Offer",
-                  "priceCurrency": "NGN",
-                  "price": prod.price,
-                  "itemCondition": prod.condition === "New" ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
-                  "availability": prod.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-                  "url": window.location.href,
-                  "seller": {
-                    "@type": "Organization",
-                    "name": prod.vendorName
-                  }
-                },
-                "aggregateRating": {
-                  "@type": "AggregateRating",
-                  "ratingValue": prod.rating || 4.7,
-                  "reviewCount": prod.reviewsCount || 15
-                }
-              },
-              {
-                "@type": "BreadcrumbList",
-                "@id": `https://www.naijaonlinestores.com.ng/product/${prod.id}#breadcrumb`,
-                "itemListElement": [
-                  { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.naijaonlinestores.com.ng" },
-                  { "@type": "ListItem", "position": 2, "name": prod.category || "Shop", "item": `https://www.naijaonlinestores.com.ng/${prod.category ? slugifyLocal(prod.category) : "shop"}` },
-                  { "@type": "ListItem", "position": 3, "name": prod.title, "item": window.location.href }
-                ]
-              }
-            ]
-          };
-       }
-    } 
-    // Category Breadcrumb Schema
-    else if (currentScreen === "shop" && initialCategory && initialCategory !== "all") {
-       const catObj = categories.find(c => c.id === initialCategory);
-       const catName = catObj ? catObj.name : (initialCategory.charAt(0).toUpperCase() + initialCategory.slice(1));
-       schemaObj = {
-         "@context": "https://schema.org",
-         "@graph": [
-           {
-             "@type": "CollectionPage",
-             "name": catName,
-             "description": desc,
-             "url": window.location.href
-           },
-           {
-             "@type": "BreadcrumbList",
-             "@id": `${window.location.href}#breadcrumb`,
-             "itemListElement": [
-               { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.naijaonlinestores.com.ng" },
-               { "@type": "ListItem", "position": 2, "name": catName, "item": window.location.href }
-             ]
-           }
-         ]
-       };
-    }
-    // Vendor Storefront & Aggregate Rating Schema (Task 3 & Task 7)
-    else if (currentScreen === "vendor" && selectedVendorSlug) {
-       const vend = vendors.find(v => slugifyLocal(v.name) === selectedVendorSlug || v.id === selectedVendorSlug);
-       if (vend) {
-         schemaObj = {
-           "@context": "https://schema.org",
-           "@graph": [
-             {
-               "@type": "Store",
-               "@id": `https://www.naijaonlinestores.com.ng/vendor/${selectedVendorSlug}#store`,
-               "name": vend.name,
-               "description": desc,
-               "image": vend.avatar || "https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png",
-               "telephone": vend.phone,
-               "email": vend.email,
-               "address": {
-                 "@type": "PostalAddress",
-                 "addressLocality": vend.location,
-                 "addressCountry": "NG"
-               },
-               "aggregateRating": {
-                 "@type": "AggregateRating",
-                 "ratingValue": vend.rating || 4.7,
-                 "ratingCount": vend.ratingCount || 100
-               }
-             },
-             {
-               "@type": "BreadcrumbList",
-               "@id": `https://www.naijaonlinestores.com.ng/vendor/${selectedVendorSlug}#breadcrumb`,
-               "itemListElement": [
-                 { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.naijaonlinestores.com.ng" },
-                 { "@type": "ListItem", "position": 2, "name": "Vendors", "item": "https://www.naijaonlinestores.com.ng/shop" },
-                 { "@type": "ListItem", "position": 3, "name": vend.name, "item": window.location.href }
-               ]
-             }
-           ]
-         };
-       }
-    }
-
-    jsonLd.textContent = JSON.stringify(schemaObj);
-    
-  }, [currentScreen, selectedProductId, initialCategory, selectedVendorSlug, products, vendors, categories]);
+  useSEO(currentScreen, selectedProductId, initialCategory, selectedVendorSlug, products, vendors, categories);
 
   const [activePolicy, setActivePolicy] = useState<"privacy" | "terms" | "shipping" | "refund" | null>(null);
 
   // Durable Client State Persistence For Flash Deals
-  const [flashDeals, setFlashDeals] = useState<FlashDealProposal[]>(() => {
-    try {
-      const saved = localStorage.getItem("NAIJA_FLASH_DEALS_PROPOSALS");
-      return saved ? JSON.parse(saved) : [];
-    } catch (_) {
-      return [];
-    }
-  });
+  // replaced by useStore
 
   const handleProposeFlashDeal = (newProposal: FlashDealProposal) => {
-    setFlashDeals(prev => {
-      const updated = [newProposal, ...prev];
-      localStorage.setItem("NAIJA_FLASH_DEALS_PROPOSALS", JSON.stringify(updated));
-      return updated;
-    });
+    // replaced by useStore
   };
 
   const handleApproveFlashDeal = (id: string) => {
-    setFlashDeals(prev => {
-      const updated = prev.map(fd => fd.id === id ? { ...fd, status: "approved" as const } : fd);
-      localStorage.setItem("NAIJA_FLASH_DEALS_PROPOSALS", JSON.stringify(updated));
-      return updated;
-    });
+    // replaced by useStore
   };
 
   const handleRejectFlashDeal = (id: string) => {
-    setFlashDeals(prev => {
-      const updated = prev.map(fd => fd.id === id ? { ...fd, status: "rejected" as const } : fd);
-      localStorage.setItem("NAIJA_FLASH_DEALS_PROPOSALS", JSON.stringify(updated));
-      return updated;
-    });
+    // replaced by useStore
   };
 
-  const handleUpdateCategories = (newCats: Category[]) => {
+  const handleUpdateCategories = async (newCats: Category[]) => {
     setCategories(newCats);
     try {
       localStorage.setItem("NAIJA_CATEGORIES_STATE", JSON.stringify(newCats));
+      const channel = new BroadcastChannel('categories_sync_channel');
+      channel.postMessage({ type: 'CATEGORIES_UPDATED', categories: newCats });
+      channel.close();
+      // Save all categories to Supabase concurrently so they take precedence globally
+      await saveSupabaseBatchRecords("categories", newCats);
     } catch (e) {
-      console.error(e);
+      console.warn("Error saving categories to Supabase", e);
     }
   };
 
@@ -475,8 +383,16 @@ export default function App() {
     loading: true
   });
   const [copiedSql, setCopiedSql] = useState<boolean>(false);
+  const [showSplash, setShowSplash] = useState<boolean>(true);
 
-  // Synchronize Supabase authentication state changes and roles
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Synchronize standard Supabase Auth
   useEffect(() => {
     // Check current session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -488,7 +404,7 @@ export default function App() {
           const keysToRemove = [];
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && key.includes("supabase")) {
+            if (key && (key.includes("sb-") || key.includes("supabase"))) {
               keysToRemove.push(key);
             }
           }
@@ -499,19 +415,60 @@ export default function App() {
         const uEmail = session.user.email || "shopper@example.com";
         setUserEmail(uEmail);
         setCurrentUserId(session.user.id);
+        setUserDeliveryAddress(session.user.user_metadata?.deliveryAddress || "");
+        setAuthReady(true);
         const role = session.user.user_metadata?.role || "customer";
-        if (role === "vendor" || role === "admin" || uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com") {
+        
+        // Also check if vendor email
+        const isMaster = ["adminnaijastoresonline@gmail.com", "mcgigimeshai@gmail.com"].includes(uEmail.toLowerCase());
+        if (role === "vendor" || role === "admin" || isMaster) {
           setVendorAuthenticated(true);
         } else {
-          setVendorAuthenticated(false);
+          const checkVendorFallback = async () => {
+            try {
+              const { data } = await supabase.from("vendors").select("id").eq("user_id", session.user.id).limit(1);
+              if (data && data.length > 0) setVendorAuthenticated(true);
+              else setVendorAuthenticated(false);
+            } catch (e) {
+              setVendorAuthenticated(false);
+            }
+          };
+          checkVendorFallback();
         }
       } else {
+        // Not logged in or guest
+        setUserEmail("adminnaijastoresonline@gmail.com");
         setCurrentUserId(null);
+        setUserDeliveryAddress("");
+        setAuthReady(true);
+        setUserBankName("");
+        setUserBankAccountNumber("");
+        setUserCacNumber("");
+        setUserStoreName("");
+        setUserOwnerName("");
+        setUserAvatar("");
+        setUserWhatsappNumber("");
+        setUserLocation("");
+        localStorage.removeItem("vendor_bank_name");
+        localStorage.removeItem("vendor_account_number");
+        localStorage.removeItem("vendor_cac_number");
+        localStorage.removeItem("vendor_store_name");
+        localStorage.removeItem("vendor_owner_name");
+        localStorage.removeItem("vendor_avatar");
+        localStorage.removeItem("vendor_whatsapp_number");
+        localStorage.removeItem("vendor_location");
+        setVendorAuthenticated(false);
       }
     }).catch(err => {
       console.warn("[SUPABASE GETSESSION] Failed to restore session on initialization:", err);
       if (err?.message?.includes("Invalid Refresh Token") || err?.message?.includes("Refresh Token Not Found")) {
         supabase.auth.signOut().catch(() => {});
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && (key.includes("sb-") || key.includes("supabase"))) {
+            localStorage.removeItem(key);
+          }
+        }
       }
     });
 
@@ -521,111 +478,222 @@ export default function App() {
         const uEmail = session.user.email || "shopper@example.com";
         setUserEmail(uEmail);
         setCurrentUserId(session.user.id);
+        setUserDeliveryAddress(session.user.user_metadata?.deliveryAddress || "");
         const role = session.user.user_metadata?.role || "customer";
-        if (role === "vendor" || role === "admin" || uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com") {
+        if (role === "vendor" || role === "admin" || ["adminnaijastoresonline@gmail.com", "mcgigimeshai@gmail.com"].includes(uEmail.toLowerCase())) {
           setVendorAuthenticated(true);
         } else {
-          setVendorAuthenticated(false);
+          const checkVendorFallback = async () => {
+            try {
+              const { data } = await supabase.from("vendors").select("id").eq("user_id", session.user.id).limit(1);
+              if (data && data.length > 0) setVendorAuthenticated(true);
+              else setVendorAuthenticated(false);
+            } catch (e) {
+              setVendorAuthenticated(false);
+            }
+          };
+          checkVendorFallback();
         }
       } else {
         setVendorAuthenticated(false);
         setCurrentUserId(null);
+        setUserDeliveryAddress("");
+        setUserEmail("adminnaijastoresonline@gmail.com");
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Implement SWR for smart caching and paginated data fetching
-  const { data: dbCategories } = useSWR(
-    "categories",
-    () => getSupabaseData<Category>("categories", []).then(res => res.data),
-    { revalidateOnFocus: false, dedupingInterval: 300000 }
-  );
+  // Sync Supabase on initial render and on auth state change
+  useEffect(() => {
+    async function initSupabase() {
+      try {
+        const timeoutPromise = new Promise<{ data: any[]; synced: boolean; error?: string }>(
+          (_, reject) => setTimeout(() => reject(new Error("Fetch timed out")), 30000)
+        );
 
-  const { data: dbVendors } = useSWR(
-    ["vendors", { limit: 30 }],
-    ([table, opts]) => getSupabaseData<Vendor>(table as string, [], opts as any).then(res => res.data),
-    { revalidateOnFocus: false, dedupingInterval: 60000 }
-  );
+        const safeFetch = <T,>(tableName: string) => Promise.race([
+          getSupabaseData<T>(tableName, []),
+          timeoutPromise as Promise<{ data: T[]; synced: boolean; error?: string }>
+        ]).catch(() => ({ data: [] as T[], synced: false, error: "timeout" }));
 
-  const { data: dbProducts } = useSWR(
-    ["products", { limit: 30 }],
-    ([table, opts]) => getSupabaseData<Product>(table as string, [], opts as any).then(res => res.data),
-    { revalidateOnFocus: false, dedupingInterval: 60000 }
-  );
+        // Load all core datasets concurrently
+        const [
+          { data: dbVendorsRaw, synced: vSynced, error: vError },
+          { data: dbProducts, synced: pSynced, error: pError },
+          { data: dbOrders, synced: oSynced, error: oError },
+          { data: dbCategories, synced: cSynced, error: cError }
+        ] = await Promise.all([
+          safeFetch<Vendor>("vendors"),
+          safeFetch<Product>("products"),
+          safeFetch<Order>("orders"),
+          Promise.race([
+            fetchAndEnrichCategories().then(data => ({ data, synced: true, error: undefined })),
+            timeoutPromise as Promise<{ data: Category[]; synced: boolean; error?: string }>
+          ]).catch(() => ({ data: [] as Category[], synced: false, error: "timeout" }))
+        ]);
+        
+        let dbVendors = dbVendorsRaw || [];
+        
+        // Let the front end always query database for the vendor's credentials based on the user object
+        if (currentUserId) {
+           try {
+             // Query by user_id which is guaranteed to be linked correctly via RLS & Trigger
+             const { data: userVendor } = await supabase.from("vendors").select("id, business_name, name, logo_url, avatar, rating, rating_count, sales_today, orders_pending, stock_alerts, bank_name, account_number, cac_number, whatsapp_number, physical_location, location, is_verified, phone, email, owner_name, business_description").eq("user_id", currentUserId).limit(1);
+             if (userVendor && userVendor.length > 0) {
+               const item = userVendor[0];
+               const mappedUserVendor: Vendor = {
+                 ...item,
+                 name: item.business_name || item.name || "Naija Store Merchant",
+                 avatar: item.logo_url || item.avatar || "",
+                 rating: item.rating || 0,
+                 ratingCount: item.rating_count || item.ratingCount || 0,
+                 salesToday: item.sales_today || item.salesToday || 0,
+                 ordersPending: item.orders_pending || item.ordersPending || 0,
+                 stockAlerts: item.stock_alerts || item.stockAlerts || 0,
+                 bankName: item.bank_name || item.bankName || "",
+                 accountNumber: item.account_number || item.accountNumber || "",
+                 cacNumber: item.cac_number || item.cacNumber || "",
+                 whatsappNumber: item.whatsapp_number || item.whatsappNumber || "",
+                 location: item.physical_location || item.physicalLocation || item.location || "",
+                 isVerified: item.is_verified || item.isVerified || false,
+                 phone: item.phone || item.whatsapp_number || item.whatsappNumber || "+234 800 000 0000",
+                 email: item.email || "",
+                 ownerName: item.owner_name || item.ownerName || "",
+                 business_description: item.business_description || "",
+               };
+               // Combine into dbVendors to guarantee it's in the state
+               const exists = dbVendors.some(v => v.id === mappedUserVendor.id);
+               if (!exists) {
+                 dbVendors = [mappedUserVendor, ...dbVendors];
+               } else {
+                 dbVendors = dbVendors.map(v => v.id === mappedUserVendor.id ? mappedUserVendor : v);
+               }
+             }
+           } catch (e) {
+             console.warn("Could not query direct vendor credentials by email:", e);
+           }
+        }
+        
+        if (dbVendors) {
+          // Identify active vendor row from Database to synchronize bank and registration details to state & local cache
+          const activeDbVendor = dbVendors.find(v => {
+            if (userEmail && v.email && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) return true;
+            if (currentUserId && (
+              v.user_id === currentUserId || 
+              v.userId === currentUserId || 
+              v.user_id === ensureUUID(currentUserId) ||
+              v.userId === ensureUUID(currentUserId) ||
+              v.id === ensureUUID(currentUserId)
+            )) return true;
+            return false;
+          });
+          if (activeDbVendor) {
+            const b = activeDbVendor.bankName || activeDbVendor.bank_name || "";
+            const a = activeDbVendor.accountNumber || activeDbVendor.account_number || "";
+            const c = activeDbVendor.cacNumber || activeDbVendor.cac_number || "";
+            const sName = activeDbVendor.business_name || activeDbVendor.name || "Naija Store Merchant";
+            const oName = activeDbVendor.ownerName || activeDbVendor.owner_name || "Vendor Owner";
+            const aUrl = activeDbVendor.logo_url || activeDbVendor.avatar || "";
+            const wNum = activeDbVendor.whatsapp_number || activeDbVendor.whatsappNumber || activeDbVendor.phone || "";
+            const loc = activeDbVendor.physical_location || activeDbVendor.location || "";
+            setUserBankName(b);
+            setUserBankAccountNumber(a);
+            setUserCacNumber(c);
+            setUserStoreName(sName);
+            setUserOwnerName(oName);
+            setUserAvatar(aUrl);
+            setUserWhatsappNumber(wNum);
+            setUserLocation(loc);
+            localStorage.setItem("vendor_bank_name", b);
+            localStorage.setItem("vendor_account_number", a);
+            localStorage.setItem("vendor_cac_number", c);
+            localStorage.setItem("vendor_store_name", sName);
+            localStorage.setItem("vendor_owner_name", oName);
+            localStorage.setItem("vendor_avatar", aUrl);
+            localStorage.setItem("vendor_whatsapp_number", wNum);
+            localStorage.setItem("vendor_location", loc);
+          }
 
-  const { data: dbOrders } = useSWR(
-    ["orders", currentUserId, currentScreen === "admin" || currentScreen === "vendor" ? 30 : null],
-    ([table]) => {
-      const isDashboard = currentScreen === "admin" || currentScreen === "vendor";
-      let opts: any = isDashboard ? { limit: 100 } : { limit: 50 };
-      
-      if (isDashboard) {
-        const last30Days = new Date();
-        last30Days.setDate(last30Days.getDate() - 30);
-        opts.gte = { created_at: last30Days.toISOString() };
+          setVendors(dbVendors); // Replaced mock seeding with native sync logic
+          try { localStorage.setItem("NAIJA_VENDORS_STATE", JSON.stringify(dbVendors)); } catch (e) {}
+        }
+
+        // Load Products
+        if (dbProducts) {
+          // Sort newest first or simply reverse so latest uploaded show first on homepage
+          const sortedProducts = [...dbProducts].reverse();
+          setProducts(sortedProducts);
+          try { localStorage.setItem("NAIJA_PRODUCTS_STATE", JSON.stringify(sortedProducts)); } catch (e) {}
+        }
+
+        // Load Orders
+        if (dbOrders) {
+          const nonMockOrders = dbOrders.filter(o => !isOrderIdMock(o.id));
+          setOrders(nonMockOrders);
+          try { localStorage.setItem("NAIJA_ORDERS_STATE", JSON.stringify(nonMockOrders)); } catch (e) {}
+        }
+
+        // Load Categories
+        let localCategories: Category[] | null = null;
+        try {
+          const stored = localStorage.getItem("NAIJA_CATEGORIES_STATE");
+          if (stored) localCategories = JSON.parse(stored);
+        } catch (e) {}
+
+        console.log("[CATEGORIES SYNC DEBUG] dbCategories:", dbCategories, "synced:", cSynced, "error:", cError);
+        
+        let finalCategories: Category[] = [];
+
+        if (cSynced && dbCategories) {
+          finalCategories = dbCategories;
+        } else {
+          if (localCategories && localCategories.length > 0) {
+            finalCategories = localCategories;
+          }
+        }
+        
+        // Sort by sortOrder
+        finalCategories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        
+        setCategories(finalCategories);
+        try { localStorage.setItem("NAIJA_CATEGORIES_STATE", JSON.stringify(finalCategories)); } catch(e) {}
+
+
+        const syncedList: string[] = [];
+        if (vSynced) syncedList.push("vendors");
+        if (pSynced) syncedList.push("products");
+        if (oSynced) syncedList.push("orders");
+        if (cSynced) syncedList.push("categories");
+
+        setDbSyncStatus({
+          connected: syncedList.length > 0,
+          syncedTables: syncedList,
+          vendorsSynced: vSynced,
+          productsSynced: pSynced,
+          ordersSynced: oSynced,
+          loading: false,
+          error: vError || pError || oError || cError
+        });
+
+        if (syncedList.length > 0) {
+          console.log(`Successfully connected to Supabase! Synced: ${syncedList.join(", ")}`);
+        } else {
+          console.log("Supabase: Operating in optimized local fallback simulation.");
+        }
+      } catch (err: any) {
+        setDbSyncStatus(prev => ({ ...prev, loading: false, error: err.message }));
       }
-      return getSupabaseData<Order>(table as string, [], opts).then(res => res.data);
-    },
-    { revalidateOnFocus: false, dedupingInterval: 30000 }
-  );
-
-  useEffect(() => {
-    if (dbCategories) setCategories(dbCategories);
-  }, [dbCategories]);
-
-  useEffect(() => {
-    if (dbVendors) setVendors(dbVendors);
-  }, [dbVendors]);
-
-  useEffect(() => {
-    if (dbProducts) setProducts(dbProducts);
-  }, [dbProducts]);
-
-  useEffect(() => {
-    if (dbOrders) setOrders(dbOrders);
-  }, [dbOrders]);
-
-  useEffect(() => {
-    if (dbProducts || dbVendors || dbCategories || dbOrders) {
-      setDbSyncStatus(prev => ({
-        ...prev,
-        connected: true,
-        loading: false,
-        error: undefined
-      }));
     }
-  }, [dbProducts, dbVendors, dbCategories, dbOrders]);
+    initSupabase();
+  }, [currentUserId, userEmail]);
 
   // Set up real-time orders sync subscription
   useEffect(() => {
-    console.log("[SUPABASE REALTIME] Initializing subscription to public:orders");
-    const channel = supabase
-      .channel("public-orders-changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "orders"
-        },
-        async (payload) => {
-          console.log("[SUPABASE REALTIME] New postgres change received on orders:", payload);
-          const { data: dbOrders, synced } = await getSupabaseData<Order>("orders", [], { limit: 50 });
-          if (synced && dbOrders) {
-            setOrders(dbOrders);
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[SUPABASE REALTIME] Status changed: ${status}`);
-      });
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, []);
+    // Disabled to save egress. Re-enable with proper RLS-filtering for vendors only if needed.
+    // Customers do not need a global firehose of all platform orders.
+  }, [dbSyncStatus.connected]);
 
   const handleRateVendor = (vendorId: string, starRating: number) => {
     setVendors(prevVendors => {
@@ -653,7 +721,7 @@ export default function App() {
     });
   };
 
-  const handleUpdateVendor = (updatedVendor: Vendor) => {
+  const handleUpdateVendor = async (updatedVendor: Vendor) => {
     const compliantId = ensureUUID(updatedVendor.id);
     const resolvedVendor: Vendor = {
       ...updatedVendor,
@@ -662,30 +730,94 @@ export default function App() {
       user_id: updatedVendor.user_id ? ensureUUID(updatedVendor.user_id) : undefined,
     };
 
+    const bName = resolvedVendor.bankName || resolvedVendor.bank_name || "";
+    const accNum = resolvedVendor.accountNumber || resolvedVendor.account_number || "";
+    const cacN = resolvedVendor.cacNumber || resolvedVendor.cac_number || "";
+    const sName = resolvedVendor.business_name || resolvedVendor.name || "Naija Store Merchant";
+    const oName = resolvedVendor.ownerName || resolvedVendor.owner_name || "Vendor Owner";
+    const aUrl = resolvedVendor.logo_url || resolvedVendor.avatar || "";
+    const wNum = resolvedVendor.whatsapp_number || resolvedVendor.whatsappNumber || resolvedVendor.phone || "";
+    const loc = resolvedVendor.physical_location || resolvedVendor.location || "";
+    setUserBankName(bName);
+    setUserBankAccountNumber(accNum);
+    setUserCacNumber(cacN);
+    setUserStoreName(sName);
+    setUserOwnerName(oName);
+    setUserAvatar(aUrl);
+    setUserWhatsappNumber(wNum);
+    setUserLocation(loc);
+    localStorage.setItem("vendor_bank_name", bName);
+    localStorage.setItem("vendor_account_number", accNum);
+    localStorage.setItem("vendor_cac_number", cacN);
+    localStorage.setItem("vendor_store_name", sName);
+    localStorage.setItem("vendor_owner_name", oName);
+    localStorage.setItem("vendor_avatar", aUrl);
+    localStorage.setItem("vendor_whatsapp_number", wNum);
+    localStorage.setItem("vendor_location", loc);
+
+    // Optimistically update local vendors list immediately
     setVendors(prevVendors => {
-      const exists = prevVendors.some(v => v.id === resolvedVendor.id);
-      let updated;
+      const exists = prevVendors.some(v => v.id === resolvedVendor.id || (v.user_id && resolvedVendor.user_id && v.user_id === resolvedVendor.user_id));
       if (exists) {
-        updated = prevVendors.map(v => v.id === resolvedVendor.id ? resolvedVendor : v);
+        return prevVendors.map(v => (v.id === resolvedVendor.id || (v.user_id && resolvedVendor.user_id && v.user_id === resolvedVendor.user_id)) ? resolvedVendor : v);
       } else {
-        updated = [...prevVendors, resolvedVendor];
+        return [...prevVendors, resolvedVendor];
       }
-      saveSupabaseRecord("vendors", resolvedVendor);
-      triggerToast(`Store profile updated successfully!`, "success");
-      return updated;
     });
+
+    try {
+      // Save changes to Supabase
+      await saveSupabaseRecord("vendors", resolvedVendor);
+      triggerToast(`Store profile updated successfully!`, "success");
+
+      // Re-fetch vendors from Supabase to guarantee total alignment and persistence
+      const { data: dbVendors } = await getSupabaseData<Vendor>("vendors", []);
+      if (dbVendors) {
+        const nonMockVendors = dbVendors.filter(v => {
+          if (updatedVendor.user_id && v.user_id === updatedVendor.user_id) return true;
+          if (updatedVendor.userId && v.userId === updatedVendor.userId) return true;
+          if (updatedVendor.email && v.email === updatedVendor.email) return true;
+          if (currentUserId && (v.user_id === currentUserId || v.userId === currentUserId || v.id === ensureUUID(currentUserId))) return true;
+          if (userEmail && v.email && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) return true;
+          if (v.bank_name || v.bankName || v.account_number || v.accountNumber || v.cac_number || v.cacNumber || v.whatsapp_number || v.whatsappNumber) return true;
+          return !isVendorIdMock(v.id);
+        });
+
+        // Always ensure the newly updated vendor remains explicitly if the server lag drops it
+        setVendors(prev => {
+          let matched = false;
+          const updated = nonMockVendors.map(v => {
+            if (v.id === resolvedVendor.id || (v.user_id && resolvedVendor.user_id && v.user_id === resolvedVendor.user_id)) {
+              matched = true;
+              return { ...v, ...resolvedVendor, id: v.id || resolvedVendor.id };
+            }
+            return v;
+          });
+          return matched ? updated : [...nonMockVendors, resolvedVendor];
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to automatically refresh vendor database:", err);
+    }
   };
 
   const updateMailLogs = async () => {
     const logs = await fetchEmailLogs();
     setMailLogs(logs);
+    return logs;
   };
 
   // Poll server mail logs every 4 seconds to keep dashboard in perfect synchronization
+  // Only register interval if the endpoint responds ok (200) to avoid 404 loops in mock/offline setups
   useEffect(() => {
-    updateMailLogs();
-    const interval = setInterval(updateMailLogs, 4000);
-    return () => clearInterval(interval);
+    fetch("/api/resend/logs").then((res) => {
+      if (res.ok) {
+        updateMailLogs();
+        // Remove 4s interval to reduce duplicate calls and egress
+      }
+    }).catch((err) => {
+      console.log("Email logs disabled or endpoint not provisioned:", err.message);
+    });
   }, []);
 
   // Direct dispatcher trigger mapper for manual testers
@@ -764,51 +896,56 @@ export default function App() {
     }
   }, [toaster.show]);
 
-  // Cart operations
-  const handleAddToCart = (product: Product, quantity: number, size?: string, color?: string) => {
-    const existing = cart.find(
-      (item) =>
-        item.product.id === product.id &&
-        item.selectedSize === size &&
-        item.selectedColor === color
-    );
+  // Auto-logout feature for 30 minutes of inactivity (1800000ms)
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
 
-    if (existing) {
-      setCart(
-        cart.map((item) =>
-          item.product.id === product.id &&
-          item.selectedSize === size &&
-          item.selectedColor === color
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        )
-      );
-    } else {
-      setCart([...cart, { product, quantity, selectedSize: size, selectedColor: color }]);
-    }
+    const handleActivity = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(async () => {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session) {
+          await supabase.auth.signOut();
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && (key.includes("sb-") || key.includes("supabase"))) {
+              localStorage.removeItem(key);
+            }
+          }
+          setCurrentScreen("home");
+          triggerToast("You have been logged out due to 30 minutes of inactivity", "info");
+        }
+      }, 30 * 60 * 1000); // 30 minutes
+    };
 
-    // Trigger PostHog event
-    trackAddToCart(product.id, product.title, product.price, quantity);
+    window.addEventListener("mousemove", handleActivity);
+    window.addEventListener("keydown", handleActivity);
+    window.addEventListener("scroll", handleActivity);
+    window.addEventListener("click", handleActivity);
 
-    triggerToast(`Added ${quantity}x ${product.title} containing your specs to Basket.`);
-  };
+    handleActivity();
 
-  const handleUpdateCartQty = (productId: string, quantity: number) => {
-    setCart(
-      cart.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
-      )
-    );
-  };
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("scroll", handleActivity);
+      window.removeEventListener("click", handleActivity);
+    };
+  }, []);
 
-  const handleRemoveFromCart = (productId: string) => {
-    setCart(cart.filter((item) => item.product.id !== productId));
-    triggerToast("Removed item from cart.", "info");
-  };
+  // Cart operations replaced by useStore
+  // replaced by useStore
+
+  // replaced by useStore
+
+  // replaced by useStore
 
   // Checkout launcher
   const handleCheckoutTrigger = () => {
     if (cart.length === 0) return;
+    
+    // We will collect delivery address via the PaystackCheckout flow.
     const cartSubtotal = cart.reduce((acc, curr) => acc + curr.product.price * curr.quantity, 0);
     const estimatedTax = cartSubtotal * 0.075; // 7.5% VAT Nigeria
     // Estimate shipping (Lagos is free 0)
@@ -830,26 +967,39 @@ export default function App() {
   };
 
   // Paystack verification success
-  const handlePaymentSuccess = (method: string, serverOrder?: Order) => {
+  const handlePaymentSuccess = (method: string, serverOrder?: Order, checkoutEmail?: string) => {
     // Generate simulated order fallback if server did not hand back records (e.g. offline fallback modes)
     const orderValue = cart.reduce((acc, curr) => acc + curr.product.price * curr.quantity, 0);
+    const finalEmail = checkoutEmail || userEmail;
+    if (checkoutEmail && checkoutEmail !== userEmail) {
+      setUserEmail(checkoutEmail);
+    }
     
-    // Pick destination based on Lagos/Abuja/PH etc
-    const destinationStates = ["Abuja", "Lagos", "Port Harcourt", "Kano", "Enugu"];
-    const randomDest = destinationStates[Math.floor(Math.random() * destinationStates.length)];
-    const startState = randomDest === "Lagos" ? "Kano" : "Lagos";
+    // Pick destination based on delivery address
+    const destinationStates = ["Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara", "Abuja", "Port Harcourt"];
+    
+    let actualDest = "Lagos";
+    if (userDeliveryAddress) {
+      const foundState = destinationStates.find(state => userDeliveryAddress.toLowerCase().includes(state.toLowerCase()));
+      if (foundState) {
+        actualDest = foundState;
+      }
+    }
+
+    const startState = actualDest.toLowerCase() === "lagos" ? "Kano" : "Lagos";
 
     const localOrder: Order = {
       id: "NS-" + Math.floor(Math.random() * 9000 + 1000),
       user_id: currentUserId || undefined,
-      customerName: userEmail.split("@")[0].toUpperCase() || "Shopper",
+      customerName: finalEmail.split("@")[0].toUpperCase() || "Shopper",
+      deliveryAddress: userDeliveryAddress,
       status: "Processing",
       date: new Date().toISOString().split("T")[0],
       value: orderValue,
       itemsCount: cart.reduce((acc, curr) => acc + curr.quantity, 0),
       trackingId: "TRACK-" + Math.floor(Math.random() * 90000 + 10000),
       routeFrom: startState,
-      routeTo: randomDest,
+      routeTo: actualDest,
       deliveryProgress: 0,
       currentCity: startState,
       productIds: cart.map((item) => item.product.id)
@@ -895,7 +1045,7 @@ export default function App() {
     if (autoSendEmails) {
       // 1. Payment confirmation
       sendResendEmail({
-        to: userEmail,
+        to: finalEmail,
         type: "payment_confirmation",
         data: {
           orderId: newOrder.id,
@@ -912,7 +1062,7 @@ export default function App() {
 
       // 2. Order Confirmation
       sendResendEmail({
-        to: userEmail,
+        to: finalEmail,
         type: "order_confirmation", 
         data: {
           orderId: newOrder.id,
@@ -1031,20 +1181,114 @@ export default function App() {
     );
   };
 
-  // Creator for newly published merchant items
-  const handleAddNewProduct = (prod: Product) => {
-    setProducts([prod, ...products]);
-    
-    // Push new product into Supabase table
-    saveSupabaseRecord("products", prod);
-    
-    triggerToast(`Successfully published ${prod.title} to NaijaStores Catalog.`, "success");
+  const handleConfirmReceipt = (orderId: string) => {
+    setOrders(
+      orders.map((o) => {
+        if (o.id === orderId) {
+          const updated = {
+            ...o,
+            status: "Delivered" as const,
+            deliveryProgress: 100,
+            receiptConfirmed: true
+          };
+          saveSupabaseRecord("orders", updated);
+          triggerToast("Receipt confirmed! Thank you for shopping with Naija Stores.", "success");
+          return updated;
+        }
+        return o;
+      })
+    );
   };
 
-  const linkedProducts = products.filter(p => {
-    const vId = p.vendorId || (p as any).vendor_id;
-    return vId && vendors.some(v => v.id === vId);
-  });
+  const handlePromptReceipt = (orderId: string) => {
+    setOrders(
+      orders.map((o) => {
+        if (o.id === orderId) {
+          const updated = {
+            ...o,
+            receiptPrompted: true
+          };
+          saveSupabaseRecord("orders", updated);
+          triggerToast("Confirmation prompt active: Customer must now tap received button manually.", "success");
+          return updated;
+        }
+        return o;
+      })
+    );
+  };
+
+  const handleAddNewProduct = async (prod: Product) => {
+    // Attempt to locate real Vendor UUID for Supabase relational schema
+    const { data: sessionData } = await supabase.auth.getSession();
+    const activeUserId = sessionData?.session?.user?.id || currentUserId;
+
+    if (activeUserId && vendors && vendors.length > 0) {
+      // Find the logged-in user's database vendor profile
+      const actualVendor = vendors.find(v => 
+        (v.user_id && v.user_id === activeUserId) || 
+        (v.userId && v.userId === activeUserId) || 
+        (v.id && String(v.id).toLowerCase() === String(activeUserId).toLowerCase())
+      );
+      if (actualVendor && actualVendor.id) {
+        prod.vendorId = actualVendor.id;
+        prod.vendorName = actualVendor.business_name || actualVendor.name || prod.vendorName || "Naija Vendor";
+      }
+    }
+
+    try {
+      // Push new product into Supabase table
+      const success = await saveSupabaseRecord("products", prod);
+      if (!success) throw new Error("Failed to save product in database.");
+      
+      setProducts([prod, ...products]);
+      triggerToast(`Successfully published ${prod.title} to NaijaStores Catalog.`, "success");
+    } catch (err: any) {
+      triggerToast(err.message || "Failed to publish product.");
+    }
+  };
+
+  const handleUpdateProduct = async (updatedProd: Product) => {
+    try {
+      const success = await saveSupabaseRecord("products", updatedProd);
+      if (!success) throw new Error("Failed to update product in database.");
+      
+      setProducts(prev => prev.map(p => p.id === updatedProd.id ? updatedProd : p));
+      triggerToast(`Successfully updated ${updatedProd.title}.`, "success");
+    } catch (err: any) {
+      triggerToast(err.message || "Failed to update product.");
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      const dbId = ensureUUID(productId);
+      const { error } = await supabase.from("products").delete().eq("id", dbId);
+      if (error) throw error;
+
+      setProducts(prev => prev.filter(p => p.id !== productId));
+      triggerToast(`Listing removed from catalog.`, "success");
+    } catch (err: any) {
+      triggerToast(err.message || "Failed to delete product.");
+    }
+  };
+
+  const linkedProducts = products;
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans antialiased text-slate-500">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="relative">
+            <div className="w-12 h-12 border-4 border-slate-200 rounded-full animate-spin"></div>
+            <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin absolute top-0 left-0" style={{ animationDuration: '0.8s' }}></div>
+          </div>
+          <p className="text-sm font-bold tracking-tight text-slate-600 animate-pulse">
+             We'll be ready to take your orders in a minute
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans select-none antialiased">
@@ -1109,17 +1353,28 @@ export default function App() {
         categories={categories}
         products={linkedProducts}
         isLoggedIn={!!currentUserId}
+        onSelectCategory={(catId) => {
+          setInitialCategory(catId);
+          setSearchFilter("");
+          setCurrentScreen("shop");
+        }}
       />
 
        {/* Main Container Workspace layout */}
       <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 transition-all">
 
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div></div>}>
         <AnimatePresence mode="wait">
           {/* Customer views coordination */}
           {(currentScreen === "home" ||
             currentScreen === "shop" ||
+            currentScreen === "stores" ||
             currentScreen === "details" ||
             currentScreen === "cart" ||
+            currentScreen === "about" ||
+            currentScreen === "contact" ||
+            currentScreen === "sell" ||
+            currentScreen === "faq" ||
             currentScreen === "vendor") && (
             <motion.div
               key="customer-views-block"
@@ -1128,28 +1383,7 @@ export default function App() {
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              <CustomerViews
-                screen={currentScreen as any}
-                onNavigate={(s) => setCurrentScreen(s)}
-                selectedProductId={selectedProductId}
-                onSelectProduct={(id) => setSelectedProductId(id)}
-                initialCategory={initialCategory}
-                cart={cart}
-                onAddToCart={handleAddToCart}
-                onUpdateCartQty={handleUpdateCartQty}
-                onRemoveFromCart={handleRemoveFromCart}
-                onCheckout={handleCheckoutTrigger}
-                searchFilter={searchFilter}
-                vendors={vendors}
-                onRateVendor={handleRateVendor}
-                categories={categories}
-                products={linkedProducts}
-                orders={orders}
-                flashDeals={flashDeals}
-                isLoggedIn={!!currentUserId}
-                vendorSlug={selectedVendorSlug}
-                onSelectVendor={setSelectedVendorSlug}
-              />
+              <CustomerViews />
             </motion.div>
           )}
 
@@ -1163,8 +1397,12 @@ export default function App() {
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
               <MapTracking
-                orders={orders}
+                orders={orders.filter(o => {
+                   const belongsToUser = (currentUserId && o.user_id === currentUserId) || (!o.user_id && o.customerName === (userEmail ? userEmail.split("@")[0].toUpperCase() : "SHOPPER"));
+                   return belongsToUser && !o.receiptConfirmed;
+                })}
                 onUpdateOrderProgress={handleUpdateOrderProgress}
+                onConfirmReceipt={handleConfirmReceipt}
               />
             </motion.div>
           )}
@@ -1194,31 +1432,58 @@ export default function App() {
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              <VendorAdmin
-                orders={orders}
-                products={products}
-                vendors={vendors}
-                currentUserId={currentUserId}
-                onUpdateVendor={handleUpdateVendor}
-                onReviewOrderFlag={handleReviewOrderFlag}
-                onAddNewProduct={handleAddNewProduct}
-                categories={categories}
-                onUpdateCategories={handleUpdateCategories}
-                
-                // Email Automation Props
-                mailLogs={mailLogs}
-                onSendTestEmail={handleSendTestEmail}
-                onPreviewEmail={handlePreviewEmail}
-                autoSendEmails={autoSendEmails}
-                onToggleAutoSend={() => setAutoSendEmails(!autoSendEmails)}
-                onRefreshMailLogs={updateMailLogs}
-                userEmail={userEmail}
+              {(() => {
+                const stableFallbackId = currentUserId || (userEmail ? `v_fallback_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}` : "v_fallback_temp");
+                const foundActive = vendors.find(v => {
+                  if (v.id && (v.id === stableFallbackId || v.id === ensureUUID(stableFallbackId))) return true;
+                  if (v.id && currentUserId && (String(v.id).toLowerCase() === String(currentUserId).toLowerCase() || v.id === ensureUUID(currentUserId))) return true;
+                  if (v.user_id && currentUserId && (String(v.user_id).toLowerCase() === String(currentUserId).toLowerCase() || ensureUUID(v.user_id) === ensureUUID(currentUserId))) return true;
+                  if (v.userId && currentUserId && (String(v.userId).toLowerCase() === String(currentUserId).toLowerCase() || ensureUUID(v.userId) === ensureUUID(currentUserId))) return true;
+                  if (v.email && userEmail && String(v.email).toLowerCase() === String(userEmail).toLowerCase()) return true;
+                  return false;
+                });
+                const keyStr = foundActive 
+                  ? `vendor-admin-${foundActive.id}-${foundActive.name}-${foundActive.avatar || ''}-${foundActive.business_description || foundActive.description || ''}-${foundActive.location || ''}-${foundActive.ownerName || foundActive.owner_name || ''}-${foundActive.whatsappNumber || foundActive.whatsapp_number || ''}-${foundActive.bankName || foundActive.bank_name || ''}-${foundActive.accountNumber || foundActive.account_number || ''}`
+                  : `vendor-admin-fallback-${stableFallbackId}`;
+                return (
+                  <ErrorBoundary>
+                    <VendorAdmin
+                      key={keyStr}
+                      categories={categories}
+                      onUpdateCategories={handleUpdateCategories}
+                      ads={ads}
+                      onUpdateAds={handleUpdateAds}
+                      deliveryZones={deliveryZones}
+                      onUpdateDeliveryZones={handleUpdateDeliveryZones}
+                      orders={orders}
+                      products={products}
+                      vendors={vendors}
+                      currentUserId={currentUserId}
+                      onUpdateVendor={handleUpdateVendor}
+                      onReviewOrderFlag={handleReviewOrderFlag}
+                      onPromptReceipt={handlePromptReceipt}
+                      onAddNewProduct={handleAddNewProduct}
+                      onUpdateProduct={handleUpdateProduct}
+                      onDeleteProduct={handleDeleteProduct}
+                      
+                      userEmail={userEmail}
+                      userBankName={userBankName}
+                      userBankAccountNumber={userBankAccountNumber}
+                      userCacNumber={userCacNumber}
+                      userStoreName={userStoreName}
+                      userOwnerName={userOwnerName}
+                      userAvatar={userAvatar}
+                      userWhatsappNumber={userWhatsappNumber}
+                      userLocation={userLocation}
 
-                flashDeals={flashDeals}
-                onProposeFlashDeal={handleProposeFlashDeal}
-                onApproveFlashDeal={handleApproveFlashDeal}
-                onRejectFlashDeal={handleRejectFlashDeal}
-              />
+                      flashDeals={flashDeals}
+                      onProposeFlashDeal={handleProposeFlashDeal}
+                      onApproveFlashDeal={handleApproveFlashDeal}
+                      onRejectFlashDeal={handleRejectFlashDeal}
+                    />
+                  </ErrorBoundary>
+                );
+              })()}
             </motion.div>
           )}
 
@@ -1239,19 +1504,24 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+        </Suspense>
 
       </main>
 
       {/* Paystack Gateways secure Checkout portal */}
-      <PaystackCheckout
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        amount={checkoutAmount}
-        email={userEmail}
-        cart={cart}
-        userId={currentUserId || undefined}
-        onSuccess={handlePaymentSuccess}
-      />
+      <Suspense fallback={null}>
+        <PaystackCheckout
+          isOpen={isCheckoutOpen}
+          onClose={() => setIsCheckoutOpen(false)}
+          amount={checkoutAmount}
+          email={userEmail}
+          cart={cart}
+          userId={currentUserId || undefined}
+          deliveryAddress={userDeliveryAddress}
+          deliveryZones={deliveryZones}
+          onSuccess={handlePaymentSuccess}
+        />
+      </Suspense>
 
       {/* Stylized custom Settings drawer/overlay */}
       <AnimatePresence>
@@ -1274,7 +1544,7 @@ export default function App() {
               <div className="space-y-6">
                 <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
                   <div className="flex items-center space-x-2">
-                    <Settings2 className="w-5 h-5 text-orange-500" />
+                    <Settings className="w-5 h-5 text-orange-500" />
                     <span className="font-extrabold text-neutral-900 leading-none">Simulation Settings</span>
                   </div>
                   <button onClick={() => setSettingsDrawerOpen(false)} className="p-1 rounded-full hover:bg-neutral-100">
@@ -1609,64 +1879,104 @@ export default function App() {
               </div>
             </div>
 
-            {/* Useful Links */}
-            <div className="space-y-4">
-              <h3 className="text-white font-bold text-xs uppercase tracking-widest mb-4">Useful Links</h3>
-              <div className="flex flex-col space-y-3 text-[11px] font-semibold">
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Shop</a>
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">About Us</a>
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Contact Us</a>
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">FAQs</a>
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Track Order</a>
+            {/* Navigation & Policies */}
+            <div className="lg:col-span-3 space-y-6">
+              <div className="space-y-3">
+                <h3 className="text-white font-bold text-xs uppercase tracking-widest">Useful Links</h3>
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-[11px] font-semibold text-neutral-400">
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("home"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    Marketplace Home
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("about"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    About Us
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("contact"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    Contact Us
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("shop"); setInitialCategory("all"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    Shop Now
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("faq"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    Help Center / FAQ
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Policies */}
-            <div className="space-y-4">
-              <h3 className="text-white font-bold text-xs uppercase tracking-widest mb-4">Policies</h3>
-              <div className="flex flex-col space-y-3 text-[11px] font-semibold">
-                <button
-                  type="button"
-                  onClick={() => setActivePolicy("privacy")}
-                  className="hover:text-emerald-400 text-left text-neutral-400 font-semibold cursor-pointer transition-colors w-fit hover:underline"
-                >
-                  Privacy Policy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActivePolicy("terms")}
-                  className="hover:text-emerald-400 text-left text-neutral-400 font-semibold cursor-pointer transition-colors w-fit hover:underline"
-                >
-                  Terms & Conditions
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActivePolicy("shipping")}
-                  className="hover:text-emerald-400 text-left text-neutral-400 font-semibold cursor-pointer transition-colors w-fit hover:underline"
-                >
-                  Shipping & Delivery
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActivePolicy("refund")}
-                  className="hover:text-emerald-400 text-left text-neutral-400 font-semibold cursor-pointer transition-colors w-fit hover:underline"
-                >
-                  Refund & Return Policy
-                </button>
+              <div className="space-y-3">
+                <h3 className="text-white font-bold text-xs uppercase tracking-widest">Policies</h3>
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-[11px] font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy("privacy")}
+                    className="hover:text-emerald-400 text-left text-neutral-400 cursor-pointer transition-colors hover:underline"
+                  >
+                    Privacy Policy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy("terms")}
+                    className="hover:text-emerald-400 text-left text-neutral-400 cursor-pointer transition-colors hover:underline"
+                  >
+                    Terms & Conditions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy("shipping")}
+                    className="hover:text-emerald-400 text-left text-neutral-400 cursor-pointer transition-colors hover:underline"
+                  >
+                    Shipping & Delivery
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy("refund")}
+                    className="hover:text-emerald-400 text-left text-neutral-400 cursor-pointer transition-colors hover:underline"
+                  >
+                    Refund & Return Policy
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Sell With Us */}
-            <div className="space-y-4">
-              <h3 className="text-white font-bold text-xs uppercase tracking-widest mb-4">Sell With Us</h3>
-              <p className="text-[11px] text-neutral-500 font-medium leading-relaxed mb-4">
-                Start selling to customers nationwide through our trusted marketplace.
-              </p>
-              <div className="flex flex-col space-y-3 text-[11px] font-semibold">
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit flex items-center text-orange-400"><Store className="w-3 h-3 mr-1.5" /> Vendor Dashboard</a>
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Become a Vendor</a>
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Vendor Guide</a>
-                <a href="#" className="hover:text-emerald-400 transition-colors w-fit">Store Listing</a>
+              <div className="space-y-3">
+                <h3 className="text-white font-bold text-xs uppercase tracking-widest">Sell With Us</h3>
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] font-semibold text-neutral-400">
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("sell"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none flex items-center text-orange-400"
+                  >
+                    <Store className="w-3 h-3 mr-1.5" /> Sell on Naija Online Stores
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("auth"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-amber-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    Vendor Portal Login
+                  </button>
+                  <span className="text-neutral-500 font-medium ml-auto hidden md:inline">
+                    Start selling to customers nationwide today.
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -1683,8 +1993,11 @@ export default function App() {
       </footer>
 
       {/* Cookie pop up for explicit user storage consent & associated Policies overlay */}
-      <CookiePopup onOpenPolicy={(type) => setActivePolicy(type)} />
-      <PolicyOverlay policyType={activePolicy} onClose={() => setActivePolicy(null)} />
+      <Suspense fallback={null}>
+        <FAQWidget />
+        <CookiePopup onOpenPolicy={(type) => setActivePolicy(type)} />
+        <PolicyOverlay policyType={activePolicy} onClose={() => setActivePolicy(null)} />
+      </Suspense>
 
     </div>
   );

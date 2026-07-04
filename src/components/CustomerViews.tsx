@@ -5,25 +5,101 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home, Eye, Settings2, ShieldAlert, Store } from "lucide-react";
+import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home, Eye, Settings, ShieldAlert, Store, Car, Smartphone, Headphones, Trophy, ShoppingBag, Gamepad2, Truck, ExternalLink } from "lucide-react";
 import { Product, Category, CartItem, Vendor, Advertisement, Order, FlashDealProposal } from "../types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_ADS, FLASH_SALE_PRODUCTS } from "../data/mockData";
 import { trackProductViewed } from "../lib/posthog";
+import HomePage from "./HomePage";
+import AboutPage from "./AboutPage";
+import ContactPage from "./ContactPage";
+import SellPage from "./SellPage";
+import FaqPage from "./FaqPage";
+import { formatNaira } from "../utils";
+import { useStore } from "../store/useStore";
 
-// Naira formatter helper
-export const formatNaira = (value: number) => {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    minimumFractionDigits: 0
-  }).format(value);
+export const categoryPageThemes: Record<string, {
+  title: string;
+  tagline: string;
+  gradient: string;
+  badge: string;
+  featuredTags: string[];
+  backdropText: string;
+  image: string;
+}> = {
+  phones: {
+    title: "Smartphones & Mobile Devices Hub",
+    tagline: "Explore direct factory-price deals on Androids, iPhones, powerbanks, chargers and accessories.",
+    gradient: "from-amber-600 to-orange-700",
+    badge: "Phones & Gadgets Department",
+    featuredTags: ["Apple", "Samsung", "Xiaomi", "Infinix", "Oraimo"],
+    backdropText: "PHONES",
+    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=300&q=80"
+  },
+  electronics: {
+    title: "Electronics & Smart Appliances Store",
+    tagline: "Upgrade your space with modern TVs, cinema sound systems, fast chargers, and smart electronics.",
+    gradient: "from-blue-700 to-indigo-900",
+    badge: "Consumer Electronics Department",
+    featuredTags: ["LG", "Sony", "Panasonic", "Inverters", "Home Cinema"],
+    backdropText: "ELECTRO",
+    image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=300&q=80"
+  },
+  fashion: {
+    title: "Aba & Lagos Premium Fashion Boutique",
+    tagline: "Adorn yourself in exquisite bespoke Ankara, Agbadas, kaftans, and stunning contemporary wears.",
+    gradient: "from-pink-800 to-purple-950",
+    badge: "Modern & Native Wear Boutique",
+    featuredTags: ["Bespoke Ankara", "Native Agbada", "Footwear", "Ready-to-wear"],
+    backdropText: "FASHION",
+    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=300&q=80"
+  },
+  beauty: {
+    title: "Organic Skincare & Cosmetics Oasis",
+    tagline: "Nourish your skin with natural raw Shea Butter, African black soaps, organic herbs and oils.",
+    gradient: "from-emerald-700 to-teal-900",
+    badge: "Beauty & Wellness Department",
+    featuredTags: ["Shea Butter", "Black Soap", "Skincare", "Essential Oils"],
+    backdropText: "BEAUTY",
+    image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=300&q=80"
+  },
+  "home-kitchen": {
+    title: "Home Decor & Smart Kitchenware Store",
+    tagline: "Cook with speed and comfort. Smart blenders, pounded yam makers, and pristine kitchen organizers.",
+    gradient: "from-yellow-700 to-amber-900",
+    badge: "Home & Kitchen Appliances",
+    featuredTags: ["Yam Makers", "Blenders", "Cookware", "Decorations"],
+    backdropText: "HOME",
+    image: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=300&q=80"
+  }
+};
+
+export const getCategoryTheme = (catKey: string, catName: string) => {
+  const normalized = catKey.toLowerCase().trim();
+  if (categoryPageThemes[normalized]) {
+    return categoryPageThemes[normalized];
+  }
+  if (normalized.includes("phone")) return categoryPageThemes.phones;
+  if (normalized.includes("electronic")) return categoryPageThemes.electronics;
+  if (normalized.includes("clothing") || normalized.includes("wear") || normalized.includes("fashion")) return categoryPageThemes.fashion;
+  if (normalized.includes("beauty") || normalized.includes("skin") || normalized.includes("hair")) return categoryPageThemes.beauty;
+  if (normalized.includes("home") || normalized.includes("kitchen")) return categoryPageThemes["home-kitchen"];
+  
+  return {
+    title: `${catName} Department Store`,
+    tagline: `Premium custom selections of high-quality items in ${catName} from verified sellers.`,
+    gradient: "from-emerald-900 to-neutral-950",
+    badge: "Verified Department",
+    featuredTags: ["Top Rated", "Fast Shipping", "Secure Payment"],
+    backdropText: catName.substring(0, 8).toUpperCase(),
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=300&q=80"
+  };
 };
 
 export const sponsoredBrandAds = [
   {
     id: "mtn",
     brand: "MTN",
-    bgClass: "bg-amber-450 bg-amber-400 text-neutral-900 border-amber-300",
+    bgClass: "bg-amber-400 text-neutral-900 border-amber-300",
     badgeBg: "bg-neutral-900 text-amber-400 font-extrabold",
     title: "Everywhere You Go — Turn on MTN 5G Fast Speed!",
     description: "Nigeria's custom connectivity network. Recharge now to unlock standard 10x high data bonus instantly.",
@@ -31,7 +107,8 @@ export const sponsoredBrandAds = [
     ctaUrl: "https://wa.me/2348138575869?text=Hello+I+want+to+order+MTN+data+bundle",
     tagline: "Sponsored Spark",
     badgeLabel: "MTN 5G",
-    waveColor: "border-neutral-900/10"
+    waveColor: "border-neutral-900/10",
+    imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=400&q=80"
   },
   {
     id: "apple",
@@ -44,7 +121,8 @@ export const sponsoredBrandAds = [
     ctaUrl: "https://wa.me/2348138575869?text=Hello+I+want+to+order+Apple+iPhone",
     tagline: "Official Sponsor",
     badgeLabel: " Apple",
-    waveColor: "border-white/10"
+    waveColor: "border-white/10",
+    imageUrl: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=400&q=80"
   },
   {
     id: "nestle",
@@ -57,7 +135,8 @@ export const sponsoredBrandAds = [
     ctaUrl: "https://wa.me/2348138575869?text=Hello+I+want+to+order+Milo",
     tagline: "Plaza Partner",
     badgeLabel: "Milo",
-    waveColor: "border-teal-900/10"
+    waveColor: "border-teal-900/10",
+    imageUrl: "https://images.unsplash.com/photo-1594966779435-08e8b0b5fe64?auto=format&fit=crop&w=400&q=80"
   },
   {
     id: "nike",
@@ -70,7 +149,8 @@ export const sponsoredBrandAds = [
     ctaUrl: "https://wa.me/2348138575869?text=Hello+I+want+to+order+Nike+sneakers",
     tagline: "Fashion Partner",
     badgeLabel: "Nike Air",
-    waveColor: "border-orange-200/5"
+    waveColor: "border-orange-200/5",
+    imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80"
   },
   {
     id: "pepsi",
@@ -83,61 +163,81 @@ export const sponsoredBrandAds = [
     ctaUrl: "https://wa.me/2348138575869?text=Hello+I+want+to+order+Pepsi",
     tagline: "Youth Sponsor",
     badgeLabel: "Pepsi Max",
-    waveColor: "border-blue-200/5"
+    waveColor: "border-blue-200/5",
+    imageUrl: "https://images.unsplash.com/photo-1629203851122-3726ece2e753?auto=format&fit=crop&w=400&q=80"
   }
 ];
 
-interface CustomerViewsProps {
-  screen: "home" | "shop" | "cart" | "details" | "vendor";
-  onNavigate: (screen: string) => void;
-  selectedProductId: string;
-  onSelectProduct: (productId: string) => void;
-  initialCategory?: string;
-  cart: CartItem[];
-  onAddToCart: (product: Product, quantity: number, size?: string, color?: string) => void;
-  onUpdateCartQty: (productId: string, quantity: number) => void;
-  onRemoveFromCart: (productId: string) => void;
-  onCheckout: () => void;
-  searchFilter: string;
-  vendors?: Vendor[];
-  onRateVendor?: (vendorId: string, rating: number) => void;
-  products?: Product[];
-  categories?: Category[];
-  orders?: Order[];
-  flashDeals?: FlashDealProposal[];
-  isLoggedIn?: boolean;
-  vendorSlug?: string;
-  onSelectVendor?: (slug: string) => void;
-}
 
-export default function CustomerViews({
-  screen,
-  onNavigate,
-  selectedProductId,
-  onSelectProduct,
-  cart,
-  onAddToCart,
-  onUpdateCartQty,
-  onRemoveFromCart,
-  onCheckout,
-  searchFilter,
-  vendors = [],
-  onRateVendor,
-  products = [],
-  categories = [],
-  orders = [],
-  flashDeals = [],
-  isLoggedIn = false,
-  initialCategory = "all",
-  vendorSlug = "eko-heritage-weavers",
-  onSelectVendor
-}: CustomerViewsProps) {
+export default function CustomerViews() {
+  const {
+    currentScreen: screen,
+    setCurrentScreen: onNavigate,
+    selectedProductId,
+    setSelectedProductId: onSelectProduct,
+    initialCategory = "all",
+    cart,
+    addToCart: onAddToCart,
+    updateCartQty: onUpdateCartQty,
+    removeFromCart: onRemoveFromCart,
+    searchFilter,
+    setSearchFilter: onSearch,
+    vendors = [],
+    products = [],
+    categories = [],
+    orders = [],
+    ads = [],
+    flashDeals = [],
+    currentUserId,
+    selectedVendorSlug: vendorSlug = "eko-heritage-weavers",
+    setSelectedVendorSlug: onSelectVendor,
+  } = useStore();
   
+  const isLoggedIn = !!currentUserId;
+  const isLoading = false;
+  // TODO: Fix checkout and rate vendor handlers if needed
+  const onCheckout = () => { console.log('checkout'); };
+  const onRateVendor = () => { console.log('rate vendor'); };
+  
+  // Choose source of truth for ads
+  const resolvedAds = ads || [];
+
+  const [homePageCount, setHomePageCount] = React.useState(1);
+
   // States for Category Filter inside shop view
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>(initialCategory);
+  const [activeSubcategoryTab, setActiveSubcategoryTab] = useState<string>("all");
+
+  const [internalLoading, setInternalLoading] = useState(isLoading);
+
+  React.useEffect(() => {
+    if (isLoading) {
+      setInternalLoading(true);
+    } else {
+      const timer = setTimeout(() => {
+        setInternalLoading(false);
+      }, 1500); // artificially extend skeleton to allow images/fetch to settle
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+
+  // Robust lookup for active category
+  const activeCategoryObj = React.useMemo(() => {
+    if (!activeCategoryTab || activeCategoryTab === "all") return null;
+    const activeCatLower = activeCategoryTab.toLowerCase();
+    return categories.find(c => 
+      c.id.toLowerCase() === activeCatLower || 
+      (c.slug && c.slug.toLowerCase() === activeCatLower) ||
+      (c.categoryId && c.categoryId.toLowerCase() === activeCatLower) ||
+      c.name.toLowerCase() === activeCatLower
+    );
+  }, [activeCategoryTab, categories]);
 
   useEffect(() => {
-    if (initialCategory) setActiveCategoryTab(initialCategory);
+    if (initialCategory) {
+      setActiveCategoryTab(initialCategory);
+      setActiveSubcategoryTab("all");
+    }
   }, [initialCategory]);
 
   useEffect(() => {
@@ -148,6 +248,7 @@ export default function CustomerViews({
          window.history.pushState({ screen: 'shop' }, "", url);
       }
     }
+    setActiveSubcategoryTab("all");
   }, [activeCategoryTab, screen]);
 
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -157,8 +258,9 @@ export default function CustomerViews({
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
   const [brandAdIndex, setBrandAdIndex] = useState(0);
   const [flashSaleTime, setFlashSaleTime] = useState({ h: 2, m: 21, s: 6 });
+  const [storesCurrentPage, setStoresCurrentPage] = useState<number>(1);
   
-  const homepageAds = MOCK_ADS.filter(ad => ad.position === "homepage" && ad.status === "active");
+  const homepageAds = resolvedAds.filter(ad => ad.position === "homepage" && ad.status === "active");
 
   const activeFlashProducts = React.useMemo(() => {
     const approvedProposals = (flashDeals || []).filter(fd => fd.status === "approved");
@@ -182,17 +284,21 @@ export default function CustomerViews({
       };
     });
 
-    const combined = [...dynamicProducts, ...FLASH_SALE_PRODUCTS];
+    const combined = [...dynamicProducts];
     const unique: Product[] = [];
     const titles = new Set();
     combined.forEach(p => {
       if (!titles.has(p.title)) {
-        titles.add(p.title);
-        unique.push(p);
+        // Ensure the flash deal is linked to an existing vendor
+        const isLinkedToVendor = vendors.some(v => v.id === p.vendorId);
+        if (isLinkedToVendor) {
+          titles.add(p.title);
+          unique.push(p);
+        }
       }
     });
     return unique;
-  }, [flashDeals, products]);
+  }, [flashDeals, products, vendors]);
 
 
   React.useEffect(() => {
@@ -226,7 +332,7 @@ export default function CustomerViews({
         try {
           localStorage.setItem("recentlyViewed", JSON.stringify(updated));
         } catch (e) {
-          console.error(e);
+          console.warn("Storage sync:", e);
         }
         return updated;
       });
@@ -272,9 +378,11 @@ export default function CustomerViews({
   const [addedReviews, setAddedReviews] = useState<typeof MOCK_REVIEWS>(MOCK_REVIEWS);
   const [hoveredVendorStar, setHoveredVendorStar] = useState<number | null>(null);
   const [justAddedProducts, setJustAddedProducts] = useState<Record<string, boolean>>({});
+  const [showCredsVendor, setShowCredsVendor] = useState<Vendor | null>(null);
 
-  const handleAddToCartWithFeedback = (product: Product, quantity: number, size?: string, color?: string, e?: React.MouseEvent) => {
+  const handleAddToCartWithFeedback = (product: Product | null | undefined, quantity: number, size?: string, color?: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (!product) return;
     onAddToCart(product, quantity, size || product.sizes?.[0] || "", color || product.colors?.[0] || "");
     setJustAddedProducts(prev => ({ ...prev, [product.id]: true }));
     setTimeout(() => {
@@ -338,7 +446,7 @@ export default function CustomerViews({
   // Reset page when filtering or searching
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [activeCategoryTab, searchFilter]);
+  }, [activeCategoryTab, activeSubcategoryTab, searchFilter, vendorSlug]);
 
   // Dynamic products filtering logic
   const filteredProducts = products.filter((product) => {
@@ -350,7 +458,27 @@ export default function CustomerViews({
       matchesCategory = true;
     } else {
       const pCatLower = (product.category || "").toLowerCase();
-      matchesCategory = pCatLower.includes(activeCatLower) || activeCatLower.includes(pCatLower);
+      const pCatIdLower = (product.categoryId || "").toLowerCase();
+      
+      if (activeCategoryObj) {
+        // Filter by categoryId or category name match
+        matchesCategory = 
+          (pCatIdLower && pCatIdLower === activeCategoryObj.id.toLowerCase()) ||
+          (pCatLower && pCatLower === activeCategoryObj.name.toLowerCase()) ||
+          (pCatLower && pCatLower === (activeCategoryObj.slug || "").toLowerCase());
+      } else {
+        const activeCatNameLower = activeCatLower;
+        matchesCategory = pCatLower === activeCatNameLower ||
+                          pCatLower.includes(activeCatNameLower) || 
+                          activeCatNameLower.includes(pCatLower) ||
+                          (pCatIdLower && pCatIdLower === activeCatLower);
+      }
+    }
+
+    let matchesSubcategory = true;
+    if (activeSubcategoryTab !== "all") {
+      const pSub = (product.subCategory || "").toLowerCase();
+      matchesSubcategory = pSub === activeSubcategoryTab.toLowerCase();
     }
     
     let matchesSearch = true;
@@ -362,7 +490,8 @@ export default function CustomerViews({
                       (product.tags && product.tags.some(t => t.toLowerCase().includes(searchLower))) ||
                       (product.description || "").toLowerCase().includes(searchLower);
     }
-    return matchesCategory && matchesSearch;
+
+    return matchesCategory && matchesSubcategory && matchesSearch;
   });
 
   // Sort logic
@@ -425,81 +554,142 @@ export default function CustomerViews({
             className="space-y-8"
           >
             
-            {/* Cinematic Hero Mega Banner Carousel */}
-            {homepageAds.length > 0 && (
-              <div className="relative w-full h-80 sm:h-96 lg:h-[480px] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] mb-8 group cursor-pointer border border-neutral-200/50" onClick={() => onNavigate("shop")}>
-                <AnimatePresence initial={false} mode="wait">
-                  <motion.div
-                    key={homepageAds[currentAdIndex].id}
-                    initial={{ opacity: 0, filter: "blur(4px)", scale: 1.05 }}
-                    animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-                    exit={{ opacity: 0, filter: "blur(4px)", scale: 0.95 }}
-                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute inset-0 w-full h-full"
-                  >
-                    <img 
-                      src={homepageAds[currentAdIndex].imageUrl} 
-                      alt={homepageAds[currentAdIndex].title} 
-                      className="w-full h-full object-cover transition-transform duration-[20s] group-hover:scale-110 ease-out" 
-                      referrerPolicy="no-referrer"
-                    />
-                    
-                    {/* Cinematic Gradients */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent z-0"></div>
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/10 to-transparent z-0"></div>
-                    
-                    <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-12 lg:p-16 z-10 w-full md:w-3/4 lg:w-2/3">
-                      <motion.div 
-                        initial={{ y: 30, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
-                        className="space-y-4"
-                      >
-                        <div className="flex">
-                          <span className="flex items-center space-x-1.5 bg-orange-500/90 backdrop-blur-sm px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs text-white font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(249,115,22,0.4)]">
-                            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                            <span>Trending Collection</span>
-                          </span>
-                        </div>
-                        
-                        <h3 className="text-white font-black text-4xl sm:text-5xl lg:text-7xl leading-[1.05] tracking-tight drop-shadow-2xl">
-                          {homepageAds[currentAdIndex].title}
-                        </h3>
-                        
-                        <p className="text-neutral-200 text-sm sm:text-lg lg:text-xl font-medium max-w-xl line-clamp-3 lg:line-clamp-none border-l-2 border-orange-500 pl-4 py-1 leading-snug drop-shadow-md">
-                          Discover the latest premium fashion, electronics, and authentic local goods curated directly from top Nigerian collective makers.
-                        </p>
-                        
-                        <div className="pt-4 lg:pt-6">
-                          <button 
-                            className="bg-white text-black font-extrabold text-xs sm:text-sm uppercase px-8 sm:px-10 py-3.5 sm:py-4 rounded-full tracking-widest transition-all duration-300 shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:shadow-[0_10px_40px_rgba(255,255,255,0.4)] hover:bg-orange-500 hover:text-white transform group-hover:translate-y-[-2px]"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onNavigate("shop");
-                            }}
-                          >
-                            Explore Now
-                          </button>
-                        </div>
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
-                
-                {/* Modern Indicator Dots */}
-                <div className="absolute bottom-6 sm:bottom-10 right-8 sm:right-12 flex space-x-2.5 z-20">
-                  {homepageAds.map((_, idx) => (
-                    <button 
-                      key={idx} 
-                      type="button"
-                      className={`transition-all duration-500 rounded-full h-1.5 ${idx === currentAdIndex ? 'w-8 bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.8)]' : 'w-2 bg-white/40 hover:bg-white/70'}`}
-                      onClick={(e) => { e.stopPropagation(); setCurrentAdIndex(idx); }}
-                      aria-label={`Go to slide ${idx + 1}`}
-                    />
-                  ))}
+            {/* Cinematic Hero Bento Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+              {/* Main Interactive Slider Area */}
+              {homepageAds.length > 0 && (
+                <div 
+                  className="lg:col-span-2 relative h-[360px] sm:h-[480px] lg:h-[540px] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] group cursor-pointer border border-neutral-200/50" 
+                  onClick={() => onNavigate("shop")}
+                >
+                  <AnimatePresence initial={false} mode="wait">
+                    <motion.div
+                      key={homepageAds[currentAdIndex].id}
+                      initial={{ opacity: 0, filter: "blur(4px)", scale: 1.05 }}
+                      animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+                      exit={{ opacity: 0, filter: "blur(4px)", scale: 0.95 }}
+                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                      className="absolute inset-0 w-full h-full"
+                    >
+                      <img loading="lazy" 
+                        src={homepageAds[currentAdIndex].imageUrl} 
+                        alt={homepageAds[currentAdIndex].title} 
+                        className="w-full h-full object-cover transition-transform duration-[20s] group-hover:scale-110 ease-out" 
+                        referrerPolicy="no-referrer"
+                      />
+                      
+                      {/* Premium Editorial Gradient overlays */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-0"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/10 to-transparent z-0"></div>
+                      
+                      <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-10 lg:p-14 z-10">
+                        <motion.div 
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
+                          className="space-y-4 max-w-xl"
+                        >
+                          <div className="inline-flex items-center space-x-1.5 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] sm:text-xs text-white font-bold uppercase tracking-[0.1em] border border-white/20 shadow-xl">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Exclusive Collection</span>
+                          </div>
+                          
+                          <h3 className="text-white font-extrabold text-4xl sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight drop-shadow-lg">
+                            {homepageAds[currentAdIndex].title}
+                          </h3>
+                          
+                          <p className="text-neutral-200 text-sm sm:text-base lg:text-lg font-medium opacity-90 leading-snug drop-shadow">
+                            Discover premium selections sourced from trusted collective makers, updated daily with factory-direct pricing.
+                          </p>
+                          
+                          <div className="pt-2">
+                            <button 
+                              className="bg-white text-black font-bold text-xs sm:text-sm uppercase px-8 py-3.5 rounded-full tracking-wider transition-all duration-300 shadow-[0_10px_20px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_30px_rgba(255,255,255,0.3)] hover:scale-[1.02]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onNavigate("shop");
+                              }}
+                            >
+                              Shop the look
+                            </button>
+                          </div>
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                  
+                  {/* Indicator Dots */}
+                  <div className="absolute bottom-8 right-8 flex space-x-2 z-20">
+                    {homepageAds.map((_, idx) => (
+                      <button 
+                        key={idx} 
+                        type="button"
+                        className={`transition-all duration-500 rounded-full h-1.5 ${idx === currentAdIndex ? 'w-8 bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'w-2 bg-white/40 hover:bg-white/70'}`}
+                        onClick={(e) => { e.stopPropagation(); setCurrentAdIndex(idx); }}
+                        aria-label={`Go to slide ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Side Stacks */}
+              <div className="hidden lg:flex flex-col gap-6 h-[540px]">
+                {/* Promo Box 1 */}
+                <div 
+                  className="flex-1 relative rounded-3xl overflow-hidden shadow-xl bg-orange-600 group cursor-pointer"
+                  onClick={() => {
+                    setActiveCategoryTab("electronics");
+                    onNavigate("shop");
+                  }}
+                >
+                  <img loading="lazy" src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=600&q=80" alt="Electronics" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay transition-transform duration-700 ease-out group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-orange-950/80 to-transparent p-8 flex flex-col justify-end">
+                    <span className="text-orange-200 text-xs font-bold uppercase tracking-widest mb-1">Tech Upgrade</span>
+                    <h4 className="text-white text-2xl font-black leading-tight">Next-Gen<br/>Electronics</h4>
+                  </div>
+                </div>
+
+                {/* Promo Box 2 */}
+                <div 
+                  className="flex-1 relative rounded-3xl overflow-hidden shadow-xl bg-slate-900 group cursor-pointer"
+                  onClick={() => {
+                    setActiveCategoryTab("fashion");
+                    onNavigate("shop");
+                  }}
+                >
+                   <img loading="lazy" src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=600&q=80" alt="Fashion" className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-luminosity transition-transform duration-700 ease-out group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent p-8 flex flex-col justify-end">
+                    <span className="text-slate-300 text-xs font-bold uppercase tracking-widest mb-1">Aba Premium</span>
+                    <h4 className="text-white text-2xl font-black leading-tight">Elevated<br/>Wardrobes</h4>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* SEO Homepage Copy */}
+            <div className="bg-white p-8 md:p-12 rounded-3xl border border-neutral-150 shadow-sm text-left">
+              <div className="max-w-4xl mx-auto space-y-6">
+                <h1 className="text-3xl md:text-4xl font-extrabold text-neutral-900 leading-tight">Naija Online Stores - #1 Online Shopping Marketplace in Nigeria</h1>
+                <p className="text-lg text-neutral-600 leading-relaxed">
+                  Welcome to <strong>Naija Online Stores</strong>, the ultimate destination to buy online in Nigeria. We bridge the gap between shoppers and verified wholesale merchants, offering a diverse catalog from electronics and fashion to home appliances and beauty products.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-6">
+                  <div>
+                    <h3 className="font-bold text-neutral-900 text-lg mb-2 flex items-center"><ShieldCheck className="w-5 h-5 text-emerald-500 mr-2" /> Secure Escrow</h3>
+                    <p className="text-sm text-neutral-600">Your payments are fully protected. Funds are held in escrow and only released when your order is safely delivered and confirmed.</p>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-neutral-900 text-lg mb-2 flex items-center"><Truck className="w-5 h-5 text-blue-500 mr-2" /> Nationwide Delivery</h3>
+                    <p className="text-sm text-neutral-600">From Lagos to Abuja, we ensure fast, reliable, and trackable delivery to any state across Nigeria through our logistics network.</p>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-neutral-900 text-lg mb-2 flex items-center"><Store className="w-5 h-5 text-orange-500 mr-2" /> Verified Sellers</h3>
+                    <p className="text-sm text-neutral-600">Every merchant on our Naija online marketplace is strictly verified. Shop authentic, high-quality products directly from authorized sellers.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Enhanced Animated Brand Banner Carousel */}
             <div className="relative w-full my-12 [perspective:1000px]">
@@ -521,20 +711,23 @@ export default function CustomerViews({
                         <span className={`absolute -left-16 -top-16 w-48 h-48 rounded-full border-4 ${ad.waveColor} animate-pulse`}></span>
                       </div>
                       
-                      {/* Right side abstract shapes */}
-                      <div className="absolute right-0 bottom-0 h-full w-1/3 pointer-events-none overflow-hidden opacity-10">
-                        <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-current rounded-full blur-3xl mix-blend-overlay"></div>
+                      {/* Right side abstract shapes & Image Layer */}
+                      <div className="absolute right-0 top-0 bottom-0 w-1/2 pointer-events-none overflow-hidden mix-blend-overlay opacity-30 sm:opacity-50 [mask-image:linear-gradient(to_right,transparent,black)]">
+                        <img loading="lazy" src={ad.imageUrl} alt={ad.brand} className="w-full h-full object-cover object-center" referrerPolicy="no-referrer" />
+                        <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-current rounded-full blur-3xl mix-blend-overlay opacity-50"></div>
                       </div>
 
                       <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left space-y-4 sm:space-y-0 sm:space-x-6 z-10 w-full md:w-auto relative">
-                        {/* Custom Animated Oval brand badge */}
+                        {/* Custom Animated Oval brand badge & Image */}
                         <motion.div 
                           initial={{ scale: 0.8, rotate: -15 }}
                           animate={{ scale: 1, rotate: 0 }}
                           transition={{ type: "spring", delay: 0.2 }}
-                          className={`w-20 h-20 sm:w-16 sm:h-16 rounded-2xl ${ad.badgeBg} flex items-center justify-center text-xs sm:text-[10px] uppercase tracking-tighter shrink-0 border border-black/10 shadow-xl leading-none`}
+                          className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl ${ad.badgeBg} flex items-center justify-center shrink-0 border border-black/10 shadow-xl overflow-hidden relative group`}
                         >
-                          <span className="font-black text-center px-1">{ad.brand}</span>
+                          <img loading="lazy" src={ad.imageUrl} alt={ad.brand} className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />
+                          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                          <span className="font-black text-center px-1 text-xs sm:text-[10px] uppercase tracking-tighter leading-none relative z-10 text-white drop-shadow-md">{ad.brand}</span>
                         </motion.div>
                         
                         <div>
@@ -588,159 +781,67 @@ export default function CustomerViews({
               </div>
             </div>
 
-            {/* Interactive Animated Platform Features Carousel (Replaces static landing card) */}
-            <div className="relative w-full overflow-hidden rounded-3xl bg-neutral-950 text-white min-h-[380px] shadow-2xl border border-neutral-800">
-              {/* Dynamic Animated Background Elements */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <motion.div
-                  animate={{ 
-                    rotate: [0, 360],
-                    scale: [1, 1.2, 1],
-                  }}
-                  transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
-                  className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full opacity-20"
-                  style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.4) 0%, rgba(0,0,0,0) 70%)' }}
-                />
-                <motion.div
-                  animate={{ 
-                    rotate: [360, 0],
-                    scale: [1, 1.5, 1],
-                  }}
-                  transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
-                  className="absolute -bottom-1/2 -left-1/4 w-[600px] h-[600px] rounded-full opacity-20"
-                  style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.4) 0%, rgba(0,0,0,0) 70%)' }}
-                />
-                
-                {/* Floating particles */}
-                {Array.from({ length: 15 }).map((_, i) => (
-                  <motion.div
-                    key={i}
-                    animate={{
-                      y: [Math.random() * 400, Math.random() * -100],
-                      x: [Math.random() * 200 - 100, Math.random() * 200 - 100],
-                      opacity: [0, 0.5, 0],
-                    }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: Math.random() * 10 + 5,
-                      delay: Math.random() * 5,
-                      ease: "linear",
-                    }}
-                    className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-50"
-                    style={{
-                      left: `${Math.random() * 100}%`,
-                      top: `${Math.random() * 100}%`,
-                    }}
-                  />
-                ))}
+            {/* Elevated Platform Value Proposition */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-16">
+              {/* Prop 1 */}
+              <div className="bg-white rounded-3xl p-8 border border-neutral-150 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden relative group">
+                <div className="z-10 relative space-y-4 max-w-[85%]">
+                  <div className="w-12 h-12 bg-neutral-950 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <ShieldCheck className="w-6 h-6 text-white" />
+                  </div>
+                  <h4 className="text-2xl font-black text-neutral-900 tracking-tight leading-snug">Verified local<br/>merchants.</h4>
+                  <p className="text-sm text-neutral-500 font-semibold leading-relaxed">Every seller undergoes strict KYC and quality assurance checks before joining our marketplace.</p>
+                </div>
+                <div className="absolute -right-8 -bottom-8 opacity-5 group-hover:opacity-10 transition-opacity duration-500 text-neutral-900">
+                  <ShieldCheck className="w-64 h-64" />
+                </div>
               </div>
 
-              {/* Scrolling Carousel of Core App Capabilities */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentAdIndex % 3} // Sync with the other carousel timer or use its own
-                  initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: -30, filter: "blur(8px)" }}
-                  transition={{ duration: 0.7, ease: "easeOut" }}
-                  className="absolute inset-0 flex flex-col justify-center p-8 sm:p-12 z-10"
-                >
-                  {currentAdIndex % 3 === 0 && (
-                    <div className="max-w-xl space-y-6">
-                      <div className="inline-flex items-center space-x-2 bg-emerald-500/20 border border-emerald-500/30 px-4 py-1.5 rounded-full text-xs font-black text-emerald-400 tracking-widest uppercase shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                        <Sparkles className="w-4 h-4" />
-                        <span>NIGERIA'S SEAMLESS MARKET HUB</span>
-                      </div>
-                      <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.1] text-white">
-                        Premium Shopping, <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">Homegrown Trust.</span>
-                      </h1>
-                      <p className="text-base sm:text-lg text-emerald-50/80 leading-relaxed max-w-md font-medium">
-                        Connecting local vendors to your doorstep with direct checkout and guaranteed authentic wares.
-                      </p>
-                    </div>
-                  )}
-                  
-                  {currentAdIndex % 3 === 1 && (
-                    <div className="max-w-xl space-y-6">
-                      <div className="inline-flex items-center space-x-2 bg-blue-500/20 border border-blue-500/30 px-4 py-1.5 rounded-full text-xs font-black text-blue-400 tracking-widest uppercase shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-                        <Settings2 className="w-4 h-4" />
-                        <span>VENDOR POWERHOUSE</span>
-                      </div>
-                      <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.1] text-white">
-                        Sell Nationwide, <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Instant Payouts.</span>
-                      </h1>
-                      <p className="text-base sm:text-lg text-blue-50/80 leading-relaxed max-w-md font-medium">
-                        List your inventory in seconds and reach thousands of daily active buyers across all 36 states.
-                      </p>
-                    </div>
-                  )}
-                  
-                  {currentAdIndex % 3 === 2 && (
-                    <div className="max-w-xl space-y-6">
-                      <div className="inline-flex items-center space-x-2 bg-purple-500/20 border border-purple-500/30 px-4 py-1.5 rounded-full text-xs font-black text-purple-400 tracking-widest uppercase shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                        <ShieldAlert className="w-4 h-4" />
-                        <span>SECURE TRANSACTIONS</span>
-                      </div>
-                      <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.1] text-white">
-                        Pay with Confidence, <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-300">Escrow Protected.</span>
-                      </h1>
-                      <p className="text-base sm:text-lg text-purple-50/80 leading-relaxed max-w-md font-medium">
-                        Your funds are secured until you confirm delivery. Dispute resolution managed by local experts.
-                      </p>
-                    </div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-              
-              <div className="absolute bottom-10 left-8 sm:left-12 z-20 flex gap-4">
-                 <motion.button
-                   whileHover={{ scale: 1.05, boxShadow: "0 10px 25px rgba(249,115,22,0.4)" }}
-                   whileTap={{ scale: 0.95 }}
-                   onClick={() => {
-                     setActiveCategoryTab("all");
-                     onNavigate("shop");
-                   }}
-                   className="bg-orange-500 text-white font-extrabold px-8 py-3.5 rounded-full transition-all text-xs sm:text-sm tracking-widest uppercase shadow-lg"
-                 >
-                   Explore Market &rarr;
-                 </motion.button>
+              {/* Prop 2 */}
+              <div className="bg-orange-500 rounded-3xl p-8 border border-orange-400 shadow-[0_10px_30px_rgba(249,115,22,0.2)] hover:shadow-[0_20px_40px_rgba(249,115,22,0.3)] transition-all duration-300 flex flex-col justify-between overflow-hidden relative group text-white">
+                <div className="z-10 relative space-y-4 max-w-[85%]">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg shadow-orange-900/20 group-hover:scale-110 transition-transform">
+                    <Sparkles className="w-6 h-6 text-orange-500" />
+                  </div>
+                  <h4 className="text-2xl font-black tracking-tight leading-snug">Curated premium<br/>selections.</h4>
+                  <p className="text-sm font-semibold opacity-90 leading-relaxed">Discover hand-picked collections featuring authentic fashion, gadgets, and luxury goods.</p>
+                </div>
+                <div className="absolute -right-8 -bottom-8 opacity-10 group-hover:opacity-20 transition-opacity duration-500 text-white">
+                  <Sparkles className="w-64 h-64" />
+                </div>
               </div>
 
-              {/* Want to Advertise Button */}
-              <div className="absolute top-6 right-6 sm:top-8 sm:right-8 z-30">
-                <motion.a
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  href="https://wa.me/2348000000000?text=Hello%2C%20I%20want%20to%20advertise%20on%20NaijaOnlineStores"
-                  target="_blank"
-                  className="group relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all px-4 sm:px-6 py-2 sm:py-2.5 rounded-full flex items-center gap-2"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span className="text-xs sm:text-sm font-bold text-white tracking-wide">Want to advertise here?</span>
-                  <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                </motion.a>
+              {/* Prop 3 */}
+              <div className="bg-neutral-950 rounded-3xl p-8 border border-neutral-800 shadow-[0_10px_30px_rgba(0,0,0,0.2)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] transition-all duration-300 flex flex-col justify-between overflow-hidden relative group text-white">
+                <div className="z-10 relative space-y-4 max-w-[85%]">
+                  <div className="w-12 h-12 bg-neutral-800 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <MapPin className="w-6 h-6 text-white" />
+                  </div>
+                  <h4 className="text-2xl font-black tracking-tight leading-snug">Nationwide fast<br/>delivery.</h4>
+                  <p className="text-sm font-semibold text-neutral-400 leading-relaxed">Secure escrow payments. Only release funds when your items safely reach your doorstep.</p>
+                </div>
+                <div className="absolute -right-8 -bottom-8 opacity-10 group-hover:opacity-20 transition-opacity duration-500 text-white">
+                  <MapPin className="w-64 h-64" />
+                </div>
               </div>
             </div>
 
-          {/* Shop by Category Bento layout */}
-          <section className="space-y-4">
+          {/* Elite Shop by Category Bento */}
+          <section className="space-y-6">
             <div className="flex justify-between items-end">
               <div className="text-left">
-                <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">Shop by Category</h2>
-                <p className="text-xs text-neutral-400 font-semibold mt-1">Verified merchant collectives across geographic hubs</p>
+                <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">Explore Categories</h2>
+                <p className="text-sm text-neutral-500 font-semibold mt-1">Verified merchant collectives across geographic hubs</p>
               </div>
               <button
                 onClick={() => {
                   setActiveCategoryTab("all");
                   onNavigate("shop");
                 }}
-                className="text-orange-600 font-bold text-xs hover:underline flex items-center space-x-1"
+                className="text-orange-600 font-bold text-sm hover:underline flex items-center space-x-1"
               >
                 <span>View All</span>
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5" />
               </button>
             </div>
 
@@ -757,7 +858,7 @@ export default function CustomerViews({
               initial="hidden"
               whileInView="show"
               viewport={{ once: true, margin: "-10px" }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
             >
               {categories.map((cat, idx) => (
                 <motion.div
@@ -770,29 +871,47 @@ export default function CustomerViews({
                     hidden: { opacity: 0, y: 20 },
                     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
                   }}
-                  whileHover={shouldReduceMotion ? {} : { y: -10, scale: 1.025, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)" }}
-                  className="group relative h-48 rounded-2xl overflow-hidden cursor-pointer shadow-ambient border border-neutral-150 flex flex-col justify-end p-5 transition-all hover:shadow-premium"
+                  whileHover={shouldReduceMotion ? {} : { y: -8, scale: 1.02, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)" }}
+                  className="group relative h-64 sm:h-80 rounded-[2rem] overflow-hidden cursor-pointer shadow-sm border border-neutral-100 flex flex-col justify-end p-6 transition-all hover:shadow-2xl"
                   id={`cat-card-${cat.id}`}
                 >
+                  {cat.categoryId && (
+                    <div className="absolute top-4 left-4 z-20">
+                      <span className="bg-white/80 backdrop-blur-sm text-neutral-800 text-[9px] uppercase tracking-widest font-black px-2 py-1 rounded-md shadow-sm border border-neutral-200/50">
+                        ID: {cat.categoryId}
+                      </span>
+                    </div>
+                  )}
                   {/* Category animated icon on top-right */}
-                  <div className="absolute top-4 right-4 p-2.5 rounded-xl bg-white/10 backdrop-blur-md text-white border border-white/15 z-10 opacity-90 transition-all duration-300 group-hover:bg-orange-500 group-hover:border-orange-400 group-hover:scale-110 group-hover:-rotate-3">
-                    {cat.id === "electronics" ? <Laptop className="w-4.5 h-4.5" /> :
-                     cat.id === "fashion" ? <Shirt className="w-4.5 h-4.5" /> :
-                     cat.id === "beauty" ? <Sparkles className="w-4.5 h-4.5" /> :
-                     <Home className="w-4.5 h-4.5" />}
+                  <div className="absolute top-6 right-6 p-4 rounded-2xl bg-white/20 backdrop-blur-lg text-white border border-white/30 z-10 opacity-90 transition-all duration-300 group-hover:bg-white group-hover:text-black group-hover:border-transparent group-hover:scale-110 group-hover:-rotate-3 shadow-[0_10px_20px_rgba(0,0,0,0.2)]">
+                    {cat.id === "electronics" ? <Laptop className="w-6 h-6" /> :
+                     cat.id === "fashion" ? <Shirt className="w-6 h-6" /> :
+                     cat.id === "beauty" ? <Sparkles className="w-6 h-6" /> :
+                     cat.id === "phones" ? <Smartphone className="w-6 h-6" /> :
+                     cat.id === "cars" ? <Car className="w-6 h-6" /> :
+                     cat.id === "phone-accessories" ? <Headphones className="w-6 h-6" /> :
+                     cat.id === "sports" ? <Trophy className="w-6 h-6" /> :
+                     cat.id === "grocery" ? <ShoppingBag className="w-6 h-6" /> :
+                     cat.id === "laptops" ? <Laptop className="w-6 h-6" /> :
+                     cat.id === "gaming" ? <Gamepad2 className="w-6 h-6" /> :
+                     <Home className="w-6 h-6" />}
                   </div>
 
                   {/* Background cover */}
                   <img
                     src={cat.image}
                     alt={cat.name}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-112"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-[15s] ease-out group-hover:scale-110"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent opacity-85" />
                   
-                  <div className="relative text-left text-white z-10 space-y-1">
-                    <h3 className="font-extrabold text-base leading-snug tracking-tight">{cat.name}</h3>
+                  {/* Premium Gradated Backdrop */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent z-0 opacity-90" />
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent z-0 opacity-50 mix-blend-multiply" />
+                  
+                  <div className="relative text-left text-white z-10 space-y-1 transform transition-transform duration-300 group-hover:-translate-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/70">Department</span>
+                    <h3 className="font-black text-2xl leading-none tracking-tight">{cat.name}</h3>
                   </div>
                 </motion.div>
               ))}
@@ -800,160 +919,212 @@ export default function CustomerViews({
           </section>
 
           {/* Flash Sales Section */}
-          <section className="space-y-4 bg-orange-50/50 p-4 rounded-2xl border border-orange-100">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between pb-3 border-b border-orange-200/60 gap-3">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <h2 className="text-xl sm:text-2xl font-black text-orange-600 tracking-tight flex items-center">
-                    <Sparkles className="w-5 h-5 mr-2 fill-orange-500" />
-                    Flash Sales
-                  </h2>
-                </div>
-                <div className="flex items-center space-x-2 mt-2">
-                  <span className="text-xs text-neutral-500 font-bold uppercase tracking-wider">Time Left:</span>
-                  <div className="flex items-center space-x-1.5 text-orange-600 font-black text-sm">
-                    <div className="bg-orange-100 px-2 py-0.5 rounded">{flashSaleTime.h.toString().padStart(2, '0')}h</div>
-                    <span>:</span>
-                    <div className="bg-orange-100 px-2 py-0.5 rounded">{flashSaleTime.m.toString().padStart(2, '0')}m</div>
-                    <span>:</span>
-                    <div className="bg-orange-100 px-2 py-0.5 rounded">{flashSaleTime.s.toString().padStart(2, '0')}s</div>
+          {activeFlashProducts.length > 0 && (
+            <section className="space-y-6 bg-red-50/40 p-6 sm:p-8 rounded-[2rem] border border-red-100/50 relative overflow-hidden">
+              {/* Subtle background glow */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-red-400/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between pb-4 border-b border-red-200/40 gap-4 relative z-10">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-2xl sm:text-3xl font-black text-red-600 tracking-tight flex items-center">
+                      <Sparkles className="w-6 h-6 mr-2 fill-red-500" />
+                      Flash Deals
+                    </h2>
+                  </div>
+                  <div className="flex items-center space-x-3 mt-2">
+                    <span className="text-xs text-neutral-500 font-bold uppercase tracking-widest">Ending In:</span>
+                    <div className="flex items-center space-x-1 text-red-600 font-black text-sm">
+                      <div className="bg-red-100/80 backdrop-blur-sm px-2.5 py-1 rounded-md">{flashSaleTime.h.toString().padStart(2, '0')}h</div>
+                      <span>:</span>
+                      <div className="bg-red-100/80 backdrop-blur-sm px-2.5 py-1 rounded-md">{flashSaleTime.m.toString().padStart(2, '0')}m</div>
+                      <span>:</span>
+                      <div className="bg-red-100/80 backdrop-blur-sm px-2.5 py-1 rounded-md">{flashSaleTime.s.toString().padStart(2, '0')}s</div>
+                    </div>
                   </div>
                 </div>
+                <button className="text-sm font-bold text-red-500 hover:text-red-700 transition-colors uppercase tracking-widest self-start sm:self-auto flex items-center">
+                  See All <ChevronRight className="w-5 h-5 ml-0.5" />
+                </button>
               </div>
-              <button className="text-sm font-bold text-orange-500 hover:text-orange-600 transition-colors uppercase tracking-widest self-start sm:self-auto flex items-center">
-                See All <ChevronRight className="w-4 h-4 ml-0.5" />
-              </button>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activeFlashProducts.map((p, idx) => {
-                const isAdded = !!justAddedProducts[p.id];
-                const stockLeft = p.stock;
-                return (
-                  <motion.div
-                    key={`fs-${p.id}`}
-                    onClick={() => {
-                      onSelectProduct(p.id);
-                      onNavigate("details");
-                    }}
-                    initial={{ opacity: 0, y: 15 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.1 }}
-                    whileHover={{ y: -4, scale: 1.01 }}
-                    className="bg-white rounded-2xl border border-orange-100 p-3 flex flex-row h-40 shadow-sm hover:shadow-md cursor-pointer transition-all relative overflow-hidden"
-                  >
-                    {/* Left: Image */}
-                    <div className="w-[35%] h-full bg-neutral-50 rounded-xl overflow-hidden relative shrink-0">
-                      {p.image ? (
-                        <img src={p.image} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="flex w-full h-full items-center justify-center text-[9px] uppercase font-bold text-neutral-300">No Img</div>
-                      )}
-                      {p.salePercentage && (
-                        <span className="absolute top-2 left-2 bg-red-600 text-white font-extrabold text-[9px] uppercase px-2 py-1 rounded shadow-sm z-10">
-                          -{p.salePercentage}%
-                        </span>
-                      )}
-                    </div>
-                    {/* Right: Info */}
-                    <div className="flex-1 pl-4 py-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-2 leading-snug">{p.title}</h3>
-                        <div className="flex items-end space-x-2 mt-1">
-                          <p className="font-black text-lg text-neutral-900 leading-none">{formatNaira(p.price)}</p>
-                          {p.originalPrice && <p className="text-[10px] text-neutral-400 line-through leading-none mb-1">{formatNaira(p.originalPrice)}</p>}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                {activeFlashProducts.map((p, idx) => {
+                  const isAdded = !!justAddedProducts[p.id];
+                  const stockLeft = p.stock;
+                  return (
+                    <motion.div
+                      key={`fs-${p.id}`}
+                      onClick={() => {
+                        onSelectProduct(p.id);
+                        onNavigate("details");
+                      }}
+                      initial={{ opacity: 0, y: 15 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: idx * 0.1 }}
+                      whileHover={{ y: -6, scale: 1.01 }}
+                      className="bg-white rounded-[1.5rem] p-4 flex flex-row h-48 shadow-[0_10px_20px_rgba(0,0,0,0.03)] border border-neutral-100 cursor-pointer transition-all hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] relative overflow-hidden group"
+                    >
+                      {/* Left: Image */}
+                      <div className="w-[40%] h-full bg-neutral-50 rounded-2xl overflow-hidden relative shrink-0">
+                        {p.image ? (
+                          <img loading="lazy" src={p.image} className="w-full h-full object-cover transition-transform duration-[10s] ease-out group-hover:scale-110" alt={p.title} referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="flex w-full h-full items-center justify-center text-[10px] uppercase font-bold text-neutral-300">No Image</div>
+                        )}
+                        {p.salePercentage && (
+                          <div className="absolute top-3 left-3 bg-red-600 text-white font-black text-[10px] uppercase px-2.5 py-1 rounded-lg shadow-lg z-10">
+                            -{p.salePercentage}%
+                          </div>
+                        )}
+                      </div>
+                      {/* Right: Info */}
+                      <div className="flex-1 pl-5 py-1 flex flex-col justify-between">
+                        <div>
+                          <h3 className="font-extrabold text-base text-neutral-900 line-clamp-2 leading-snug">{p.title}</h3>
+                          <div className="flex items-baseline space-x-2 mt-2">
+                            <p className="font-black text-2xl text-red-600 leading-none tracking-tight">{formatNaira(p.price)}</p>
+                            {p.originalPrice && <p className="text-xs text-neutral-400 line-through leading-none font-bold">{formatNaira(p.originalPrice)}</p>}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 mt-3">
+                          <div className="w-full bg-neutral-100 rounded-full h-2 overflow-hidden relative">
+                            <div className="bg-red-500 h-full rounded-full transition-all duration-1000" style={{ width: `${(stockLeft / (stockLeft + 50)) * 100}%` }} />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] text-neutral-500 font-bold uppercase tracking-wider">{stockLeft} remaining</span>
+                            {p.externalLink ? (
+                              <a 
+                                href={p.externalLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-[11px] font-black px-4 py-2 rounded-xl transition-all shadow-md group-hover:shadow-lg bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20 flex items-center gap-1"
+                              >
+                                Get It
+                              </a>
+                            ) : (
+                              <button 
+                                onClick={(e) => handleAddToCartWithFeedback(p, 1, p?.sizes?.[0], p?.colors?.[0], e)}
+                                className={`text-[11px] font-black px-4 py-2 rounded-xl transition-all shadow-md group-hover:shadow-lg ${isAdded ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-neutral-950 hover:bg-red-600 text-white shadow-neutral-950/20"}`}
+                              >
+                                {isAdded ? "Added" : "Add to Cart"}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
-                      <div className="space-y-2 mt-2">
-                        <div className="w-full bg-neutral-100 rounded-full h-1.5 overflow-hidden">
-                          <div className="bg-orange-500 h-full rounded-full" style={{ width: `${(stockLeft / (stockLeft + 50)) * 100}%` }} />
+          {/* Featured Rectangular Products */}
+          <section className="space-y-8 mt-12">
+            <div className="text-left pb-4 border-b border-neutral-100 flex justify-between items-end">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">Featured Selections</h2>
+                <p className="text-sm text-neutral-500 font-semibold mt-1">Handpicked quality items delivered fast</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {internalLoading ? (
+                Array.from({ length: 4 }).map((_, skeletonIdx) => (
+                  <div
+                    key={`feat-rect-skeleton-${skeletonIdx}`}
+                    className="bg-white rounded-[1.5rem] border border-neutral-150 p-4 flex flex-row h-40 shadow-sm"
+                  >
+                    <div className="w-[30%] h-full shimmer-bg rounded-xl shrink-0" />
+                    <div className="flex-1 pl-5 py-2 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="h-2 shimmer-bg rounded-md w-1/4 mb-2" />
+                        <div className="h-4 shimmer-bg rounded-md w-full" />
+                        <div className="h-4 shimmer-bg rounded-md w-3/4" />
+                      </div>
+                      <div className="flex items-end justify-between pt-2">
+                        <div className="space-y-1">
+                           <div className="h-3 shimmer-bg rounded-md w-10" />
+                           <div className="h-4 shimmer-bg rounded-md w-16" />
+                        </div>
+                        <div className="h-8 shimmer-bg rounded-lg w-16" />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                products.slice(4, 4 + homePageCount * 8).map((p, idx) => {
+                  const isAdded = !!justAddedProducts[p.id];
+                  return (
+                    <motion.div
+                      key={`feat-rect-${p.id}`}
+                      onClick={() => {
+                        onSelectProduct(p.id);
+                        onNavigate("details");
+                      }}
+                      initial={{ opacity: 0, y: 15 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: idx * 0.1 }}
+                      whileHover={{ y: -6, scale: 1.01 }}
+                      className="bg-white rounded-[1.5rem] border border-neutral-150 p-4 flex flex-row h-40 shadow-sm hover:shadow-[0_15px_30px_rgba(0,0,0,0.06)] cursor-pointer transition-all group"
+                    >
+                      {/* Left: Image */}
+                      <div className="w-[30%] h-full bg-neutral-50 rounded-xl overflow-hidden relative shrink-0">
+                        {p.image ? (
+                          <img loading="lazy" src={p.image} className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110" alt={p.title}  referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="flex w-full h-full items-center justify-center text-[9px] uppercase font-bold text-neutral-300">No Image</div>
+                        )}
+                        {p.salePercentage && (
+                          <span className="absolute top-2 left-2 bg-neutral-900 text-white font-extrabold text-[9px] uppercase px-2 py-1 rounded-md shadow z-10">
+                            -{p.salePercentage}%
+                          </span>
+                        )}
+                      </div>
+                      {/* Right: Info */}
+                      <div className="flex-1 pl-5 py-2 flex flex-col justify-between">
+                        <div>
+                          <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest leading-none mb-1.5">{p.vendorName}</p>
+                          <h3 className="font-extrabold text-sm text-neutral-900 line-clamp-2 leading-snug">{p.title}</h3>
+                          <div className="flex items-center space-x-1.5 text-[11px] text-neutral-500 mt-2">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                            <span className="font-bold text-neutral-700">{p.rating}</span>
+                            <span className="font-medium">({p.reviewsCount} reviews)</span>
+                          </div>
                         </div>
                         <div className="flex items-end justify-between">
-                          <span className="text-[10px] text-neutral-500 font-bold">{stockLeft} items left</span>
+                          <div>
+                            {p.originalPrice && <p className="text-[11px] text-neutral-400 line-through leading-none mb-1 font-bold">{formatNaira(p.originalPrice)}</p>}
+                            <p className="font-black text-base text-neutral-950 leading-none tracking-tight">{formatNaira(p.price)}</p>
+                          </div>
                           <button 
-                            onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
-                            className={`text-[10px] font-bold px-3 py-1.5 rounded transition-all ${isAdded ? "bg-emerald-600 text-white" : "bg-orange-500 hover:bg-orange-600 text-white"}`}
+                            onClick={(e) => handleAddToCartWithFeedback(p, 1, p?.sizes?.[0], p?.colors?.[0], e)}
+                            className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all ${isAdded ? "bg-emerald-500 text-white" : "bg-neutral-100 hover:bg-neutral-900 text-neutral-800 hover:text-white"}`}
                           >
-                            {isAdded ? "Added" : "Add to Cart"}
+                            {isAdded ? "Added" : "Get It"}
                           </button>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
-          </section>
-
-          {/* Featured Rectangular Products (Added to Homepage) */}
-          <section className="space-y-4">
-            <div className="text-left pb-2 border-b border-neutral-100 flex justify-between items-end">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">Featured Selections</h2>
-                <p className="text-xs text-neutral-400 font-semibold mt-1">Handpicked quality items delivered fast</p>
+            {4 + homePageCount * 8 < products.length && (
+              <div className="flex justify-center mt-8">
+                <button
+                  onClick={() => setHomePageCount(prev => prev + 1)}
+                  className="px-6 py-3 bg-neutral-900 hover:bg-neutral-800 text-white font-bold rounded-xl transition-colors text-sm uppercase tracking-wider"
+                >
+                  Show More Products
+                </button>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {products.slice(4, 12).map((p, idx) => {
-                const isAdded = !!justAddedProducts[p.id];
-                return (
-                  <motion.div
-                    key={`feat-rect-${p.id}`}
-                    onClick={() => {
-                      onSelectProduct(p.id);
-                      onNavigate("details");
-                    }}
-                    initial={{ opacity: 0, y: 15 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.1 }}
-                    whileHover={{ y: -4, scale: 1.01 }}
-                    className="bg-white rounded-2xl border border-neutral-150 p-3 flex flex-row h-36 shadow-sm hover:shadow-md cursor-pointer transition-all"
-                  >
-                    {/* Left: Image */}
-                    <div className="w-[35%] h-full bg-neutral-50 rounded-xl overflow-hidden relative shrink-0">
-                      {p.image ? (
-                        <img src={p.image} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} />
-                      ) : (
-                        <div className="flex w-full h-full items-center justify-center text-[9px] uppercase font-bold text-neutral-300">No Img</div>
-                      )}
-                      {p.salePercentage && (
-                        <span className="absolute top-2 left-2 bg-red-600 text-white font-extrabold text-[8px] uppercase px-1.5 py-0.5 rounded shadow-sm z-10">
-                          -{p.salePercentage}%
-                        </span>
-                      )}
-                    </div>
-                    {/* Right: Info */}
-                    <div className="flex-1 pl-4 py-1 flex flex-col justify-between">
-                      <div>
-                        <p className="text-[9px] font-extrabold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
-                        <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-2 leading-snug mt-1">{p.title}</h3>
-                        <div className="flex items-center space-x-1 text-[10px] text-neutral-500 mt-1">
-                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span className="font-bold">{p.rating}</span>
-                          <span>({p.reviewsCount})</span>
-                        </div>
-                      </div>
-                      <div className="flex items-end justify-between">
-                        <div>
-                          {p.originalPrice && <p className="text-[10px] text-neutral-400 line-through leading-none">{formatNaira(p.originalPrice)}</p>}
-                          <p className="font-black text-sm text-neutral-900 leading-none">{formatNaira(p.price)}</p>
-                        </div>
-                        <button 
-                          onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
-                          className={`text-[9px] font-bold px-2 py-1 rounded transition-all ${isAdded ? "bg-emerald-600 text-white" : "bg-neutral-100 hover:bg-orange-500 text-neutral-700 hover:text-white"}`}
-                        >
-                          {isAdded ? "Added" : "Buy Now"}
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+            )}
           </section>
 
           {/* Recently Viewed Products Section */}
@@ -1000,7 +1171,7 @@ export default function CustomerViews({
                       {/* Left: Image */}
                       <div className="w-[30%] h-full bg-neutral-50 rounded-xl overflow-hidden relative shrink-0">
                         {p.image ? (
-                          <img src={p.image} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} referrerPolicy="no-referrer" />
+                          <img loading="lazy" src={p.image} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} referrerPolicy="no-referrer" />
                         ) : (
                           <div className="flex w-full h-full items-center justify-center text-[9px] uppercase font-bold text-neutral-300">No Img</div>
                         )}
@@ -1014,7 +1185,7 @@ export default function CustomerViews({
                         <div className="flex items-center justify-between mt-1">
                           <p className="font-black text-xs text-neutral-900 leading-none">{formatNaira(p.price)}</p>
                           <button 
-                            onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
+                            onClick={(e) => handleAddToCartWithFeedback(p, 1, p?.sizes?.[0], p?.colors?.[0], e)}
                             className={`text-[9px] font-bold px-2.5 py-1 rounded transition-all shrink-0 ${isAdded ? "bg-emerald-600 text-white" : "bg-neutral-50 hover:bg-orange-500 text-neutral-700 hover:text-white border border-neutral-200"}`}
                           >
                             {isAdded ? "Added" : "Buy Now"}
@@ -1028,123 +1199,147 @@ export default function CustomerViews({
             </section>
           )}
 
-          {/* Trending Deals of the week (Asymmetric Bento layout) */}
-          <section className="space-y-4">
-            <div className="text-left pb-2 border-b border-neutral-100">
-              <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">Trending Weekly Deals</h2>
-              <p className="text-xs text-neutral-400 font-semibold">Top performing products from Computer Village, Balogun and Alaba markets</p>
+          {/* Trending Deals of the week (Premium Bento Grid) */}
+          <section className="space-y-6 mt-12">
+            <div className="text-left pb-4 border-b border-neutral-100 flex justify-between items-end">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">Trending Weekly Deals</h2>
+                <p className="text-sm text-neutral-500 font-semibold mt-1">Top performing products from the biggest markets</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {products.slice(0, 4).map((p, idx) => {
-                const isAdded = !!justAddedProducts[p.id];
-                const isLiked = wishlist.includes(p.id);
-                return (
-                  <motion.div
-                    key={p.id}
-                    onClick={() => {
-                      onSelectProduct(p.id);
-                      onNavigate("details");
-                    }}
-                    initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-10px" }}
-                    transition={{ duration: 0.4, delay: idx * 0.08 }}
-                    whileHover={shouldReduceMotion ? {} : { y: -8, scale: 1.015, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.06), 0 8px 10px -6px rgba(0,0,0,0.06)" }}
-                    className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-ambient hover:shadow-premium group cursor-pointer transition-all flex flex-col justify-between"
+              {internalLoading ? (
+                Array.from({ length: 4 }).map((_, skeletonIdx) => (
+                  <div
+                    key={`trend-skeleton-${skeletonIdx}`}
+                    className="bg-white rounded-[1.5rem] border border-neutral-150 p-4 flex flex-col h-80 shadow-sm"
                   >
-                    <div className="relative aspect-square bg-neutral-50 overflow-hidden flex items-center justify-center border-b border-neutral-100/60">
-                      {p.image ? (
-                        <img
-                          src={p.image}
-                          alt={p.title}
-                          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="text-neutral-300 font-extrabold uppercase text-[9px] tracking-widest text-center px-4 self-center">
-                          ₦ Image-Free Classic
-                        </div>
-                      )}
-                      
-                      {/* Badge */}
-                      {p.isBestSeller && (
-                        <span className="absolute top-3 left-3 bg-orange-500 text-white font-extrabold text-[9px] uppercase px-2 py-1 rounded-md tracking-wider shadow-sm z-10">
-                          Best Seller
-                        </span>
-                      )}
-                      {p.salePercentage && (
-                        <span className="absolute top-3 right-3 bg-red-600 text-white font-extrabold text-[9px] uppercase px-2 py-1 rounded-md tracking-wider shadow-sm z-10">
-                          SAVE {p.salePercentage}%
-                        </span>
-                      )}
-
-                      {/* Wishlist toggle */}
-                      <motion.button
-                        whileHover={{ scale: 1.15 }}
-                        whileTap={{ scale: 0.85 }}
-                        onClick={(e) => toggleWishlist(p.id, e)}
-                        className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center shadow-xs text-neutral-500 hover:text-red-500 z-10"
-                      >
-                        <motion.div
-                          key={isLiked ? "liked" : "unliked"}
-                          initial={{ scale: 0.8 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                        >
-                          <Heart className={`w-4.5 h-4.5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
-                        </motion.div>
-                      </motion.button>
-                    </div>
-
-                    <div className="p-4 flex-1 flex flex-col justify-between text-left space-y-2">
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-1">
-                          <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
-                          {p.condition === "Fairly Used" && (
-                            <span className="text-[8px] uppercase tracking-wider bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap">Fairly Used</span>
-                          )}
-                        </div>
-                        <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-1 truncate group-hover:text-orange-500 transition-colors">
-                          {p.title}
-                        </h3>
-                        {/* Rating details */}
-                        <div className="flex items-center space-x-1.5 text-xs text-neutral-500">
-                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 animate-none" />
-                          <span className="font-bold text-neutral-800">{p.rating}</span>
-                          <span>({p.reviewsCount})</span>
-                        </div>
+                    <div className="w-full h-40 shimmer-bg rounded-xl shrink-0" />
+                    <div className="flex-1 py-1 flex flex-col justify-between mt-3">
+                      <div className="space-y-2">
+                        <div className="h-2 shimmer-bg rounded-md w-1/3 mb-1" />
+                        <div className="h-4 shimmer-bg rounded-md w-full" />
+                        <div className="h-3 shimmer-bg rounded-md w-1/2" />
                       </div>
-
-                      <div className="flex items-end justify-between pt-2 border-t border-neutral-50">
-                        <div>
-                          {p.originalPrice && (
-                            <p className="text-xs text-neutral-400 line-through leading-none mb-0.5 font-mono">
-                              {formatNaira(p.originalPrice)}
-                            </p>
-                          )}
-                          <p className="font-black text-base text-neutral-900 leading-none font-mono">
-                            {formatNaira(p.price)}
-                          </p>
-                        </div>
-
+                      <div className="flex items-end justify-between pt-2">
+                        <div className="h-5 shimmer-bg rounded-md w-1/4" />
+                        <div className="h-8 shimmer-bg rounded-lg w-16" />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                products.slice(0, 4).map((p, idx) => {
+                  const isAdded = !!justAddedProducts[p.id];
+                  const isLiked = wishlist.includes(p.id);
+                  return (
+                    <motion.div
+                      key={p.id}
+                      onClick={() => {
+                        onSelectProduct(p.id);
+                        onNavigate("details");
+                      }}
+                      initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "-10px" }}
+                      transition={{ duration: 0.4, delay: idx * 0.08 }}
+                      whileHover={shouldReduceMotion ? {} : { y: -8, scale: 1.015, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.06), 0 8px 10px -6px rgba(0,0,0,0.06)" }}
+                      className="bg-white rounded-[1.5rem] border border-neutral-150 overflow-hidden shadow-sm hover:shadow-xl group cursor-pointer transition-all flex flex-col justify-between"
+                    >
+                      <div className="relative aspect-square bg-neutral-50 overflow-hidden flex items-center justify-center border-b border-neutral-100/60">
+                        {p.image ? (
+                          <img
+                            src={p.image}
+                            alt={p.title}
+                            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="text-neutral-300 font-extrabold uppercase text-[10px] tracking-widest text-center px-4 self-center">
+                            No Image
+                          </div>
+                        )}
+                        
+                        {/* Badge */}
+                        {p.isBestSeller && (
+                          <span className="absolute top-4 left-4 bg-orange-500 text-white font-black text-[9px] uppercase px-2.5 py-1.5 rounded-lg tracking-wider shadow z-10">
+                            Best Seller
+                          </span>
+                        )}
+                        {p.salePercentage && (
+                          <span className="absolute top-4 right-4 bg-red-600 text-white font-black text-[9px] uppercase px-2.5 py-1.5 rounded-lg tracking-wider shadow z-10">
+                            SAVE {p.salePercentage}%
+                          </span>
+                        )}
+  
+                        {/* Wishlist toggle */}
                         <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
-                          className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all duration-300 ${
-                            isAdded
-                              ? "bg-emerald-600 text-white shadow-xs"
-                              : "bg-neutral-100 hover:bg-orange-500 text-neutral-700 hover:text-white"
-                          }`}
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          onClick={(e) => toggleWishlist(p.id, e)}
+                          className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center shadow-md text-neutral-500 hover:text-red-500 z-10 transition-colors"
                         >
-                          {isAdded ? "✓ Added" : "Buy Now"}
+                          <motion.div
+                            key={isLiked ? "liked" : "unliked"}
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                          >
+                            <Heart className={`w-5 h-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+                          </motion.div>
                         </motion.button>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+  
+                      <div className="p-5 flex-1 flex flex-col justify-between text-left space-y-3">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center space-x-2">
+                            <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest leading-none">{p.vendorName}</p>
+                            {p.condition === "Fairly Used" && (
+                              <span className="text-[9px] uppercase tracking-wider bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap">Fairly Used</span>
+                            )}
+                          </div>
+                          <h3 className="font-extrabold text-sm sm:text-base text-neutral-900 line-clamp-1 truncate group-hover:text-orange-500 transition-colors">
+                            {p.title}
+                          </h3>
+                          {/* Rating details */}
+                          <div className="flex items-center space-x-1.5 text-xs text-neutral-500">
+                            <Star className="w-4 h-4 fill-amber-400 text-amber-400 animate-none" />
+                            <span className="font-bold text-neutral-800">{p.rating}</span>
+                            <span>({p.reviewsCount})</span>
+                          </div>
+                        </div>
+  
+                        <div className="flex items-end justify-between pt-2 border-t border-neutral-50">
+                          <div>
+                            {p.originalPrice && (
+                              <p className="text-xs text-neutral-400 line-through leading-none mb-0.5 font-mono">
+                                {formatNaira(p.originalPrice)}
+                              </p>
+                            )}
+                            <p className="font-black text-base text-neutral-900 leading-none font-mono">
+                              {formatNaira(p.price)}
+                            </p>
+                          </div>
+  
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={(e) => handleAddToCartWithFeedback(p, 1, p?.sizes?.[0], p?.colors?.[0], e)}
+                            className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all duration-300 ${
+                              isAdded
+                                ? "bg-emerald-600 text-white shadow-xs"
+                                : "bg-neutral-100 hover:bg-orange-500 text-neutral-700 hover:text-white"
+                            }`}
+                          >
+                            {isAdded ? "✓ Added" : "Buy Now"}
+                          </motion.button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
           </section>
 
@@ -1203,7 +1398,7 @@ export default function CustomerViews({
                </div>
                
                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white shrink-0 border-2 border-emerald-700 flex items-center justify-center p-1 shadow-md z-10">
-                 <img 
+                 <img loading="lazy" 
                    src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" 
                    alt="Naija Online Stores Logo" 
                    className="w-full h-full object-cover rounded-xl"
@@ -1216,8 +1411,74 @@ export default function CustomerViews({
                  <span className="text-[140px] font-black tracking-tighter text-emerald-500/20 select-none leading-none">SEARCH</span>
                </div>
              </motion.div>
-          ) : (
-            MOCK_ADS.filter(ad => (ad.position === "category" || ad.position === "search") && ad.status === "active").map((ad, idx) => (
+          ) : activeCategoryTab !== "all" ? (() => {
+             const matchedCat = activeCategoryObj;
+             const catName = matchedCat ? matchedCat.name : activeCategoryTab;
+             const theme = getCategoryTheme(activeCategoryTab, catName);
+             return (
+               <motion.div
+                 initial={{ opacity: 0, y: 15 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 className={`w-full bg-linear-to-r ${theme.gradient} text-white rounded-3xl overflow-hidden relative p-6 sm:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-white/10 shadow-lg mb-6`}
+               >
+                 <div className="z-10 text-left max-w-2xl space-y-3">
+                   <div className="flex flex-wrap items-center gap-2">
+                     <span className="text-[9px] sm:text-[10px] text-white font-extrabold uppercase tracking-widest bg-black/30 px-3 py-1 rounded-full border border-white/20">
+                       {theme.badge}
+                     </span>
+                     <button 
+                       onClick={() => setActiveCategoryTab("all")}
+                       className="text-[9px] sm:text-[10px] text-orange-200 hover:text-white font-extrabold uppercase tracking-wider flex items-center space-x-1"
+                       title="Browse all departments"
+                     >
+                       <span>&larr; View All Shops</span>
+                     </button>
+                   </div>
+                   <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+                     {theme.title}
+                   </h1>
+                   <p className="text-xs sm:text-sm text-white/90 font-medium font-sans">
+                     {theme.tagline}
+                   </p>
+                   
+                   {/* Interactive Tags */}
+                   <div className="pt-2 flex flex-wrap gap-1.5 items-center">
+                     <span className="text-[10px] font-bold text-white/70">Popular:</span>
+                     {theme.featuredTags.map(tag => (
+                       <button
+                         key={tag}
+                         onClick={() => {
+                           onSearch?.(tag);
+                         }}
+                         className="text-[10px] font-extrabold bg-white/10 px-2.5 py-1 rounded-lg hover:bg-white/20 transition-all text-orange-255 cursor-pointer border border-white/10"
+                       >
+                         #{tag}
+                       </button>
+                     ))}
+                   </div>
+                 </div>
+
+                 {/* Department Illustration Frame */}
+                 <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-white/10 shrink-0 border border-white/25 flex items-center justify-center p-1.5 shadow-xl relative group z-10">
+                   <img loading="lazy" 
+                     src={theme.image} 
+                     alt={catName} 
+                     className="w-full h-full object-cover rounded-xl group-hover:scale-110 transition-transform duration-700"
+                     referrerPolicy="no-referrer"
+                   />
+                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                 </div>
+
+                 {/* Dynamic Artistic Backdrop text layer */}
+                 <div className="absolute right-4 bottom-0 opacity-10 pointer-events-none select-none translate-y-4">
+                   <span className="text-[90px] sm:text-[150px] font-black tracking-tighter text-white/20 leading-none uppercase">
+                     {theme.backdropText}
+                   </span>
+                 </div>
+               </motion.div>
+             );
+          })() : (
+            resolvedAds.filter(ad => (ad.position === "category" || ad.position === "search") && ad.status === "active").map((ad, idx) => (
                <motion.div
                  key={ad.id}
                  initial={{ opacity: 0, y: 10 }}
@@ -1228,7 +1489,7 @@ export default function CustomerViews({
                     // Tracking logic
                  }}
                >
-                 <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                 <img loading="lazy" src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-4">
                    <span className="text-[9px] text-orange-400 font-extrabold uppercase tracking-widest mb-1 bg-black/50 w-fit px-1.5 py-0.5 rounded">Promoted</span>
                    <h3 className="text-white font-black text-lg sm:text-xl">{ad.title}</h3>
@@ -1259,26 +1520,29 @@ export default function CustomerViews({
                 )}
                 All Categories
               </button>
-              {categories.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setActiveCategoryTab(c.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold relative transition-colors duration-200 whitespace-nowrap ${
-                    activeCategoryTab === c.id
-                      ? "text-white font-extrabold"
-                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-                  }`}
-                >
-                  {activeCategoryTab === c.id && (
-                    <motion.div
-                      layoutId="activeCategoryTabHighlight"
-                      className="absolute inset-0 bg-emerald-950 rounded-xl -z-10"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                  {c.name}
-                </button>
-              ))}
+              {categories.map((c) => {
+                const isActive = activeCategoryTab === c.id || (activeCategoryObj && activeCategoryObj.id === c.id);
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setActiveCategoryTab(c.id)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold relative transition-colors duration-200 whitespace-nowrap ${
+                      isActive
+                        ? "text-white font-extrabold"
+                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeCategoryTabHighlight"
+                        className="absolute inset-0 bg-emerald-950 rounded-xl -z-10"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                    {c.name}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Sort Dropdown */}
@@ -1298,9 +1562,38 @@ export default function CustomerViews({
             </div>
           </div>
 
+          {/* Subcategories Row */}
+          {activeCategoryTab !== "all" && activeCategoryObj?.subcategories?.length ? (
+            <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pr-1 z-10 mb-6 mt-[-10px]">
+              <button
+                onClick={() => setActiveSubcategoryTab("all")}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold relative transition-colors duration-200 ${
+                  activeSubcategoryTab === "all"
+                    ? "text-white font-extrabold bg-orange-500"
+                    : "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200"
+                }`}
+              >
+                All in {activeCategoryObj.name}
+              </button>
+              {activeCategoryObj.subcategories.map((sub, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveSubcategoryTab(sub)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold relative transition-colors duration-200 whitespace-nowrap ${
+                    activeSubcategoryTab === sub
+                      ? "text-white font-extrabold bg-orange-500"
+                      : "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200"
+                  }`}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           {/* Main Catalog Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {isSearchLoading ? (
+            {isSearchLoading || internalLoading ? (
               Array.from({ length: 8 }).map((_, skeletonIdx) => (
                 <div
                   key={`skeleton-card-${skeletonIdx}`}
@@ -1420,7 +1713,7 @@ export default function CustomerViews({
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
+                        onClick={(e) => handleAddToCartWithFeedback(p, 1, p?.sizes?.[0], p?.colors?.[0], e)}
                         className={`px-2 py-1.5 sm:px-3 sm:py-1.5 font-bold text-[9px] sm:text-xs rounded-lg shadow-xs transition-all duration-300 shrink-0 ${
                           isAdded
                             ? "bg-emerald-600 text-white"
@@ -1481,7 +1774,7 @@ export default function CustomerViews({
               </div>
             )}
 
-            {sortedProducts.length === 0 && !isSearchLoading && (
+            {sortedProducts.length === 0 && !isSearchLoading && !internalLoading && (
               <div className="col-span-full py-16 text-center space-y-2">
                 <p className="text-base font-bold text-neutral-500">No products found matching your search criteria.</p>
                 <p className="text-xs text-neutral-400">Try checking for spelling errors, using more general terms, or modifying filters.</p>
@@ -1514,15 +1807,47 @@ export default function CustomerViews({
           className="space-y-8 text-left"
         >
           
-          {/* Breadcrumb row */}
-          <button
-            onClick={() => onNavigate("shop")}
-            className="flex items-center space-x-2 text-xs font-bold text-neutral-505 hover:text-orange-500 select-none cursor-pointer"
-            id="back-to-shop-nav"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>&larr; Back to Plaza Catalog</span>
-          </button>
+          {/* Enhanced Breadcrumb Trail (Supports Internal Linking and Breadcrumb Schema) */}
+          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-xs font-bold text-neutral-500 py-2 border-b border-neutral-100 mb-2">
+            <a
+              href="/"
+              onClick={(e) => { e.preventDefault(); onNavigate("home"); }}
+              className="hover:text-orange-600 transition-colors cursor-pointer"
+            >
+              Home
+            </a>
+            <span className="text-neutral-300">/</span>
+            <a
+              href="/shop"
+              onClick={(e) => { e.preventDefault(); onNavigate("shop"); }}
+              className="hover:text-orange-600 transition-colors cursor-pointer"
+            >
+              Catalog
+            </a>
+            <span className="text-neutral-300">/</span>
+            {detailProduct.category && (
+              <>
+                <a
+                  href={`/category/${detailProduct.category}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (typeof setActiveCategoryTab === "function") {
+                      const matchedCat = categories?.find(c => c.name.toLowerCase() === detailProduct.category?.toLowerCase() || c.id === detailProduct.category?.toLowerCase());
+                      if (matchedCat) {
+                        setActiveCategoryTab(matchedCat.id);
+                      }
+                    }
+                    onNavigate("shop");
+                  }}
+                  className="hover:text-orange-600 transition-colors cursor-pointer capitalize"
+                >
+                  {detailProduct.category}
+                </a>
+                <span className="text-neutral-300">/</span>
+              </>
+            )}
+            <span className="text-neutral-800 truncate max-w-[180px] sm:max-w-xs">{detailProduct.title}</span>
+          </nav>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
@@ -1604,9 +1929,13 @@ export default function CustomerViews({
                     const vendorMatch = vendors.find(v => v.id === detailProduct.vendorId);
                     return (
                       <>
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-orange-100 text-orange-600 flex items-center justify-center font-bold font-mono shrink-0">
+                        <div 
+                          onClick={() => { if (vendorMatch) setShowCredsVendor(vendorMatch); }}
+                          title="Tap to verify business registration, WhatsApp, & bank details"
+                          className="w-10 h-10 rounded-full overflow-hidden bg-orange-100 text-orange-600 flex items-center justify-center font-bold font-mono shrink-0 cursor-pointer hover:scale-110 hover:ring-4 hover:ring-orange-100 transition-all active:scale-95 duration-200"
+                        >
                           {vendorMatch && vendorMatch.avatar && !vendorMatch.avatar.startsWith("https://lh3.googleusercontent.com/v_") ? (
-                            <img src={vendorMatch.avatar} alt={vendorMatch.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <img loading="lazy" src={vendorMatch.avatar} alt={vendorMatch.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
                             <span>{detailProduct.vendorName.charAt(0)}</span>
                           )}
@@ -1656,9 +1985,11 @@ export default function CustomerViews({
                             );
                           })}
                         </div>
-                        <p className="text-[10px] text-neutral-500 font-bold leading-none">
-                          {productVendor.rating.toFixed(1)} ★ rating ({productVendor.ratingCount || 10} reviews)
-                        </p>
+                        {productVendor.ratingCount > 0 && (
+                          <p className="text-[10px] text-neutral-500 font-bold leading-none">
+                            {productVendor.rating.toFixed(1)} ★ rating ({productVendor.ratingCount} reviews)
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -1706,24 +2037,28 @@ export default function CustomerViews({
             <div className="lg:col-span-7 space-y-6">
               <div className="space-y-2 pb-4 border-b border-neutral-100">
                 <div className="flex items-center space-x-2">
-                  <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight">
+                  <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight">
                     {detailProduct.title}
-                  </h2>
+                  </h1>
                   {detailProduct.condition === "Fairly Used" && (
                     <span className="px-2 py-1 bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-widest rounded-md border border-amber-200">Fairly Used</span>
                   )}
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-4 text-sm pt-1">
-                  <div className="flex items-center space-x-1">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    ))}
-                    <span className="font-extrabold text-neutral-800 ml-1">{detailProduct.rating}</span>
-                  </div>
-                  <span className="text-neutral-300">|</span>
-                  <span className="text-neutral-500 font-bold">{detailProduct.reviewsCount} certified shopper responses</span>
-                  <span className="text-neutral-300">|</span>
+                  {detailProduct.reviewsCount > 0 && (
+                    <>
+                      <div className="flex items-center space-x-1">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                        ))}
+                        <span className="font-extrabold text-neutral-800 ml-1">{detailProduct.rating}</span>
+                      </div>
+                      <span className="text-neutral-300">|</span>
+                      <span className="text-neutral-500 font-bold">{detailProduct.reviewsCount} certified shopper responses</span>
+                      <span className="text-neutral-300">|</span>
+                    </>
+                  )}
                   <span className="text-emerald-600 font-bold flex items-center space-x-1">
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block mr-1.5" />
                     Verified Direct Order
@@ -1755,7 +2090,14 @@ export default function CustomerViews({
 
               {/* Description body */}
               <div className="space-y-1 text-sm leading-relaxed text-neutral-600">
-                <p className="font-semibold text-neutral-800">Product Highlights & Overview</p>
+                <div className="flex items-center space-x-2">
+                  <p className="font-semibold text-neutral-800">Product Highlights & Overview</p>
+                  {detailProduct.deliveryDays && (
+                    <span className="text-[10px] font-bold bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      Delivery in {detailProduct.deliveryDays} Day{detailProduct.deliveryDays > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-1">{detailProduct.description}</p>
               </div>
 
@@ -1840,6 +2182,20 @@ export default function CustomerViews({
                 </div>
 
                 {(() => {
+                  if (detailProduct.externalLink) {
+                    return (
+                      <a
+                        href={detailProduct.externalLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 min-w-[200px] h-11 text-white font-bold rounded-xl shadow-md transition-all duration-300 flex items-center justify-center space-x-2 select-none bg-blue-600 hover:bg-blue-700"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                        <span>Get It Here</span>
+                      </a>
+                    );
+                  }
+                  
                   const detailIsAdded = !!justAddedProducts[detailProduct.id];
                   return (
                     <motion.button
@@ -1898,6 +2254,7 @@ export default function CustomerViews({
           </div>
 
           {/* Shopper Reviews Segment */}
+          {detailProduct.reviewsCount > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-8 border-t border-neutral-150">
             <div className="lg:col-span-4 space-y-4">
               <h3 className="font-extrabold text-lg text-neutral-900 tracking-tight">Verified Shopper Insights</h3>
@@ -1978,6 +2335,79 @@ export default function CustomerViews({
               </div>
             </div>
           </div>
+          )}
+
+          {/* Related Products Section (Amazing for Internal Linking and crawlability!) */}
+          {(() => {
+            const related = products
+              .filter((p) => p.id !== detailProduct.id)
+              .sort((a, b) => {
+                if (a.category === detailProduct.category && b.category !== detailProduct.category) return -1;
+                if (b.category === detailProduct.category && a.category !== detailProduct.category) return 1;
+                return b.rating - a.rating;
+              })
+              .slice(0, 4);
+
+            if (related.length === 0) return null;
+
+            return (
+              <div className="pt-10 border-t border-neutral-150 space-y-6">
+                <div className="text-left">
+                  <h3 className="text-lg sm:text-2xl font-black text-neutral-900 tracking-tight flex items-center">
+                    <Sparkles className="w-5 h-5 mr-3 text-orange-500 animate-pulse" />
+                    Similar Products You May Like
+                  </h3>
+                  <p className="text-xs text-neutral-400 font-semibold mt-1">
+                    Top-rated authentic wholesale essentials on NaijaOnlineStores with automated delivery escrow
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {related.map((p) => {
+                    const slug = p.title.toLowerCase().replace(/[^\w ]+/g, "").replace(/ +/g, "-");
+                    return (
+                      <a
+                        key={`related-${p.id}`}
+                        href={`/product/${p.id}-${slug}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onSelectProduct(p.id);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        className="group bg-white rounded-2xl border border-neutral-150 p-3 hover:shadow-md transition-all flex flex-col justify-between h-72"
+                      >
+                        <div className="space-y-2">
+                          <div className="aspect-square w-full rounded-xl overflow-hidden bg-neutral-50 relative">
+                            {p.image ? (
+                              <img
+                                src={p.image}
+                                alt={`Buy ${p.title} online Nigeria - NaijaOnlineStores`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                referrerPolicy="no-referrer"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs text-neutral-300 font-bold uppercase">No Image</div>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold text-orange-500 uppercase tracking-widest block">{p.category}</span>
+                            <h4 className="font-extrabold text-xs text-neutral-800 line-clamp-2 leading-tight group-hover:text-orange-500 transition-colors mt-0.5">{p.title}</h4>
+                          </div>
+                        </div>
+                        <div className="mt-2 space-y-1.5 border-t border-neutral-50 pt-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-black text-xs sm:text-sm text-neutral-900">{formatNaira(p.price)}</span>
+                            {p.reviewsCount > 0 && <span className="text-[10px] text-neutral-400 font-bold flex items-center">★ {p.rating.toFixed(1)}</span>}
+                          </div>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
         </motion.div>
       )}
@@ -2034,7 +2464,7 @@ export default function CustomerViews({
                       <div className="flex items-center space-x-4 w-full sm:w-auto">
                         <div className="w-16 h-16 bg-neutral-50 rounded-xl overflow-hidden border border-neutral-100 flex-shrink-0 flex items-center justify-center">
                           {item.product.image ? (
-                            <img src={item.product.image} alt={item.product.title} className="w-full h-full object-cover pointer-events-none" />
+                            <img loading="lazy" src={item.product.image} alt={item.product.title} className="w-full h-full object-cover pointer-events-none" />
                           ) : (
                             <ShoppingCart className="w-5 h-5 text-neutral-300" />
                           )}
@@ -2064,9 +2494,9 @@ export default function CustomerViews({
                             whileTap={{ scale: 0.9 }}
                             onClick={() => {
                               if (item.quantity === 1) {
-                                onRemoveFromCart(item.product.id);
+                                onRemoveFromCart(item.product.id, item.selectedSize, item.selectedColor);
                               } else {
-                                onUpdateCartQty(item.product.id, item.quantity - 1);
+                                onUpdateCartQty(item.product.id, item.quantity - 1, item.selectedSize, item.selectedColor);
                               }
                             }}
                             className="px-2 hover:bg-neutral-100 transition-colors h-full text-neutral-400 select-none"
@@ -2089,7 +2519,7 @@ export default function CustomerViews({
                           </div>
                           <motion.button
                             whileTap={{ scale: 0.9 }}
-                            onClick={() => onUpdateCartQty(item.product.id, item.quantity + 1)}
+                            onClick={() => onUpdateCartQty(item.product.id, item.quantity + 1, item.selectedSize, item.selectedColor)}
                             className="px-2 hover:bg-neutral-100 transition-colors h-full text-neutral-400 select-none"
                           >
                             +
@@ -2108,7 +2538,7 @@ export default function CustomerViews({
                         <motion.button
                           whileHover={{ scale: 1.12, color: "#ef4444" }}
                           whileTap={{ scale: 0.88 }}
-                          onClick={() => onRemoveFromCart(item.product.id)}
+                          onClick={() => onRemoveFromCart(item.product.id, item.selectedSize, item.selectedColor)}
                           className="p-1 text-neutral-400 hover:text-red-500 transition-colors"
                           id={`delete-cart-${item.product.id}`}
                         >
@@ -2238,6 +2668,134 @@ export default function CustomerViews({
       )}
       </AnimatePresence>
 
+      {/* ---------------- STORES LISTING SCREEN ---------------- */}
+      <AnimatePresence mode="wait">
+      {screen === "stores" && (
+        <motion.div
+          key="stores-screen"
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={pageTransition}
+          className="space-y-8"
+        >
+          <div className="flex flex-col sm:flex-row items-center justify-between text-left gap-4">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight flex items-center">
+                <Store className="w-8 h-8 mr-2 text-orange-500" />
+                Verified Stores
+              </h2>
+              <p className="text-sm text-neutral-500 font-semibold max-w-xl mt-1">Discover official wholesalers, exclusive fashion boutiques, and gadget merchants active on our marketplace.</p>
+            </div>
+          </div>
+          
+          {(() => {
+            const filteredStores = vendors.filter(v => v.approval_status === "verified" || v.approval_status === "approved");
+            const STORES_PER_PAGE = 9;
+            const totalStoresPages = Math.ceil(filteredStores.length / STORES_PER_PAGE);
+            const paginatedStores = filteredStores.slice((storesCurrentPage - 1) * STORES_PER_PAGE, storesCurrentPage * STORES_PER_PAGE);
+
+            return (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {paginatedStores.map((vend) => {
+                    const vendorProds = products.filter(p => p.vendorId === vend.id || p.vendorName === vend.name);
+                    const slugifyLocal = (text: string) => text.toLowerCase().replace(/[^\w ]+/g, "").replace(/ +/g, "-");
+                    
+                    return (
+                      <motion.div
+                        key={vend.id}
+                        whileHover={shouldReduceMotion ? {} : { y: -5, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.06)" }}
+                        className="bg-white rounded-[2rem] border border-neutral-100 p-6 flex flex-col justify-between shadow-xs transition-all relative overflow-hidden group cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (onSelectVendor) {
+                            onSelectVendor(slugifyLocal(vend.name)); // pass slug
+                          }
+                          onNavigate("vendor");
+                          window.scrollTo(0, 0);
+                        }}
+                      >
+                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none transition-transform duration-500 group-hover:scale-150">
+                          <Store className="w-24 h-24" />
+                        </div>
+                        
+                        <div className="flex items-start space-x-4">
+                          <div className="w-16 h-16 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black text-2xl uppercase border-2 border-white shadow-sm shrink-0 overflow-hidden">
+                            {vend.avatar && !vend.avatar.includes('ui-avatars') ? (
+                               <img loading="lazy" src={vend.avatar} alt={vend.name} className="w-full h-full object-cover rounded-full" />
+                            ) : (
+                               vend.name.charAt(0)
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="font-extrabold text-neutral-900 text-lg leading-tight truncate">{vend.name}</h3>
+                            <p className="text-xs text-neutral-500 font-medium leading-relaxed truncate">{vend.location}</p>
+                            <div className="flex items-center space-x-1 mt-1 text-[10px] uppercase font-bold tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md inline-block w-fit">
+                              <Check className="w-3 h-3 inline-block" /> Verified
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs text-neutral-600 font-bold mb-4">
+                           <span className="bg-neutral-50 border border-neutral-150 px-3 py-1.5 rounded-xl">{vendorProds.length} Products</span>
+                           {vend.ownerName && <span className="bg-neutral-50 border border-neutral-150 px-3 py-1.5 rounded-xl text-neutral-500">{vend.ownerName}</span>}
+                        </div>
+                        
+                        {vendorProds.length > 0 && (
+                          <div className="flex gap-2 overflow-x-auto pb-2 mb-4 snap-x no-scrollbar">
+                            {vendorProds.map(p => (
+                              <div key={p.id} className="w-16 h-16 shrink-0 rounded-lg bg-neutral-50 border border-neutral-100 overflow-hidden snap-start flex items-center justify-center">
+                                {p.image ? (
+                                   <img loading="lazy" src={p.image} alt={p.title} className="w-full h-full object-cover" />
+                                ) : (
+                                   <Store className="w-4 h-4 text-neutral-300" />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <button
+                          className="w-full py-3 bg-neutral-900 group-hover:bg-orange-600 text-white rounded-xl text-sm font-bold shadow-sm transition-all text-center flex items-center justify-center space-x-2 relative z-10 mt-auto"
+                        >
+                          <span>Visit Storefront</span>
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                 {totalStoresPages > 1 && (
+                  <div className="flex justify-center items-center space-x-4 mt-12 bg-white rounded-2xl border border-neutral-100 shadow-sm p-4 w-fit mx-auto">
+                    <button
+                      onClick={() => setStoresCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={storesCurrentPage === 1}
+                      className="w-10 h-10 flex items-center justify-center rounded-xl font-bold bg-neutral-50 text-neutral-600 disabled:opacity-50 hover:bg-neutral-100 transition-colors"
+                    >
+                      &larr;
+                    </button>
+                    <span className="font-bold text-sm text-neutral-500">
+                      Page <span className="text-neutral-900">{storesCurrentPage}</span> of {totalStoresPages}
+                    </span>
+                    <button
+                      onClick={() => setStoresCurrentPage(p => Math.min(totalStoresPages, p + 1))}
+                      disabled={storesCurrentPage === totalStoresPages}
+                      className="w-10 h-10 flex items-center justify-center rounded-xl font-bold bg-neutral-50 text-neutral-600 disabled:opacity-50 hover:bg-neutral-100 transition-colors"
+                    >
+                      &rarr;
+                    </button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </motion.div>
+      )}
+      </AnimatePresence>
+
       {/* ---------------- 5. VENDOR STOREFRONT SEO PAGE ---------------- */}
       <AnimatePresence mode="wait">
       {screen === "vendor" && (() => {
@@ -2249,8 +2807,8 @@ export default function CustomerViews({
           name: "Verified Merchant Collective",
           ownerName: "Naija Stores Merchant",
           avatar: "",
-          rating: 4.8,
-          ratingCount: 140,
+          rating: 0,
+          ratingCount: 0,
           salesToday: 145000,
           ordersPending: 0,
           stockAlerts: 0,
@@ -2261,9 +2819,15 @@ export default function CustomerViews({
         
         const vendorProducts = products.filter(p => p.vendorId === matchedVendor.id || p.vendorName === matchedVendor.name);
         
+        const PRODUCTS_PER_PAGE = 30;
+        const totalVendorPages = Math.ceil(vendorProducts.length / PRODUCTS_PER_PAGE);
+        const startVendorIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+        const paginatedVendorProducts = vendorProducts.slice(startVendorIndex, startVendorIndex + PRODUCTS_PER_PAGE);
+
         // Generate dynamic organic vendor descriptions dynamically for SEO (Satisfies task 12)
         const generateVendorDesc = (v: any) => {
-          return `${v.name}, located in ${v.location}, is an audited and verified merchant on NaijaOnlineStores marketplace. Rooted in excellent customer service, they showcase high-end products across fashion, electronics, and local home utility collections. Recognized with a ${v.rating.toFixed(1)} ★ rating from over ${v.ratingCount || 100} buyers, they stand as one of the trusted online stores Nigeria rely on for secure payments and reliable escrow logistics.`;
+          const ratingText = v.ratingCount > 0 ? ` Recognized with a ${v.rating.toFixed(1)} ★ rating from over ${v.ratingCount} buyers, they stand` : ` They stand`;
+          return `${v.name}, located in ${v.location}, is an audited and verified merchant on NaijaOnlineStores marketplace. Rooted in excellent customer service, they showcase high-end products across fashion, electronics, and local home utility collections.${ratingText} as one of the trusted online stores Nigeria rely on for secure payments and reliable escrow logistics.`;
         };
 
         return (
@@ -2291,12 +2855,20 @@ export default function CustomerViews({
               
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left w-full">
                 {/* Profile Avatar / Initials */}
-                <div className="w-20 h-20 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-black text-2xl shadow-inner border border-orange-200/50 uppercase shrink-0">
+                <div 
+                  onClick={() => setShowCredsVendor(matchedVendor)}
+                  title="Tap to verify business registration, WhatsApp, & bank details"
+                  className="w-20 h-20 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-black text-2xl shadow-inner border border-orange-200/50 uppercase shrink-0 cursor-pointer hover:scale-110 active:scale-95 transition-all hover:ring-4 hover:ring-orange-100/80 duration-200 relative group"
+                >
                   {matchedVendor.avatar && !matchedVendor.avatar.startsWith("https://lh3") ? (
-                    <img src={matchedVendor.avatar} alt={matchedVendor.name} className="w-full h-full object-cover rounded-2xl" referrerPolicy="no-referrer" />
+                    <img loading="lazy" src={matchedVendor.avatar} alt={matchedVendor.name} className="w-full h-full object-cover rounded-2xl" referrerPolicy="no-referrer" />
                   ) : (
                     <span>{matchedVendor.name.charAt(0)}</span>
                   )}
+                  {/* Info Badge overlay */}
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-neutral-900 text-white rounded-full border border-white flex items-center justify-center text-[9px] shadow-xs scale-90 group-hover:scale-110 transition-transform">
+                    ℹ️
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -2324,11 +2896,31 @@ export default function CustomerViews({
                     <span className="hidden sm:inline text-neutral-200">•</span>
                     <span>Support Phone: <strong className="text-neutral-700">{matchedVendor.phone}</strong></span>
                   </div>
+                  {(matchedVendor.cacNumber || matchedVendor.cac_number || matchedVendor.bankName || matchedVendor.bank_name || matchedVendor.accountNumber || matchedVendor.account_number) && (
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-1 text-xs text-neutral-400 font-semibold select-all">
+                      {(matchedVendor.cacNumber || matchedVendor.cac_number) && (
+                        <span>CAC: <strong className="text-neutral-700">{matchedVendor.cacNumber || matchedVendor.cac_number}</strong></span>
+                      )}
+                      {(matchedVendor.cacNumber || matchedVendor.cac_number) && (matchedVendor.bankName || matchedVendor.bank_name || matchedVendor.accountNumber || matchedVendor.account_number) && (
+                        <span className="hidden sm:inline text-neutral-200">•</span>
+                      )}
+                      {(matchedVendor.bankName || matchedVendor.bank_name) && (
+                        <span>Bank: <strong className="text-neutral-700">{matchedVendor.bankName || matchedVendor.bank_name}</strong></span>
+                      )}
+                      {(matchedVendor.bankName || matchedVendor.bank_name) && (matchedVendor.accountNumber || matchedVendor.account_number) && (
+                        <span className="hidden sm:inline text-neutral-200">•</span>
+                      )}
+                      {(matchedVendor.accountNumber || matchedVendor.account_number) && (
+                        <span>Account: <strong className="text-neutral-700">{matchedVendor.accountNumber || matchedVendor.account_number}</strong></span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Stats Card Board (Task 7 - Aggregate Rating representation) */}
               <div className="bg-neutral-50 border border-neutral-150 p-5 rounded-2xl w-full lg:w-72 flex flex-col gap-4 text-center">
+                {matchedVendor.ratingCount > 0 && (
                 <div>
                   <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest leading-none">Aggregate Peer Score</h4>
                   <div className="flex items-center justify-center gap-1.5 mt-2">
@@ -2339,10 +2931,11 @@ export default function CustomerViews({
                           <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(matchedVendor.rating) ? "fill-amber-400 text-amber-400" : "text-neutral-200"}`} />
                         ))}
                       </div>
-                      <span className="text-[9px] text-neutral-400 mt-1 font-bold">({matchedVendor.ratingCount || 120} verified checkouts)</span>
+                      <span className="text-[9px] text-neutral-400 mt-1 font-bold">({matchedVendor.ratingCount} verified checkouts)</span>
                     </div>
                   </div>
                 </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-2 border-t border-neutral-200/60 pt-3 text-xs">
                   <div className="p-2 bg-white rounded-xl border border-neutral-150">
@@ -2371,10 +2964,11 @@ export default function CustomerViews({
                   <p className="text-xs text-neutral-400">Inventory may be restocking or under compliance check.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {vendorProducts.map((p) => {
-                    const discount = p.originalPrice && p.originalPrice > p.price ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0;
-                    return (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {paginatedVendorProducts.map((p) => {
+                      const discount = p.originalPrice && p.originalPrice > p.price ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0;
+                      return (
                       <motion.div
                         key={p.id}
                         variants={{
@@ -2401,7 +2995,7 @@ export default function CustomerViews({
 
                         <div className="relative aspect-square w-full bg-neutral-50 overflow-hidden border-b border-neutral-100 flex items-center justify-center">
                           {p.image ? (
-                            <img src={p.image} alt={p.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" referrerPolicy="no-referrer" />
+                            <img loading="lazy" src={p.image} alt={p.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" referrerPolicy="no-referrer" />
                           ) : (
                             <span className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">IMAGING READY</span>
                           )}
@@ -2411,6 +3005,7 @@ export default function CustomerViews({
                           <div className="space-y-1">
                             <p className="text-[9px] font-bold text-orange-500 uppercase truncate mb-0.5">{p.vendorName}</p>
                             <h4 className="font-extrabold text-neutral-800 text-xs sm:text-sm line-clamp-2 leading-snug group-hover:text-orange-600 transition-colors">{p.title}</h4>
+                            {p.reviewsCount > 0 && (
                             <div className="flex items-center gap-1 pt-0.5">
                               <div className="flex bg-neutral-50/50 w-fit px-1.5 py-0.5 rounded border border-neutral-100">
                                 {[1, 2, 3, 4, 5].map((s) => (
@@ -2419,6 +3014,7 @@ export default function CustomerViews({
                               </div>
                               <span className="text-[9px] text-neutral-400 font-bold">({p.reviewsCount})</span>
                             </div>
+                            )}
                           </div>
 
                           <div className="flex items-center justify-between border-t border-neutral-50 pt-2.5 mt-auto">
@@ -2428,23 +3024,58 @@ export default function CustomerViews({
                                 <p className="text-[10px] text-neutral-400 line-through mt-1">{formatNaira(p.originalPrice)}</p>
                               )}
                             </div>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onAddToCart(p, 1);
-                              }}
-                              className="w-8 h-8 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition-all shadow-2xs active:scale-95 hover:scale-105"
-                              title="Add to Cart"
-                            >
-                              <Plus className="w-4 h-4 text-white" />
-                            </button>
+                            {p.externalLink ? (
+                              <a
+                                href={p.externalLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-8 h-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-all shadow-2xs active:scale-95 hover:scale-105"
+                                title="Get It"
+                              >
+                                <ExternalLink className="w-4 h-4 text-white" />
+                              </a>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onAddToCart(p, 1);
+                                }}
+                                className="w-8 h-8 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition-all shadow-2xs active:scale-95 hover:scale-105"
+                                title="Add to Cart"
+                              >
+                                <Plus className="w-4 h-4 text-white" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </motion.div>
                     );
                   })}
-                </div>
+                  </div>
+                  
+                  {totalVendorPages > 1 && (
+                    <div className="flex justify-center border-t border-neutral-150 pt-8 gap-2">
+                       {Array.from({ length: totalVendorPages }).map((_, i) => (
+                         <button
+                           key={`vendor-p-${i}`}
+                           onClick={() => {
+                             setCurrentPage(i + 1);
+                             window.scrollTo({ top: 300, behavior: "smooth" });
+                           }}
+                           className={`w-10 h-10 rounded-xl font-bold transition-all shadow-xs flex items-center justify-center ${
+                             currentPage === i + 1 
+                               ? "bg-orange-500 text-white hover:bg-orange-600 scale-105" 
+                               : "bg-white text-neutral-600 border border-neutral-200 hover:border-orange-500 hover:text-orange-500"
+                           }`}
+                         >
+                           {i + 1}
+                         </button>
+                       ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -2474,6 +3105,176 @@ export default function CustomerViews({
           </motion.div>
         );
       })()}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {screen === "about" && (
+          <motion.div key="about" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+            <AboutPage />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {screen === "contact" && (
+          <motion.div key="contact" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+            <ContactPage />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {screen === "sell" && (
+          <motion.div key="sell" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+            <SellPage onNavigate={onNavigate} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {screen === "faq" && (
+          <motion.div key="faq" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+            <FaqPage />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {screen === "faq" && (
+          <motion.div key="faq" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+            <FaqPage />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Verified Credentials Pop-up Modal (Displays new information on tapping the avatar image) */}
+      <AnimatePresence>
+        {showCredsVendor && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-neutral-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto"
+            onClick={() => setShowCredsVendor(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="bg-white rounded-3xl w-full max-w-lg overflow-hidden border border-neutral-100 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] text-left"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header with background design pattern */}
+              <div className="relative h-28 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500 flex items-end p-5">
+                <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-full p-1.5 cursor-pointer transition-all" onClick={() => setShowCredsVendor(null)}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <div className="flex items-center space-x-3.5 z-10 translate-y-8">
+                  <div className="w-16 h-16 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-black text-xl border-4 border-white shadow-md uppercase shrink-0 overflow-hidden">
+                    {showCredsVendor.avatar && !showCredsVendor.avatar.startsWith("https://lh3") ? (
+                      <img loading="lazy" src={showCredsVendor.avatar} alt={showCredsVendor.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <span>{showCredsVendor.name.charAt(0)}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="pt-10 px-6 pb-6 space-y-5">
+                <div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <h3 className="text-xl font-black text-neutral-800 tracking-tight">{showCredsVendor.name}</h3>
+                    <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[9px] uppercase px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1 shadow-2xs">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      Verified Merchant
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-400 font-bold mt-1">Plaza escrow Registry &bull; Business ID: {showCredsVendor.id.substring(0, 8).toUpperCase()}</p>
+                </div>
+
+                {/* Info Fields list */}
+                <div className="grid grid-cols-1 gap-3 border-t border-neutral-100 pt-4">
+                  <div className="flex items-center space-x-3 bg-neutral-50 p-3 rounded-2xl border border-neutral-150">
+                    <span className="text-xl">🛡️</span>
+                    <div className="text-left">
+                      <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">CAC Corporate Registration</p>
+                      <p className="text-xs font-black text-neutral-800 mt-0.5">{showCredsVendor.cacNumber || "RC 10394592 (Verified Active)"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3 bg-neutral-50 p-3 rounded-2xl border border-neutral-150">
+                    <span className="text-xl">👨‍💼</span>
+                    <div className="text-left">
+                      <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Managing Director & Owner</p>
+                      <p className="text-xs font-bold text-neutral-800 mt-0.5">{showCredsVendor.ownerName || "Merchant Partner"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3 bg-neutral-50 p-3 rounded-2xl border border-neutral-150">
+                    <span className="text-xl">📍</span>
+                    <div className="text-left">
+                      <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Physical Shop Location</p>
+                      <p className="text-xs font-bold text-neutral-800 mt-0.5">{showCredsVendor.location || "Balogun Plaza, Market Square, Lagos"}</p>
+                    </div>
+                  </div>
+
+                  {/* Settlement / Banking details (New info added by user!) */}
+                  <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm">🏦</span>
+                      <h4 className="text-[10px] font-black text-orange-850 uppercase tracking-wider">Verified Settlement Account (Escrow Protected)</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-left">
+                      <div>
+                        <p className="text-[9px] font-bold text-orange-600 uppercase">Settlement Bank</p>
+                        <p className="text-xs font-black text-neutral-850 mt-0.5">{showCredsVendor.bankName || showCredsVendor.bank_name || "Access Bank Plc"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-bold text-orange-600 uppercase">NUBAN Account Number</p>
+                        <p className="text-xs font-mono font-black text-neutral-850 tracking-wider mt-0.5">{showCredsVendor.accountNumber || showCredsVendor.account_number || "0194859201"}</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/80 px-2.5 py-1.5 rounded-xl border border-orange-100/50 flex items-center space-x-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <p className="text-[9px] font-black text-neutral-500 uppercase tracking-wide">Direct settlements audited. Verified by Paystack automated reconciliation.</p>
+                    </div>
+                  </div>
+
+                  {/* WhatsApp contact */}
+                  <div className="flex items-center justify-between p-3.5 bg-emerald-50/40 rounded-2xl border border-emerald-100/50 mt-1">
+                    <div className="flex items-center space-x-3 text-left">
+                      <div className="w-8 h-8 rounded-full bg-emerald-105 bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                        💬
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-emerald-700 uppercase tracking-wider">Contact Seller Directly</p>
+                        <p className="text-xs font-bold text-neutral-800 mt-0.5">{showCredsVendor.whatsappNumber || showCredsVendor.phone || "+23481234567"}</p>
+                      </div>
+                    </div>
+                    <a
+                      href={`https://wa.me/${(showCredsVendor.whatsappNumber || showCredsVendor.phone || "").replace(/[^0-9]/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:shadow-xs active:scale-95 flex items-center space-x-1 shrink-0"
+                    >
+                      <span>WhatsApp Chat</span>
+                      <span>&rarr;</span>
+                    </a>
+                  </div>
+
+                </div>
+
+                <div className="flex items-center justify-center text-center text-[10px] text-neutral-400 font-bold gap-1 pt-1">
+                  <span>🔒 Escrow Secured with full buyer protection & refund policy.</span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
     </div>

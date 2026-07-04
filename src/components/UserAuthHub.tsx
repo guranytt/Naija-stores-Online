@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { UserCircle, Mail, Lock, ShieldCheck, MapPin, User, Edit3, Key, LogOut, ArrowLeft, RefreshCw, AlertCircle, CheckCircle } from "lucide-react";
-import { supabase } from "../supabase";
+import { UserCircle, Mail, Lock, ShieldCheck, MapPin, User, Edit3, Key, LogOut, ArrowLeft, RefreshCw, AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { supabase, saveSupabaseRecord, ensureUUID } from "../supabase";
 import { sendResendEmail } from "../emailService";
+import { sanitizeString, sanitizeFields } from "../sanitize";
+import GracefulErrorScreen from "./GracefulErrorScreen";
 
 interface UserAuthHubProps {
   currentEmail: string;
@@ -37,11 +39,14 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState("customer");
   const [location, setLocation] = useState("Lagos Mainland, Lagos");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [shopName, setShopName] = useState("");
   const [phone, setPhone] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Edit Security/Credentials state
   const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
   
   // Status feedback state
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -53,10 +58,13 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
         console.warn("[USER AUTH HUB GETSESSION] Error:", error);
         if (error.message?.includes("Refresh Token")) {
           supabase.auth.signOut().catch(() => {});
-          for (let i = 0; i < localStorage.length; i++) {
+          for (let i = localStorage.length - 1; i >= 0; i--) {
             const key = localStorage.key(i);
-            if (key && key.includes("supabase")) localStorage.removeItem(key);
+            if (key && (key.includes("sb-") || key.includes("supabase"))) {
+              localStorage.removeItem(key);
+            }
           }
+          // Do not unconditionally reload if we just cleared, let the component handle unauthenticated state.
         }
       }
       setSession(activeSession);
@@ -67,6 +75,12 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
       console.warn("[USER AUTH HUB GETSESSION] Failed to restore session:", err);
       if (err?.message?.includes("Invalid Refresh Token") || err?.message?.includes("Refresh Token Not Found")) {
         supabase.auth.signOut().catch(() => {});
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && (key.includes("sb-") || key.includes("supabase"))) {
+            localStorage.removeItem(key);
+          }
+        }
       }
     });
 
@@ -94,7 +108,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
     const emailPrefix = user.email ? user.email.split("@")[0].toUpperCase() : "SHOEPPER";
     
     try {
-      const { data, error } = await supabase.from("users").select("id, full_name, email, role, avatar_url").eq("id", user.id).single();
+      const { data, error } = await supabase.from("users").select("full_name, role").eq("id", user.id).single();
       if (!error && data) {
         setProfile({
           fullName: data.full_name || meta.fullName || emailPrefix,
@@ -147,7 +161,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                 type: "first_login",
                 data: {
                   customerName: uName,
-                  actionUrl: window.location.origin
+                  actionUrl: window.location.origin + "?login=true"
                 }
               });
             } catch (e) {
@@ -159,17 +173,21 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
         onUpdateEmail(data.user?.email || "");
         setFeedback({ type: "success", msg: "Reconciliation successful! Session synchronized." });
       } else if (authMode === "register") {
+        const payload = sanitizeFields({
+          fullName,
+          role,
+          location,
+          deliveryAddress,
+          shopName: role === "vendor" ? shopName : "",
+          phone
+        });
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: {
-              fullName,
-              role,
-              location,
-              shopName: role === "vendor" ? shopName : "",
-              phone
-            }
+            emailRedirectTo: window.location.origin + "?login=true",
+            data: payload
           }
         });
         if (error) throw error;
@@ -179,7 +197,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
           try {
             await supabase.from("users").upsert({
               id: data.user.id,
-              full_name: fullName,
+              full_name: payload.fullName,
               email: email,
               role: role as any,
               avatar_url: null
@@ -187,23 +205,44 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
           } catch (usersErr) {
             console.warn("Users table trigger sync skipped during signup: ", usersErr);
           }
+          
+          // Send notification email to admin
+          try {
+            await fetch("/api/resend/send-custom", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                to: "adminnaijastoresonline@gmail.com",
+                subject: `New ${role === "vendor" ? "Vendor" : "User"} Registration - Naija Online Stores`,
+                html: `
+                  <h2>New Account Registered</h2>
+                  <p><strong>Name:</strong> ${payload.fullName}</p>
+                  <p><strong>Email:</strong> ${email}</p>
+                  <p><strong>Role:</strong> ${role}</p>
+                  <p><strong>Phone:</strong> ${payload.phone}</p>
+                  <p><strong>Location:</strong> ${payload.location}</p>
+                  <p><strong>Address:</strong> ${payload.deliveryAddress}</p>
+                  ${role === "vendor" ? `<p><strong>Shop Name:</strong> ${payload.shopName}</p>` : ""}
+                `
+              })
+            });
+          } catch (emailErr) {
+            console.warn("Admin notification email failed:", emailErr);
+          }
         }
 
         // Optionally, register a public records entry if user is a vendor
         if (role === "vendor" && data.user) {
           try {
-            await supabase.from("vendors").insert({
-              id: data.user.id,
-              name: shopName || `${fullName}'s Store`,
-              ownerName: fullName,
+            await saveSupabaseRecord("vendors", {
+              id: ensureUUID(data.user.id),
+              user_id: data.user.id,
+              name: payload.shopName || `${payload.fullName}'s Store`,
+              ownerName: payload.fullName,
               avatar: "https://lh3.googleusercontent.com/v_alaba",
-              rating: 5.0,
-              salesToday: 0,
-              ordersPending: 0,
-              stockAlerts: 0,
               email: email,
-              phone: phone,
-              location: location
+              phone: payload.phone,
+              location: payload.location
             });
           } catch (tabErr) {
             console.warn("Table sync skipped during initial signup: ", tabErr);
@@ -218,16 +257,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
               type: "vendor_signup",
               data: {
                 vendorName: shopName || fullName,
-                actionUrl: window.location.origin
-              }
-            });
-          } else {
-            await sendResendEmail({
-              to: email,
-              type: "customer_signup",
-              data: {
-                customerName: fullName,
-                actionUrl: window.location.origin
+                actionUrl: window.location.origin + "?login=true"
               }
             });
           }
@@ -242,19 +272,23 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
             }
           });
           
-          // Trigger admin notification
+          // Notify admin about new registration
           await sendResendEmail({
             to: "adminnaijastoresonline@gmail.com",
-            type: "admin_new_user",
+            type: "admin_new_account",
             data: {
-              customerName: fullName,
-              email: email,
-              role: role,
-              shopName: shopName || ""
+              accountType: role,
+              fullName: fullName,
+              emailAddress: email,
+              phoneNumber: phone || "Not provided",
+              businessName: role === "vendor" ? shopName : undefined,
+              userId: data.user?.id || "",
+              registrationDate: new Date().toISOString(),
+              adminDashboardLink: window.location.origin + "?admin=true"
             }
           });
         } catch (e) {
-          console.warn("Automated emails failed, proceeding smoothly.");
+          console.warn("Automated emails failed, proceeding smoothly.", e);
         }
 
         if (data.session) {
@@ -265,7 +299,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
         setAuthMode("login");
       } else if (authMode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin
+          redirectTo: window.location.origin + "?login=true"
         });
         if (error) throw error;
         setFeedback({ type: "success", msg: "Password reset link sent to your email." });
@@ -283,14 +317,16 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
     setFeedback(null);
 
     try {
+      const sanitizedProfile = sanitizeFields({
+        fullName: profile.fullName,
+        location: profile.location,
+        shopName: profile.shopName,
+        phone: profile.phone,
+        deliveryAddress: profile.deliveryAddress
+      });
+
       const { data, error } = await supabase.auth.updateUser({
-        data: {
-          fullName: profile.fullName,
-          location: profile.location,
-          shopName: profile.shopName,
-          phone: profile.phone,
-          deliveryAddress: profile.deliveryAddress
-        }
+        data: sanitizedProfile
       });
       if (error) throw error;
 
@@ -299,7 +335,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
         try {
           await supabase.from("users").upsert({
             id: session.user.id,
-            full_name: profile.fullName,
+            full_name: sanitizedProfile.fullName,
             email: session.user.email,
             role: profile.role as any,
             avatar_url: session.user.user_metadata?.avatar_url || null
@@ -314,10 +350,10 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
         try {
           await supabase.from("vendors").upsert({
             id: session.user.id,
-            name: profile.shopName || `${profile.fullName}'s Store`,
-            ownerName: profile.fullName,
+            name: sanitizedProfile.shopName || `${sanitizedProfile.fullName}'s Store`,
+            ownerName: sanitizedProfile.fullName,
             email: session.user.email,
-            phone: profile.phone,
+            phone: sanitizedProfile.phone,
             location: profile.location
           });
         } catch (tabErr) {
@@ -361,6 +397,10 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
     onNavigateHome();
   };
 
+  if (feedback?.type === "error") {
+    return <GracefulErrorScreen reset={() => setFeedback(null)} />;
+  }
+
   return (
     <div className="max-w-xl mx-auto bg-white rounded-3xl border border-neutral-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.03)] overflow-hidden text-left relative">
       <div className="p-8 md:p-10">
@@ -378,17 +418,9 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
         </div>
 
         {/* Feedback Display Banner */}
-        {feedback && (
-          <div className={`p-4 rounded-2xl mb-6 flex items-start space-x-3 text-xs leading-normal font-medium border ${
-            feedback.type === "success" 
-              ? "bg-emerald-50 text-emerald-800 border-emerald-100" 
-              : "bg-red-50 text-red-850 text-red-700 border-red-100"
-          }`}>
-            {feedback.type === "success" ? (
-              <CheckCircle className="w-5 h-5 shrink-0 text-emerald-500 mt-0.5" />
-            ) : (
-              <AlertCircle className="w-5 h-5 shrink-0 text-red-550 text-red-500 mt-0.5" />
-            )}
+        {feedback && feedback.type === "success" && (
+          <div className="p-4 rounded-2xl mb-6 flex items-start space-x-3 text-xs leading-normal font-medium border bg-emerald-50 text-emerald-800 border-emerald-100">
+            <CheckCircle className="w-5 h-5 shrink-0 text-emerald-500 mt-0.5" />
             <span>{feedback.msg}</span>
           </div>
         )}
@@ -443,18 +475,21 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">State Region</label>
-                <select
-                  value={profile.location}
-                  onChange={(e) => setProfile(prev => ({ ...prev, location: e.target.value }))}
-                  className="w-full px-4 py-2.5 text-xs font-bold border border-neutral-200 bg-white rounded-xl outline-none"
-                >
-                  <option value="Lagos Mainland, Lagos">Lagos Mainland, Lagos</option>
-                  <option value="Lekki Phase 1, Lagos">Lekki Phase 1, Lagos</option>
-                  <option value="Maitama, Abuja (FCT)">Maitama, Abuja (FCT)</option>
-                  <option value="Wuse II, Abuja (FCT)">Wuse II, Abuja (FCT)</option>
-                  <option value="GRA, Port Harcourt (Rivers)">GRA, Port Harcourt (Rivers)</option>
-                  <option value="Kano City, Kano">Kano City, Kano</option>
-                </select>
+                  <select
+                    value={profile.location}
+                    onChange={(e) => setProfile(prev => ({ ...prev, location: e.target.value }))}
+                    className="w-full px-4 py-2.5 text-xs font-bold border border-neutral-200 bg-white rounded-xl outline-none"
+                  >
+                    {[
+                      "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", 
+                      "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT - Abuja", "Gombe", 
+                      "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", 
+                      "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", 
+                      "Taraba", "Yobe", "Zamfara"
+                    ].map(state => (
+                      <option key={state} value={state}>{state}</option>
+                    ))}
+                  </select>
               </div>
 
               <div className="space-y-1">
@@ -501,14 +536,23 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">New Password</label>
-                <input
-                  type="password"
-                  placeholder="Minimum 6 characters long"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 text-xs border border-neutral-200 bg-white rounded-xl outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="Minimum 6 characters long"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 text-xs border border-neutral-200 bg-white rounded-xl outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 focus:outline-none"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -596,12 +640,15 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                         onChange={(e) => setLocation(e.target.value)}
                         className="w-full px-3 py-3 text-xs border border-neutral-200 rounded-xl outline-none bg-white font-semibold"
                       >
-                        <option>Lagos Mainland, Lagos</option>
-                        <option>Lekki Phase 1, Lagos</option>
-                        <option>Maitama, Abuja (FCT)</option>
-                        <option>Wuse II, Abuja (FCT)</option>
-                        <option>GRA, Port Harcourt (Rivers)</option>
-                        <option>Kano City, Kano</option>
+                        {[
+                          "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", 
+                          "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT - Abuja", "Gombe", 
+                          "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", 
+                          "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", 
+                          "Taraba", "Yobe", "Zamfara"
+                        ].map(state => (
+                          <option key={state} value={state}>{state}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -619,6 +666,17 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                       />
                     </div>
                   )}
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">Delivery Street Address</label>
+                    <textarea
+                      required
+                      placeholder="Enter your complete street door physical address for logistics deliveries"
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      className="w-full px-4 py-2 text-xs border border-neutral-200 bg-neutral-50/50 focus:bg-white rounded-xl outline-none min-h-[60px] font-semibold text-black"
+                    />
+                  </div>
 
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">Phone Contact</label>
@@ -653,14 +711,20 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
                   <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">Password</label>
                   <div className="relative">
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       required
                       placeholder="Minimum 6 characters"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3 text-xs border border-neutral-200 rounded-xl outline-none bg-neutral-50/50 focus:bg-white text-black"
+                      className="w-full px-4 py-3 text-xs border border-neutral-200 rounded-xl outline-none bg-neutral-50/50 focus:bg-white text-black pr-10"
                     />
-                    <Lock className="w-4 h-4 text-neutral-400 absolute right-4 top-1/2 -translate-y-1/2" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 focus:outline-none"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
               )}

@@ -19,27 +19,42 @@ export interface MailLogEntry {
 }
 
 /**
- * Core generic dispatcher to Supabase Edge Function
+ * Core generic dispatcher to Express Backend
  */
 export async function sendResendEmail(payload: SendEmailPayload) {
   try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token || "";
+    
     const templateName = payload.template_name || payload.type || "welcome";
-    const { data, error } = await supabase.functions.invoke("send-email-resend", {
-      body: {
+    
+    const res = await fetch("/api/resend/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
         to: payload.to,
-        template_name: templateName,
+        type: templateName,
         data: payload.data
-      }
+      })
     });
-
-    if (error) {
-      console.warn("Edge function invocation failed:", error);
-      return { success: false, error: error.message };
+    
+    let json: any = {};
+    const text = await res.text();
+    if (text) {
+      try { json = JSON.parse(text); } catch (e) {}
+    }
+    
+    if (!res.ok || !json.success) {
+      console.warn("Express email invocation failed:", json.error || res.statusText);
+      return { success: false, error: json.error || res.statusText };
     }
 
-    return { success: data?.success || false, data };
+    return { success: true, data: json };
   } catch (err: any) {
-    console.error("Failed to invoke send-email-resend:", err);
+    console.error("Failed to invoke send-email-resend via Express:", err);
     return { success: false, error: err.message };
   }
 }
@@ -49,11 +64,32 @@ export async function sendResendEmail(payload: SendEmailPayload) {
 // ============================================================================
 
 export async function sendWelcomeEmail(to: string, firstName: string) {
-  return sendResendEmail({
-    to,
-    template_name: "welcome",
-    data: { firstName }
-  });
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token || "";
+
+    const res = await fetch("/api/send-welcome-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ email: to, name: firstName })
+    });
+    
+    let json: any = {};
+    const text = await res.text();
+    if (text) {
+      try {
+        json = JSON.parse(text);
+      } catch (e) {
+        throw new Error("Invalid response from server");
+      }
+    }
+    return { success: res.ok && json.success, data: json };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 export async function sendVerificationEmail(to: string, firstName: string, verificationLink: string) {
@@ -96,11 +132,37 @@ export async function sendPaymentConfirmationEmail(
   paymentMethod: string, 
   receiptLink: string
 ) {
-  return sendResendEmail({
-    to,
-    template_name: "payment_confirmation",
-    data: { customerName, orderNumber, amount, transactionId, paymentMethod, receiptLink }
-  });
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token || "";
+
+    const res = await fetch("/api/send-payment-confirmation", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ 
+        email: to, 
+        name: customerName, 
+        orderId: orderNumber, 
+        amount: amount 
+      })
+    });
+    
+    let json: any = {};
+    const text = await res.text();
+    if (text) {
+      try {
+        json = JSON.parse(text);
+      } catch (e) {
+        throw new Error("Invalid response from server");
+      }
+    }
+    return { success: res.ok && json.success, data: json };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 export async function sendOrderShippedEmail(
@@ -144,32 +206,35 @@ export async function sendVendorApproval(to: string, businessName: string) {
 }
 
 /**
- * Fetch logs directly from Supabase email_logs table
+ * Fetch logs securely through our Node.js proxy to avoid PGRST205 / missing table schema errors in client cache.
  */
 export async function fetchEmailLogs(): Promise<any[]> {
   try {
-    const { data, error } = await supabase
-      .from("email_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-      
-    if (error) {
-      console.warn("Error fetching email logs:", error);
-      return [];
-    }
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token || "";
     
-    // Map to a frontend friendly format for legacy fallback support
-    return (data || []).map(log => ({
+    const response = await fetch("/api/resend/logs", {
+      headers: {
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Proxy log query returned non-ok status: ${response.status}`);
+    }
+    const json = await response.json();
+    const logs = json.logs || [];
+    
+    // Map to a frontend friendly format with support for all variations of DB/local schemas
+    return logs.map((log: any) => ({
       id: log.id,
-      to: log.email,
-      type: log.template_name,
-      status: log.status === 'sent' ? 'Delivered' : log.status === 'failed' ? 'Failed' : 'Simulated',
-      timestamp: log.created_at,
-      error: log.error_message
+      to: log.recipient || log.email || "recipient@example.com",
+      type: log.type || log.template_name || "Notification",
+      status: log.status === 'sent' || log.status === 'Delivered' ? 'Delivered' : (log.status === 'failed' || log.status === 'Failed' ? 'Failed' : 'Simulated'),
+      timestamp: log.created_at || log.timestamp || new Date().toISOString(),
+      error: log.error_message || log.error || null
     }));
-  } catch (err) {
-    console.error("Exception fetching email logs:", err);
+  } catch (err: any) {
+    console.warn("[FETCH MAIL LOGS CLIENT] Proxy fetch bypassed/failed (simulation fallback initiated). Detail:", err.message || err);
     return [];
   }
 }
