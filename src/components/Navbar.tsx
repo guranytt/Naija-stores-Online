@@ -70,6 +70,7 @@ export default function Navbar({
               className="flex items-center space-x-2 cursor-pointer select-none group"
             >
               <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-10 w-auto" alt="Naija Stores Logo" />
+              <span className="font-bold text-xl text-neutral-800 tracking-tight hidden sm:block">Naija Online Stores</span>
             </div>
           </div>
 

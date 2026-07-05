@@ -1926,7 +1926,6 @@ Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml`);
         console.log(`[FULL-STACK BACKEND SERVER] Running securely on port ${PORT}`);
       });
     }
-  }
 
   return app;
 }
