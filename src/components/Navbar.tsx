@@ -30,6 +30,7 @@ export default function Navbar({
   const [searchVal, setSearchVal] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,11 +152,55 @@ export default function Navbar({
           
           <div className="flex items-center space-x-8 h-12">
             {/* Browse Categories Dropdown Trigger */}
-            <button className="bg-orange-500 hover:bg-orange-600 transition-colors text-white h-full px-5 flex items-center space-x-3 w-[250px] cursor-pointer">
-              <AlignLeft className="w-5 h-5" />
-              <span className="font-bold text-sm tracking-wide">BROWSE CATEGORIES</span>
-              <ChevronDown className="w-4 h-4 ml-auto" />
-            </button>
+            <div 
+              className="relative h-full z-50"
+              onMouseEnter={() => setIsCategoryMenuOpen(true)}
+              onMouseLeave={() => setIsCategoryMenuOpen(false)}
+            >
+              <button className="bg-orange-500 hover:bg-orange-600 transition-colors text-white h-full px-5 flex items-center space-x-3 w-[250px] cursor-pointer">
+                <AlignLeft className="w-5 h-5" />
+                <span className="font-bold text-sm tracking-wide">BROWSE CATEGORIES</span>
+                <ChevronDown className="w-4 h-4 ml-auto" />
+              </button>
+              
+              {isCategoryMenuOpen && categories && categories.length > 0 && (
+                <div className="absolute top-full left-0 w-[250px] bg-white border border-neutral-200 shadow-xl py-2">
+                  <ul className="flex flex-col">
+                    {categories.slice(0, 12).map((cat) => (
+                      <li key={cat.id}>
+                        <button 
+                          onClick={() => {
+                            if (onSelectCategory) {
+                              onSelectCategory(cat.id);
+                            } else {
+                              onSearch(cat.name);
+                              onNavigate("shop");
+                            }
+                            setIsCategoryMenuOpen(false);
+                          }}
+                          className="w-full text-left px-5 py-2.5 text-sm font-semibold text-neutral-700 hover:text-orange-500 hover:bg-orange-50 transition-colors flex items-center space-x-3"
+                        >
+                          {cat.image ? (
+                            <img src={cat.image} className="w-5 h-5 object-cover rounded-full bg-neutral-100 shrink-0" alt="" />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-neutral-200 shrink-0" />
+                          )}
+                          <span className="truncate">{cat.name}</span>
+                        </button>
+                      </li>
+                    ))}
+                    <li className="px-5 pt-3 pb-1 border-t border-neutral-100 mt-2">
+                       <button 
+                         onClick={() => { onNavigate("shop"); setIsCategoryMenuOpen(false); }}
+                         className="text-orange-500 text-xs font-bold w-full text-center hover:underline"
+                       >
+                         VIEW ALL
+                       </button>
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
 
             {/* Nav Links */}
             <nav className="flex items-center space-x-8 text-xs font-bold tracking-wide">

@@ -28,7 +28,7 @@ export const CATEGORY_IMAGE_MAP: Record<string, string> = {
 export async function fetchAndEnrichCategories(): Promise<Category[]> {
   try {
     // Fetch directly from the Supabase 'categories' table with explicit column selection to minimize egress
-    const { data, error } = await supabase.from('categories').select('id, name, slug, image_url, description, icon_name, item_count, subcategories, status, sort_order, default_commission_percentage');
+    const { data, error } = await supabase.from('categories').select('id, name, slug, image_url');
     
     if (error) {
       console.error("Error fetching categories directly from Supabase:", error);
