@@ -126,7 +126,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
         }
       } catch (e: any) {
         console.warn("/api/categories fetch failed, falling back to direct Supabase query.", e);
-        queryResult = await supabase.from("categories").select("id, name, slug, description, image_url, parent_id, sort_order, created_at").limit(100);
+        queryResult = await supabase.from("categories").select("id, name, slug, image_url").limit(100);
       }
     } else if (tableName === "products") {
       try {

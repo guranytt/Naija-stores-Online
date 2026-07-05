@@ -559,7 +559,7 @@ export default function CustomerViews() {
     return 0; // standard mock recommended
   });
 
-  const PRODUCTS_PER_PAGE = 30;
+  const PRODUCTS_PER_PAGE = 60;
   // Use server total pages and server products for the shop grid
   const totalPages = serverTotalPages;
   const paginatedProducts = serverProducts.length > 0 ? serverProducts : sortedProducts.slice(0, PRODUCTS_PER_PAGE);
@@ -2275,7 +2275,8 @@ export default function CustomerViews() {
         
         const vendorProducts = products.filter(p => p.vendorId === matchedVendor.id || p.vendorName === matchedVendor.name);
         
-        const PRODUCTS_PER_PAGE = 30;
+        // Vendor Products pagination
+        const PRODUCTS_PER_PAGE = 60;
         const totalVendorPages = Math.ceil(vendorProducts.length / PRODUCTS_PER_PAGE);
         const startVendorIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
         const paginatedVendorProducts = vendorProducts.slice(startVendorIndex, startVendorIndex + PRODUCTS_PER_PAGE);
