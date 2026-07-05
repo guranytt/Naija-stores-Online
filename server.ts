@@ -1090,11 +1090,19 @@ Return valid JSON only matching this schema exactly:
     }
   });
 
-  app.post("/api/chat-faq", express.json(), async (req, res) => {
+  app.post("/api/chat-faq", async (req, res) => {
     try {
       const { message } = req.body;
       if (!message) {
         return res.status(400).json({ success: false, error: "Message is required." });
+      }
+
+      const key = process.env.GEMINI_API_KEY;
+      if (!key || key.trim() === "" || key === "MY_GEMINI_API_KEY" || key === "your_api_key_here") {
+         return res.json({ 
+           success: true, 
+           answer: "Hello! I am currently operating in offline mode. Please contact our Customer Care line at +234 800 000 0000 or email support@naijaonlinestores.com.ng for assistance." 
+         });
       }
 
       const ai = getGeminiClient();
@@ -1131,7 +1139,8 @@ Return valid JSON only matching this schema exactly:
       return res.json({ success: true, answer });
     } catch (err: any) {
       console.error("[SERVER] Chat FAQ error:", err);
-      return res.status(500).json({ success: false, error: err.message || "Internal server error" });
+      // Ensure we return a structured JSON even if the request completely crashes
+      return res.status(200).json({ success: true, answer: "I'm sorry, I'm having trouble processing that right now. Please call +234 800 000 0000 for immediate assistance." });
     }
   });
 

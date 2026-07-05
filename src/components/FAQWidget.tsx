@@ -35,9 +35,12 @@ export default function FAQWidget() {
       
       let data;
       try {
-        data = await response.json();
+        const text = await response.text();
+        data = JSON.parse(text);
       } catch (jsonErr) {
-        throw new Error("Server returned invalid response. Please try again later.");
+        setMessages(prev => [...prev, { role: 'assistant', content: "The AI service is currently offline. Please call our support line for assistance." }]);
+        setIsLoading(false);
+        return;
       }
       
       if (response.ok && data && data.success && data.answer) {

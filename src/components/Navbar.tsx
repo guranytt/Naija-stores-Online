@@ -48,8 +48,6 @@ export default function Navbar({
           <div className="flex items-center space-x-4">
             <button onClick={() => onNavigate("sell")} className="hover:text-orange-300 transition-colors">Become a Vendor</button>
             <span className="text-emerald-400">|</span>
-            <button className="hover:text-orange-300 transition-colors">Blog</button>
-            <span className="text-emerald-400">|</span>
             <button onClick={() => onNavigate("contact")} className="hover:text-orange-300 transition-colors">Contact Us</button>
           </div>
         </div>
@@ -71,11 +69,7 @@ export default function Navbar({
               onClick={() => onNavigate("home")}
               className="flex items-center space-x-2 cursor-pointer select-none group"
             >
-              <div className="text-left leading-none">
-                <span className="font-black text-2xl tracking-tighter text-neutral-900 block">
-                  Naija.
-                </span>
-              </div>
+              <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-10 w-auto" alt="Naija Stores Logo" />
             </div>
           </div>
 
@@ -166,9 +160,7 @@ export default function Navbar({
             <nav className="flex items-center space-x-8 text-xs font-bold tracking-wide">
               <button onClick={() => onNavigate("home")} className={`hover:text-orange-400 transition-colors uppercase ${currentScreen === "home" ? "text-orange-500" : ""}`}>HOME</button>
               <button onClick={() => onNavigate("shop")} className={`hover:text-orange-400 transition-colors uppercase ${currentScreen === "shop" ? "text-orange-500" : ""}`}>SHOP</button>
-              <button className="hover:text-orange-400 transition-colors uppercase">PROMOTION</button>
-              <button className="hover:text-orange-400 transition-colors uppercase">BLOG</button>
-              <button className="hover:text-orange-400 transition-colors uppercase">SPECIAL</button>
+              <button onClick={() => { if(onSelectCategory) { onSelectCategory("Flash Deals"); onNavigate("shop"); } else { onSearch("Flash Deals"); onNavigate("shop"); } }} className="hover:text-orange-400 transition-colors uppercase">PROMOTIONS</button>
               <button onClick={() => onNavigate("about")} className="hover:text-orange-400 transition-colors uppercase">PAGES</button>
               <button onClick={() => onNavigate("stores")} className={`hover:text-orange-400 transition-colors uppercase ${currentScreen === "stores" ? "text-orange-500" : ""}`}>VENDOR STORE LIST</button>
             </nav>
@@ -189,7 +181,7 @@ export default function Navbar({
           <div className="fixed inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)}></div>
           <div className="relative w-72 bg-white h-full flex flex-col p-4 z-10 shadow-2xl">
              <div className="flex justify-between items-center mb-6">
-                <span className="font-black text-xl tracking-tighter text-neutral-900">Naija.</span>
+                <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-8 w-auto" alt="Naija Stores Logo" />
                 <button onClick={() => setMobileMenuOpen(false)} className="p-1 rounded bg-neutral-100">
                   <X className="w-5 h-5 text-neutral-600" />
                 </button>
