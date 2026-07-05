@@ -525,8 +525,8 @@ export default function App() {
           (_, reject) => setTimeout(() => reject(new Error("Fetch timed out")), 30000)
         );
 
-        const safeFetch = <T,>(tableName: string) => Promise.race([
-          getSupabaseData<T>(tableName, []),
+        const safeFetch = <T,>(tableName: string, page: number = 1, limit: number = 50) => Promise.race([
+          getSupabaseData<T>(tableName, [], page, limit),
           timeoutPromise as Promise<{ data: T[]; synced: boolean; error?: string }>
         ]).catch(() => ({ data: [] as T[], synced: false, error: "timeout" }));
 
