@@ -1,6 +1,5 @@
 import tinify from "tinify";
 import { v2 as cloudinary } from "cloudinary";
-tinify.key = process.env.TINIFY_API_KEY || "ByhSRqcZwPMjf220YhXNCglgkLRyySjs";
 import * as Sentry from "@sentry/node";
 import express from "express";
 import path from "path";
@@ -10,6 +9,16 @@ import rateLimit from "express-rate-limit";
 import { createServer as createViteServer } from "vite";
 import { Resend } from "resend";
 import dotenv from "dotenv";
+
+dotenv.config();
+
+tinify.key = process.env.TINIFY_API_KEY || "ByhSRqcZwPMjf220YhXNCglgkLRyySjs";
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dt7oz9tdj',
+  api_key: process.env.CLOUDINARY_API_KEY || '819278783457951',
+  api_secret: process.env.CLOUDINARY_API_SECRET || 'Z_z66qN1x4t1vR5_zTzE6t6XzH0'
+});
+
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { MOCK_CATEGORIES } from "./src/data/mockData";

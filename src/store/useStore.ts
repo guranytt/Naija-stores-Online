@@ -216,11 +216,7 @@ export const useStore = create<AppState>()(
         userAvatar: state.userAvatar,
         userWhatsappNumber: state.userWhatsappNumber,
         userLocation: state.userLocation,
-        flashDeals: state.flashDeals,
-        products: state.products,
-        categories: state.categories,
-        vendors: state.vendors,
-        orders: state.orders
+        flashDeals: state.flashDeals
       }),
     }
   )
