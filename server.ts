@@ -1047,8 +1047,8 @@ Return valid JSON only matching this schema exactly:
       
       // Automate admin notification if it's a newly inserted vendor (we know it's new if shouldUseFallbackLookup was true and existing found was null, or if created_at is recent)
       if (data && data.length > 0) {
-        const vendor = data[0];
-        const createdAt = new Date(vendor.created_at);
+        const vendor = data[0] as any;
+        const createdAt = new Date(vendor.created_at || Date.now());
         const now = new Date();
         const diffMs = now.getTime() - createdAt.getTime();
         if (diffMs < 5000) { // Created within the last 5 seconds means it's brand new
@@ -1178,7 +1178,7 @@ function ensureUUID(idValue: any): string {
       const columns = "id, business_name, owner_name, logo_url, created_at, user_id, email, is_verified, approval_status, physical_location, phone, business_description, bank_name, account_number, cac_number, whatsapp_number, users(email)";
       const fallbackColumns = "id, business_name, owner_name, logo_url, created_at, user_id, email, is_verified, approval_status, physical_location, phone, business_description, bank_name, account_number, cac_number, whatsapp_number";
 
-      let queryResult = await supabaseAdmin.from("vendors").select(columns).range(offset, offset + limit - 1);
+      let queryResult: any = await supabaseAdmin.from("vendors").select(columns).range(offset, offset + limit - 1);
       if (queryResult.error) {
         queryResult = await supabaseAdmin.from("vendors").select(fallbackColumns).range(offset, offset + limit - 1);
       }
