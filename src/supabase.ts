@@ -122,10 +122,11 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
           const resJson = await response.json();
           queryResult = { data: resJson.data, error: resJson.error };
         } else {
-          queryResult = { data: null, error: new Error("Fetch failed") };
+          throw new Error("API Fetch failed");
         }
       } catch (e: any) {
-        queryResult = { data: null, error: e };
+        console.warn("/api/categories fetch failed, falling back to direct Supabase query.", e);
+        queryResult = await supabase.from("categories").select("id, name, slug, description, image_url, parent_id, sort_order, created_at").limit(100);
       }
     } else if (tableName === "products") {
       try {
@@ -134,10 +135,15 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
           const resJson = await response.json();
           queryResult = { data: resJson.data, error: resJson.error };
         } else {
-          queryResult = { data: null, error: new Error("Fetch failed") };
+          throw new Error("API Fetch failed");
         }
       } catch (e: any) {
-        queryResult = { data: null, error: e };
+        console.warn("/api/products fetch failed, falling back to direct Supabase query.", e);
+        const baseCols = "id, name, slug, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at, description, image_url, rating, reviewsCount";
+        queryResult = await supabase.from("products").select(`${baseCols}, product_images(image_url), categories(id, name, slug)`).order('created_at', { ascending: false }).limit(100);
+        if (queryResult.error) {
+           queryResult = await supabase.from("products").select(baseCols).order('created_at', { ascending: false }).limit(100);
+        }
       }
     } else if (tableName === "vendors") {
       try {
@@ -146,10 +152,11 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): 
           const resJson = await response.json();
           queryResult = { data: resJson.data, error: resJson.error };
         } else {
-          queryResult = { data: null, error: new Error("Fetch failed") };
+           throw new Error("API Fetch failed");
         }
       } catch (e: any) {
-        queryResult = { data: null, error: e };
+        console.warn("/api/vendors fetch failed, falling back to direct Supabase query.", e);
+        queryResult = await supabase.from("vendors").select("id, business_name, owner_name, email, business_description, store_theme, created_at, logo_url").order('created_at', { ascending: false }).limit(100);
       }
     } else if (tableName === "orders") {
       const thirtyDaysAgo = new Date();

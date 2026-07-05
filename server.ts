@@ -1931,7 +1931,13 @@ Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml`);
 }
 
 // Ensure the server starts if run directly (e.g., via tsx server.ts)
-if (require.main === module || (typeof process !== "undefined" && process.argv[1]?.includes("server"))) {
+let isMain = false;
+try {
+  if (typeof require !== "undefined" && require.main === module) isMain = true;
+} catch (e) {}
+if (!isMain && typeof process !== "undefined" && process.argv[1]?.includes("server")) isMain = true;
+
+if (isMain) {
   startServer();
 }
 
