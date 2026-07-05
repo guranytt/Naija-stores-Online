@@ -619,7 +619,7 @@ export default function CustomerViews() {
                 <div className="w-[250px] shrink-0 hidden lg:block bg-white border border-neutral-200 rounded-lg shadow-sm self-start">
                    <div className="bg-orange-500 text-white font-bold px-4 py-3 rounded-t-lg flex items-center space-x-2">
                       <Menu className="w-5 h-5" />
-                      <span className="text-sm">HOW TO USE MEGAMENU</span>
+                      <span className="text-sm">BROWSE CATALOGUE</span>
                    </div>
                    <ul className="py-2 text-sm text-neutral-600 font-medium">
                      {categories.slice(0,10).map((cat, i) => (
@@ -808,16 +808,10 @@ export default function CustomerViews() {
 
                   {/* Auth Welcome Block */}
                   <div className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center text-center">
-                    <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mb-4">
-                      <UserCircle className="w-8 h-8 text-neutral-400" />
-                    </div>
-                    <h3 className="font-black text-lg text-neutral-900 mb-4">Welcome To Naija.</h3>
+                    <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-16 w-auto mb-6" alt="Naija Stores Logo" />
                     <div className="flex space-x-2 w-full">
                       <button onClick={() => onNavigate("auth")} className="flex-1 bg-orange-50 text-orange-600 font-bold py-2 rounded-lg text-sm">Join us</button>
                       <button onClick={() => onNavigate("auth")} className="flex-1 bg-orange-500 text-white font-bold py-2 rounded-lg text-sm">Sign in</button>
-                    </div>
-                    <div className="mt-6 w-full relative h-32 rounded-xl overflow-hidden bg-orange-500">
-                      <div className="absolute inset-0 flex items-center justify-center text-white font-black text-2xl rotate-[-5deg]">TOP SALE</div>
                     </div>
                   </div>
                </div>
