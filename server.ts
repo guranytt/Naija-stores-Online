@@ -1129,12 +1129,12 @@ Return valid JSON only matching this schema exactly:
       User's question: ${message}
       `;
 
-      const aiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt
+      const aiResponse = await ai.interactions.create({
+        model: "gemini-3.1-flash-lite",
+        input: prompt
       });
 
-      const answer = aiResponse.text;
+      const answer = aiResponse.output_text;
 
       return res.json({ success: true, answer });
     } catch (err: any) {
