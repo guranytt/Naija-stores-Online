@@ -2,6 +2,12 @@
 @import "tailwindcss";
 
 @theme {
+  --color-primary: #4CAF50;
+  --color-primary-dark: #2E7D32;
+  --color-accent: #FF9800;
+  --color-accent-light: #FFB74D;
+  --color-surface-light: #F9FAFB;
+  --color-surface: #FFFFFF;
   --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }

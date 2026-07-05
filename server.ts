@@ -1,3 +1,6 @@
+import tinify from "tinify";
+import { v2 as cloudinary } from "cloudinary";
+tinify.key = process.env.TINIFY_API_KEY || "ByhSRqcZwPMjf220YhXNCglgkLRyySjs";
 import * as Sentry from "@sentry/node";
 import express from "express";
 import path from "path";
@@ -286,6 +289,80 @@ Return valid JSON only matching this schema exactly:
   });
 
   // Explicit endpoints required by user
+
+
+
+
+  app.post("/api/cloudinary/upload", async (req, res) => {
+    try {
+      const { image } = req.body;
+      if (!image) return res.status(400).json({ success: false, error: "No image provided" });
+      
+      // 1. Convert base64 to buffer
+      const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+      
+      // 2. Compress and convert to webp using Tinify
+      const source = tinify.fromBuffer(buffer);
+      const converted = source.convert({type: ["image/webp", "image/avif"]});
+      const optimizedBuffer = await converted.toBuffer();
+      
+      // 3. Upload to Cloudinary via stream
+      const uploadStream = cloudinary.uploader.upload_stream({ resource_type: "image" }, (error, result) => {
+        if (error) {
+          console.error("Cloudinary upload error:", error);
+          return res.status(500).json({ success: false, error: "Upload failed" });
+        }
+        if (result) {
+          res.json({ success: true, url: result.secure_url, format: result.format, bytes: result.bytes });
+        }
+      });
+      
+      uploadStream.end(optimizedBuffer);
+  
+    } catch (error) {
+      console.error("Upload process error:", error);
+      res.status(500).json({ success: false, error: "Server error during upload" });
+    }
+  });
+
+  // Background optimizer for existing images
+  const optimizeImageBackground = async (productId: string, imageUrl: string) => {
+    if (!imageUrl || typeof imageUrl !== "string" || imageUrl.includes("res.cloudinary.com") || imageUrl.includes("unsplash.com")) return;
+    if (!supabaseAdmin) return;
+    try {
+      let buffer: Buffer;
+      if (imageUrl.startsWith("data:image")) {
+        const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
+        buffer = Buffer.from(base64Data, "base64");
+      } else {
+        const response = await fetch(imageUrl);
+        if (!response.ok) return;
+        const arrayBuffer = await response.arrayBuffer();
+        buffer = Buffer.from(arrayBuffer);
+      }
+
+      const source = tinify.fromBuffer(buffer);
+      const converted = source.convert({type: ["image/webp", "image/avif"]});
+      const optimizedBuffer = await converted.toBuffer();
+
+      cloudinary.uploader.upload_stream({ resource_type: "image" }, async (error, result) => {
+        if (result && result.secure_url) {
+          const { data: prod } = await supabaseAdmin.from("products").select("description").eq("id", productId).single();
+          if (prod && prod.description) {
+             let descObj: any = {};
+             try { descObj = JSON.parse(prod.description); } catch(e){}
+             descObj.image = result.secure_url;
+             descObj.image_url = result.secure_url;
+             await supabaseAdmin.from("products").update({ description: JSON.stringify(descObj) }).eq("id", productId);
+          }
+        }
+      }).end(optimizedBuffer);
+    } catch (err) {
+      // Silently fail for background task
+    }
+  };
+
   app.post("/api/send-welcome-email", async (req, res) => {
     const { email, name, role } = req.body;
     if (!email) return res.status(400).json({ error: "Missing email" });
@@ -1111,7 +1188,7 @@ function ensureUUID(idValue: any): string {
         return res.status(500).json({ error: queryResult.error.message });
       }
       
-      res.json({ data: queryResult.data || [] });
+      if(queryResult.data){queryResult.data.forEach((p:any)=>{let i=p.product_images?.[0]?.image_url||p.image_url;if(!i&&p.description&&typeof p.description==="string"){try{const d=JSON.parse(p.description);i=d.image||d.image_url;}catch(e){}}if(i)optimizeImageBackground(p.id,i);});} res.json({ data: queryResult.data || [], total: queryResult.count || 0 });
     } catch (err: any) {
       console.error("GET /api/vendors exception:", err);
       res.status(500).json({ error: "Internal Server Error" });
@@ -1128,11 +1205,41 @@ function ensureUUID(idValue: any): string {
       const limit = parseInt(req.query.limit as string) || 30;
       const offset = (page - 1) * limit;
 
-      const baseCols = "id, name, slug, description, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at";
+      const search = req.query.search as string;
+      const categoryFilter = req.query.category as string;
+      const sort = req.query.sort as string; // price-low, price-high, rating, new
+
+      const baseCols = "id, name, slug, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at";
       
-      let queryResult = await supabaseAdmin.from("products").select(`${baseCols}, product_images(image_url), categories(id, name, slug)`).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
+      let query = supabaseAdmin.from("products").select(`${baseCols}, product_images(image_url), categories(id, name, slug)`, { count: 'exact' });
+
+      if (categoryFilter && categoryFilter !== "All") {
+        query = query.eq('categories.name', categoryFilter);
+      }
+
+      if (search) {
+        query = query.ilike('name', `%${search}%`);
+      }
+
+      if (sort === "price-low") {
+        query = query.order('price', { ascending: true });
+      } else if (sort === "price-high") {
+        query = query.order('price', { ascending: false });
+      } else {
+        query = query.order('created_at', { ascending: false }); // default new
+      }
+
+      query = query.range(offset, offset + limit - 1);
+      
+      let queryResult: any = await query;
       if (queryResult.error) {
-        queryResult = await supabaseAdmin.from("products").select(`${baseCols}, product_images(image_url)`).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
+        query = supabaseAdmin.from("products").select(`${baseCols}, product_images(image_url)`, { count: 'exact' });
+        if (search) query = query.ilike('name', `%${search}%`);
+        if (sort === "price-low") query = query.order('price', { ascending: true });
+        else if (sort === "price-high") query = query.order('price', { ascending: false });
+        else query = query.order('created_at', { ascending: false });
+        query = query.range(offset, offset + limit - 1);
+        queryResult = await query;
       }
       if (queryResult.error) {
         queryResult = await supabaseAdmin.from("products").select(baseCols).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
@@ -1143,12 +1250,53 @@ function ensureUUID(idValue: any): string {
         return res.status(500).json({ error: queryResult.error.message });
       }
       
-      res.json({ data: queryResult.data || [] });
+      if(queryResult.data){queryResult.data.forEach((p:any)=>{let i=p.product_images?.[0]?.image_url||p.image_url;if(!i&&p.description&&typeof p.description==="string"){try{const d=JSON.parse(p.description);i=d.image||d.image_url;}catch(e){}}if(i)optimizeImageBackground(p.id,i);});} res.json({ data: queryResult.data || [], total: queryResult.count || 0 });
     } catch (err: any) {
       console.error("GET /api/products exception:", err);
       res.status(500).json({ error: "Internal Server Error" });
     }
   });
+    
+    app.get("/api/product/:id", async (req, res) => {
+      res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+      try {
+        if (!supabaseAdmin) {
+          return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
+        }
+        const { id } = req.params;
+        const baseCols = "id, name, slug, description, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at, external_link";
+        let queryResult: any = await supabaseAdmin.from("products").select(`${baseCols}, product_images(image_url), categories(id, name, slug)`).eq("id", id).maybeSingle();
+        if (queryResult.error) {
+           queryResult = await supabaseAdmin.from("products").select(`${baseCols}, product_images(image_url)`).eq("id", id).maybeSingle();
+        }
+        if (queryResult.error) {
+           queryResult = await supabaseAdmin.from("products").select(baseCols).eq("id", id).maybeSingle();
+        }
+        
+        if (queryResult.error) {
+          return res.status(500).json({ error: queryResult.error.message });
+        }
+        if (!queryResult.data) {
+          return res.status(404).json({ error: "Product not found" });
+        }
+
+        // Trigger background image optimization
+        const p = queryResult.data;
+        let imgToOpt = p.product_images?.[0]?.image_url || p.image_url;
+        if (!imgToOpt && p.description && typeof p.description === "string") {
+           try { 
+             const d = JSON.parse(p.description); 
+             imgToOpt = d.image || d.image_url; 
+           } catch(e) {}
+        }
+        if (imgToOpt) optimizeImageBackground(p.id, imgToOpt);
+
+        res.json({ data: queryResult.data });
+      } catch (err: any) {
+        console.error("GET /api/product/:id exception:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
 
   app.get("/api/categories", async (req, res) => {
     res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
@@ -1502,7 +1650,7 @@ Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml`);
       });
 
       if (products) {
-        products.forEach(prod => {
+        (products as any[]).forEach(prod => {
           let extraMetadata: any = {};
           if (prod.description && typeof prod.description === "string" && prod.description.trim().startsWith("{")) {
             try {
@@ -1517,7 +1665,7 @@ Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml`);
       }
 
       if (vendors) {
-        vendors.forEach(vendor => {
+        (vendors as any[]).forEach(vendor => {
           const vName = vendor.business_name || vendor.owner_name || (vendor as any).name || "";
           const slug = slugify(vName);
           const vendorUrl = `https://www.naijaonlinestores.com.ng/vendor/${vendor.id}${slug ? `-${slug}` : ""}`;
@@ -1571,7 +1719,7 @@ Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml`);
           productId = raw.split("-")[0];
         }
         
-        const { data: product } = await supabaseAdmin.from("products").select("id, name, description, image_url").eq("id", productId).single();
+        const { data: product } = await supabaseAdmin.from("products").select("id, name, description, image_url, price, stock_quantity").eq("id", productId).single();
         
         let template = await require("fs").promises.readFile(path.join(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
@@ -1650,7 +1798,7 @@ Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml`);
           productId = raw.split("-")[0];
         }
 
-        const { data: product } = await supabaseAdmin.from("products").select("id, name, description, image_url").eq("id", productId).single();
+        const { data: product } = await supabaseAdmin.from("products").select("id, name, description, image_url, price, stock_quantity").eq("id", productId).single();
         
         let template = await require("fs").promises.readFile(path.join(distPath, "index.html"), "utf-8");
         

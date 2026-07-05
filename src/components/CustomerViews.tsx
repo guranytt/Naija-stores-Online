@@ -197,7 +197,7 @@ export default function CustomerViews() {
   const isLoading = false;
   // TODO: Fix checkout and rate vendor handlers if needed
   const onCheckout = () => { console.log('checkout'); };
-  const onRateVendor = () => { console.log('rate vendor'); };
+  const onRateVendor = (id: string, star: number) => { console.log('rate vendor', id, star); };
   
   // Choose source of truth for ads
   const resolvedAds = ads || [];
@@ -259,6 +259,63 @@ export default function CustomerViews() {
   const [brandAdIndex, setBrandAdIndex] = useState(0);
   const [flashSaleTime, setFlashSaleTime] = useState({ h: 2, m: 21, s: 6 });
   const [storesCurrentPage, setStoresCurrentPage] = useState<number>(1);
+
+  // Server-side pagination states
+  const [serverProducts, setServerProducts] = useState<Product[]>([]);
+  const [serverTotalPages, setServerTotalPages] = useState<number>(1);
+
+  useEffect(() => {
+    let active = true;
+    const fetchServerProducts = async () => {
+      if (screen !== "shop" && screen !== "home") return; // Only fetch if relevant
+      setInternalLoading(true);
+      try {
+        const queryParams = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: "30",
+          search: searchFilter,
+          category: activeCategoryTab === "all" ? "All" : activeCategoryTab,
+          sort: sortOption
+        });
+        const res = await fetch(`/api/products?${queryParams.toString()}`);
+        if (!res.ok) throw new Error("Failed to fetch");
+        const json = await res.json();
+        if (active) {
+          // Map DB columns to frontend Product type
+          const mapped = (json.data || []).map((p: any) => ({
+            id: p.id,
+            title: p.name,
+            category: p.categories?.name || "Uncategorized",
+            subCategory: p.categories?.slug || "general",
+            price: p.price,
+            discountPrice: p.discount_price,
+            stock: p.stock_quantity,
+            vendorId: p.vendor_id,
+            vendorName: "Merchant",
+            images: p.product_images?.length > 0 ? p.product_images.map((pi:any)=>pi.image_url) : [p.image_url || ""],
+            rating: 4.5,
+            ratingCount: Math.floor(Math.random() * 50) + 1,
+            colors: ["Default"],
+            sizes: ["Standard"],
+            description: p.description || ""
+          }));
+          setServerProducts(mapped);
+          const total = json.total || mapped.length;
+          setServerTotalPages(Math.max(1, Math.ceil(total / 30)));
+        }
+      } catch (err) {
+        console.error("Pagination fetch error:", err);
+      } finally {
+        if (active) setInternalLoading(false);
+      }
+    };
+
+    // Debounce search slightly
+    const timer = setTimeout(() => {
+      fetchServerProducts();
+    }, 300);
+    return () => { active = false; clearTimeout(timer); };
+  }, [currentPage, searchFilter, activeCategoryTab, sortOption, screen]);
   
   const homepageAds = resolvedAds.filter(ad => ad.position === "homepage" && ad.status === "active");
 
@@ -503,15 +560,16 @@ export default function CustomerViews() {
   });
 
   const PRODUCTS_PER_PAGE = 30;
-  const totalPages = Math.ceil(sortedProducts.length / PRODUCTS_PER_PAGE);
-  const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
-  const paginatedProducts = sortedProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
+  // Use server total pages and server products for the shop grid
+  const totalPages = serverTotalPages;
+  const paginatedProducts = serverProducts.length > 0 ? serverProducts : sortedProducts.slice(0, PRODUCTS_PER_PAGE);
 
   const recentlyViewedProducts = recentlyViewedIds
-    .map((id) => products.find((p) => p.id === id))
+    .map((id) => products.find((p) => p.id === id) || serverProducts.find(p => p.id === id))
     .filter((p): p is Product => !!p);
 
-  const detailProduct = products.find((p) => p.id === selectedProductId) || products[0] || null;
+  // Fallback to server products if not found in global store (happens on deep linking)
+  const detailProduct = products.find((p) => p.id === selectedProductId) || serverProducts.find(p => p.id === selectedProductId) || products[0] || null;
 
   // Initialize selected values for detail screen when product changes
   React.useEffect(() => {
@@ -558,14 +616,17 @@ export default function CustomerViews() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
               {/* Main Interactive Slider Area */}
               {homepageAds.length > 0 && (
-                <div 
-                  className="lg:col-span-2 relative h-[360px] sm:h-[480px] lg:h-[540px] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] group cursor-pointer border border-neutral-200/50" 
+                <motion.div 
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="lg:col-span-2 relative h-[360px] sm:h-[480px] lg:h-[540px] rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] group cursor-pointer border border-neutral-200/50" 
                   onClick={() => onNavigate("shop")}
                 >
                   <AnimatePresence initial={false} mode="wait">
                     <motion.div
                       key={homepageAds[currentAdIndex].id}
-                      initial={{ opacity: 0, filter: "blur(4px)", scale: 1.05 }}
+                      initial={{ opacity: 0, filter: "blur(8px)", scale: 1.05 }}
                       animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
                       exit={{ opacity: 0, filter: "blur(4px)", scale: 0.95 }}
                       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
@@ -584,35 +645,39 @@ export default function CustomerViews() {
                       
                       <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-10 lg:p-14 z-10">
                         <motion.div 
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
+                          initial="hidden"
+                          animate="visible"
+                          variants={{
+                            hidden: { opacity: 0 },
+                            visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
+                          }}
                           className="space-y-4 max-w-xl"
                         >
-                          <div className="inline-flex items-center space-x-1.5 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] sm:text-xs text-white font-bold uppercase tracking-[0.1em] border border-white/20 shadow-xl">
-                            <Sparkles className="w-3.5 h-3.5" />
+                          <motion.div variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } }} className="inline-flex items-center space-x-1.5 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] sm:text-xs text-white font-bold uppercase tracking-[0.1em] border border-white/20 shadow-xl">
+                            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
                             <span>Exclusive Collection</span>
-                          </div>
+                          </motion.div>
                           
-                          <h3 className="text-white font-extrabold text-4xl sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight drop-shadow-lg">
+                          <motion.h3 variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } }} className="text-white font-extrabold text-4xl sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight drop-shadow-lg">
                             {homepageAds[currentAdIndex].title}
-                          </h3>
+                          </motion.h3>
                           
-                          <p className="text-neutral-200 text-sm sm:text-base lg:text-lg font-medium opacity-90 leading-snug drop-shadow">
+                          <motion.p variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } }} className="text-neutral-200 text-sm sm:text-base lg:text-lg font-medium opacity-90 leading-snug drop-shadow">
                             Discover premium selections sourced from trusted collective makers, updated daily with factory-direct pricing.
-                          </p>
+                          </motion.p>
                           
-                          <div className="pt-2">
+                          <motion.div variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } }} className="pt-2">
                             <button 
-                              className="bg-white text-black font-bold text-xs sm:text-sm uppercase px-8 py-3.5 rounded-full tracking-wider transition-all duration-300 shadow-[0_10px_20px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_30px_rgba(255,255,255,0.3)] hover:scale-[1.02]"
+                              className="relative overflow-hidden group/btn bg-white text-black font-bold text-xs sm:text-sm uppercase px-8 py-3.5 rounded-full tracking-wider transition-all duration-300 shadow-[0_10px_20px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_30px_rgba(255,255,255,0.3)] hover:scale-[1.02]"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onNavigate("shop");
                               }}
                             >
-                              Shop the look
+                              <span className="relative z-10">Shop the look</span>
+                              <div className="absolute inset-0 h-full w-0 bg-neutral-200 transition-all duration-300 ease-out group-hover/btn:w-full z-0"></div>
                             </button>
-                          </div>
+                          </motion.div>
                         </motion.div>
                       </div>
                     </motion.div>
@@ -630,29 +695,35 @@ export default function CustomerViews() {
                       />
                     ))}
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* Side Stacks */}
               <div className="hidden lg:flex flex-col gap-6 h-[540px]">
                 {/* Promo Box 1 */}
-                <div 
-                  className="flex-1 relative rounded-3xl overflow-hidden shadow-xl bg-orange-600 group cursor-pointer"
+                <motion.div 
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="flex-1 relative rounded-[2rem] overflow-hidden shadow-xl bg-orange-600 group cursor-pointer"
                   onClick={() => {
                     setActiveCategoryTab("electronics");
                     onNavigate("shop");
                   }}
                 >
                   <img loading="lazy" src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=600&q=80" alt="Electronics" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay transition-transform duration-700 ease-out group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-orange-950/80 to-transparent p-8 flex flex-col justify-end">
-                    <span className="text-orange-200 text-xs font-bold uppercase tracking-widest mb-1">Tech Upgrade</span>
-                    <h4 className="text-white text-2xl font-black leading-tight">Next-Gen<br/>Electronics</h4>
+                  <div className="absolute inset-0 bg-gradient-to-t from-orange-950/90 to-transparent p-8 flex flex-col justify-end">
+                    <span className="text-orange-200 text-xs font-bold uppercase tracking-widest mb-1 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">Tech Upgrade</span>
+                    <h4 className="text-white text-2xl font-black leading-tight transform group-hover:-translate-y-1 transition-transform duration-300">Next-Gen<br/>Electronics</h4>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Promo Box 2 */}
-                <div 
-                  className="flex-1 relative rounded-3xl overflow-hidden shadow-xl bg-slate-900 group cursor-pointer"
+                <motion.div 
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  className="flex-1 relative rounded-[2rem] overflow-hidden shadow-xl bg-slate-900 group cursor-pointer"
                   onClick={() => {
                     setActiveCategoryTab("fashion");
                     onNavigate("shop");
@@ -660,36 +731,65 @@ export default function CustomerViews() {
                 >
                    <img loading="lazy" src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=600&q=80" alt="Fashion" className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-luminosity transition-transform duration-700 ease-out group-hover:scale-105" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent p-8 flex flex-col justify-end">
-                    <span className="text-slate-300 text-xs font-bold uppercase tracking-widest mb-1">Aba Premium</span>
-                    <h4 className="text-white text-2xl font-black leading-tight">Elevated<br/>Wardrobes</h4>
+                    <span className="text-slate-300 text-xs font-bold uppercase tracking-widest mb-1 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">Aba Premium</span>
+                    <h4 className="text-white text-2xl font-black leading-tight transform group-hover:-translate-y-1 transition-transform duration-300">Elevated<br/>Wardrobes</h4>
                   </div>
-                </div>
+                </motion.div>
               </div>
             </div>
 
-            {/* SEO Homepage Copy */}
-            <div className="bg-white p-8 md:p-12 rounded-3xl border border-neutral-150 shadow-sm text-left">
-              <div className="max-w-4xl mx-auto space-y-6">
-                <h1 className="text-3xl md:text-4xl font-extrabold text-neutral-900 leading-tight">Naija Online Stores - #1 Online Shopping Marketplace in Nigeria</h1>
-                <p className="text-lg text-neutral-600 leading-relaxed">
-                  Welcome to <strong>Naija Online Stores</strong>, the ultimate destination to buy online in Nigeria. We bridge the gap between shoppers and verified wholesale merchants, offering a diverse catalog from electronics and fashion to home appliances and beauty products.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-6">
-                  <div>
-                    <h3 className="font-bold text-neutral-900 text-lg mb-2 flex items-center"><ShieldCheck className="w-5 h-5 text-emerald-500 mr-2" /> Secure Escrow</h3>
-                    <p className="text-sm text-neutral-600">Your payments are fully protected. Funds are held in escrow and only released when your order is safely delivered and confirmed.</p>
+            {/* Live Marketplace Activity Segment */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="bg-neutral-900 text-white rounded-3xl p-8 lg:p-12 border border-neutral-800 shadow-2xl relative overflow-hidden"
+            >
+              {/* Dynamic glowing background effect */}
+              <div className="absolute -top-40 -right-40 w-96 h-96 bg-orange-500/20 rounded-full blur-[100px] pointer-events-none animate-pulse"></div>
+              <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-500/20 rounded-full blur-[100px] pointer-events-none animate-pulse"></div>
+
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+                <div className="flex-1 space-y-6">
+                  <div className="inline-flex items-center space-x-2 bg-white/10 px-4 py-2 rounded-full border border-white/5">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">Live Activity</span>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-neutral-900 text-lg mb-2 flex items-center"><Truck className="w-5 h-5 text-blue-500 mr-2" /> Nationwide Delivery</h3>
-                    <p className="text-sm text-neutral-600">From Lagos to Abuja, we ensure fast, reliable, and trackable delivery to any state across Nigeria through our logistics network.</p>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-neutral-900 text-lg mb-2 flex items-center"><Store className="w-5 h-5 text-orange-500 mr-2" /> Verified Sellers</h3>
-                    <p className="text-sm text-neutral-600">Every merchant on our Naija online marketplace is strictly verified. Shop authentic, high-quality products directly from authorized sellers.</p>
-                  </div>
+                  <h2 className="text-3xl md:text-5xl font-black leading-tight tracking-tight">Naija Online Stores<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-200">#1 Trusted Marketplace</span></h2>
+                  <p className="text-neutral-400 text-lg leading-relaxed max-w-xl">
+                    Bridge the gap between shoppers and verified wholesale merchants. From electronics to luxury fashion, shop directly from audited factories and authorized distributors.
+                  </p>
+                </div>
+
+                {/* Animated Stats Dashboard */}
+                <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
+                  {[
+                    { label: "Active Vendors", val: "1,200+", icon: <Store className="w-5 h-5 text-orange-400" /> },
+                    { label: "Monthly Orders", val: "50k+", icon: <ShoppingBag className="w-5 h-5 text-blue-400" /> },
+                    { label: "Escrow Secured", val: "100%", icon: <ShieldCheck className="w-5 h-5 text-emerald-400" /> },
+                    { label: "Delivery Success", val: "99.8%", icon: <Truck className="w-5 h-5 text-purple-400" /> }
+                  ].map((stat, i) => (
+                    <motion.div 
+                      key={i}
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      whileInView={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      viewport={{ once: true }}
+                      className="bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors"
+                    >
+                      <div className="bg-white/10 w-10 h-10 rounded-full flex items-center justify-center mb-3">
+                        {stat.icon}
+                      </div>
+                      <h3 className="text-2xl font-black text-white">{stat.val}</h3>
+                      <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mt-1">{stat.label}</p>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Enhanced Animated Brand Banner Carousel */}
             <div className="relative w-full my-12 [perspective:1000px]">

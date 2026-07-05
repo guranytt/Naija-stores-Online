@@ -4,7 +4,7 @@ import Navbar from "./components/Navbar";
 
 const CustomerViews = lazy(() => import("./components/CustomerViews"));
 const MapTracking = lazy(() => import("./components/MapTracking"));
-const VendorAdmin = lazy(() => import("./components/VendorAdmin"));
+const VendorShell = lazy(() => import("./components/vendor/VendorShell"));
 const VendorAuth = lazy(() => import("./components/VendorAuth"));
 const UserAuthHub = lazy(() => import("./components/UserAuthHub"));
 const PaystackCheckout = lazy(() => import("./components/PaystackCheckout"));
@@ -474,7 +474,7 @@ export default function App() {
 
     // Listen for auth level events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (_event === 'SIGNED_UP' && session?.user) {
+      if ((_event as string) === 'SIGNED_UP' && session?.user) {
         fetch('/api/send-welcome-email', { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
@@ -554,7 +554,7 @@ export default function App() {
              // Query by user_id which is guaranteed to be linked correctly via RLS & Trigger
              const { data: userVendor } = await supabase.from("vendors").select("id, business_name, name, logo_url, avatar, rating, rating_count, sales_today, orders_pending, stock_alerts, bank_name, account_number, cac_number, whatsapp_number, physical_location, location, is_verified, phone, email, owner_name, business_description").eq("user_id", currentUserId).limit(1);
              if (userVendor && userVendor.length > 0) {
-               const item = userVendor[0];
+               const item = userVendor[0] as any;
                const mappedUserVendor: Vendor = {
                  ...item,
                  name: item.business_name || item.name || "Naija Store Merchant",
@@ -1277,7 +1277,7 @@ export default function App() {
       const { error } = await supabase.from("products").delete().eq("id", dbId);
       if (error) throw error;
 
-      setProducts(prev => prev.filter(p => p.id !== productId));
+      setProducts(products.filter(p => p.id !== productId));
       triggerToast(`Listing removed from catalog.`, "success");
     } catch (err: any) {
       triggerToast(err.message || "Failed to delete product.");
@@ -1459,39 +1459,10 @@ export default function App() {
                   : `vendor-admin-fallback-${stableFallbackId}`;
                 return (
                   <ErrorBoundary>
-                    <VendorAdmin
+                    <VendorShell
                       key={keyStr}
-                      categories={categories}
-                      onUpdateCategories={handleUpdateCategories}
-                      ads={ads}
-                      onUpdateAds={handleUpdateAds}
-                      deliveryZones={deliveryZones}
-                      onUpdateDeliveryZones={handleUpdateDeliveryZones}
-                      orders={orders}
-                      products={products}
-                      vendors={vendors}
-                      currentUserId={currentUserId}
-                      onUpdateVendor={handleUpdateVendor}
-                      onReviewOrderFlag={handleReviewOrderFlag}
-                      onPromptReceipt={handlePromptReceipt}
-                      onAddNewProduct={handleAddNewProduct}
-                      onUpdateProduct={handleUpdateProduct}
-                      onDeleteProduct={handleDeleteProduct}
-                      
-                      userEmail={userEmail}
-                      userBankName={userBankName}
-                      userBankAccountNumber={userBankAccountNumber}
-                      userCacNumber={userCacNumber}
-                      userStoreName={userStoreName}
-                      userOwnerName={userOwnerName}
-                      userAvatar={userAvatar}
-                      userWhatsappNumber={userWhatsappNumber}
-                      userLocation={userLocation}
-
-                      flashDeals={flashDeals}
-                      onProposeFlashDeal={handleProposeFlashDeal}
-                      onApproveFlashDeal={handleApproveFlashDeal}
-                      onRejectFlashDeal={handleRejectFlashDeal}
+                      vendor={foundActive || { id: stableFallbackId, name: "New Vendor Store", rating: 0, ratingCount: 0, productsCount: 0, products: [], location: "Lagos, Nigeria", joinedAt: new Date().toISOString().split('T')[0], avatar: "" }}
+                      isSuperAdmin={["adminnaijastoresonline@gmail.com", "mcgigimeshai@gmail.com"].includes(userEmail.toLowerCase())}
                     />
                   </ErrorBoundary>
                 );

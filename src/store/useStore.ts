@@ -31,13 +31,13 @@ export interface AppState {
 
   // Data State
   products: Product[];
-  setProducts: (products: Product[]) => void;
+  setProducts: (products: Product[] | ((prev: Product[]) => Product[])) => void;
   vendors: Vendor[];
-  setVendors: (vendors: Vendor[]) => void;
+  setVendors: (vendors: Vendor[] | ((prev: Vendor[]) => Vendor[])) => void;
   categories: Category[];
   setCategories: (categories: Category[]) => void;
   orders: Order[];
-  setOrders: (orders: Order[]) => void;
+  setOrders: (orders: Order[] | ((prev: Order[]) => Order[])) => void;
   ads: Advertisement[];
   setAds: (ads: Advertisement[]) => void;
   flashDeals: FlashDealProposal[];
@@ -105,13 +105,31 @@ export const useStore = create<AppState>()(
 
       // Data State
       products: [],
-      setProducts: (products) => set({ products }),
+      setProducts: (productsOrUpdater) => {
+        if (typeof productsOrUpdater === 'function') {
+          set({ products: productsOrUpdater(get().products) });
+        } else {
+          set({ products: productsOrUpdater });
+        }
+      },
       vendors: [],
-      setVendors: (vendors) => set({ vendors }),
+      setVendors: (vendorsOrUpdater) => {
+        if (typeof vendorsOrUpdater === 'function') {
+          set({ vendors: vendorsOrUpdater(get().vendors) });
+        } else {
+          set({ vendors: vendorsOrUpdater });
+        }
+      },
       categories: [],
       setCategories: (categories) => set({ categories }),
       orders: [],
-      setOrders: (orders) => set({ orders }),
+      setOrders: (ordersOrUpdater) => {
+        if (typeof ordersOrUpdater === 'function') {
+          set({ orders: ordersOrUpdater(get().orders) });
+        } else {
+          set({ orders: ordersOrUpdater });
+        }
+      },
       ads: [],
       setAds: (ads) => set({ ads }),
       flashDeals: [],
