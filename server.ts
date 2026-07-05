@@ -1921,9 +1921,27 @@ Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml`);
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[FULL-STACK BACKEND SERVER] Running securely on port ${PORT}`);
-  });
+    if (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1") {
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`[FULL-STACK BACKEND SERVER] Running securely on port ${PORT}`);
+      });
+    }
+  }
+
+  return app;
 }
 
-startServer();
+// Ensure the server starts if run directly (e.g., via tsx server.ts)
+if (require.main === module || (typeof process !== "undefined" && process.argv[1]?.includes("server"))) {
+  startServer();
+}
+
+// Global cached instance for Vercel Serverless Functions
+let appInstance: any = null;
+
+export default async function appHandler(req: any, res: any) {
+  if (!appInstance) {
+    appInstance = await startServer();
+  }
+  return appInstance(req, res);
+}
