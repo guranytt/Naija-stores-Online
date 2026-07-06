@@ -1397,14 +1397,15 @@ export default function CustomerViews({
                   <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between text-left min-w-0">
                     <div className="space-y-1 sm:space-y-1.5">
                       <div className="flex items-center justify-between gap-1">
-                        <div className="mb-1.5 flex flex-col space-y-1">
-                          <span className="text-[8px] sm:text-[9px] font-bold text-orange-500 uppercase tracking-widest block truncate">
-                            {p.vendorName}
-                          </span>
-                          <span className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest block truncate bg-neutral-100 w-fit px-1.5 py-0.5 rounded">
-                            {categories?.find(c => c.id === (p.categoryId || p.category_id))?.name || "General"}
-                          </span>
-                        </div>
+                        <div className="flex items-center space-x-1.5 min-w-0">
+                          <div className="mb-1.5 flex flex-col space-y-1">
+                            <span className="text-[8px] sm:text-[9px] font-bold text-orange-500 uppercase tracking-widest block truncate">
+                              {p.vendorName}
+                            </span>
+                            <span className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest block truncate bg-neutral-100 w-fit px-1.5 py-0.5 rounded">
+                              {categories?.find(c => c.id === (p.categoryId || p.category_id))?.name || "General"}
+                            </span>
+                          </div>
                           {p.condition === "Fairly Used" && (
                             <span className="text-[7px] sm:text-[8px] uppercase tracking-wider bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap">Pre-Owned</span>
                           )}
