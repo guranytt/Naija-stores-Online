@@ -439,10 +439,6 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
     onNavigateHome();
   };
 
-  if (feedback?.type === "error") {
-    return <GracefulErrorScreen reset={() => setFeedback(null)} />;
-  }
-
   return (
     <div className="max-w-xl mx-auto bg-white rounded-3xl border border-neutral-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.03)] overflow-hidden text-left relative">
       <div className="p-8 md:p-10">
@@ -460,9 +456,13 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
         </div>
 
         {/* Feedback Display Banner */}
-        {feedback && feedback.type === "success" && (
-          <div className="p-4 rounded-2xl mb-6 flex items-start space-x-3 text-xs leading-normal font-medium border bg-emerald-50 text-emerald-800 border-emerald-100">
-            <CheckCircle className="w-5 h-5 shrink-0 text-emerald-500 mt-0.5" />
+        {feedback && (
+          <div className={`p-4 rounded-2xl mb-6 flex items-start space-x-3 text-xs leading-normal font-medium border ${feedback.type === "error" ? "bg-red-50 text-red-800 border-red-100" : "bg-emerald-50 text-emerald-800 border-emerald-100"}`}>
+            {feedback.type === "error" ? (
+              <AlertCircle className="w-5 h-5 shrink-0 text-red-500 mt-0.5" />
+            ) : (
+              <CheckCircle className="w-5 h-5 shrink-0 text-emerald-500 mt-0.5" />
+            )}
             <span>{feedback.msg}</span>
           </div>
         )}

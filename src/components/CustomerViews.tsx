@@ -372,64 +372,29 @@ export default function CustomerViews({
       const pCatId = product.categoryId || "";
       const pCatSlug = (product.categorySlug || "").toLowerCase();
       
-      const activeCategoryObj = categories?.find(c => c.id === activeCategoryTab || (c.slug || "").toLowerCase() === activeCatLower || c.name.toLowerCase() === activeCatLower);
+      const activeCategoryObj = categories?.find(c => c.id === activeCategoryTab || (c.slug || "").toLowerCase() === activeCatLower);
       const targetCatId = activeCategoryObj ? activeCategoryObj.id : activeCategoryTab;
-      const activeCatNameLower = (activeCategoryObj?.name || activeCategoryTab).toLowerCase();
-      const activeCatSlugLower = (activeCategoryObj?.slug || "").toLowerCase();
+      const targetCatSlug = (activeCategoryObj?.slug || "").toLowerCase();
 
-      const isTextMatch = (a: string, b: string) => {
-        if (!a || !b) return false;
-        const normA = a.toLowerCase().replace(/[^a-z0-9]/g, "");
-        const normB = b.toLowerCase().replace(/[^a-z0-9]/g, "");
-        if (!normA || !normB) return false;
-        return normA.includes(normB) || normB.includes(normA);
-      };
-
-      const semanticMap: Record<string, string[]> = {
-        "beauty": ["beauty", "health", "cosmetics", "makeup", "skincare", "fragrance", "hair"],
-        "phone": ["phone", "mobile", "smartphone", "gadget", "tablet", "accessories"],
-        "electronic": ["electronic", "audio", "camera", "computer", "laptop", "tv", "appliance", "gadgets", "video", "tech"],
-        "men": ["men", "male", "boy", "guy"],
-        "women": ["women", "female", "girl", "lady"],
-        "kid": ["kid", "child", "baby", "toy", "toddler"],
-        "grocer": ["grocery", "food", "drink", "beverage", "snack"],
-      };
-
-      const hasSemanticMatch = () => {
-        if (!pCatLower) return false;
-        for (const [key, aliases] of Object.entries(semanticMap)) {
-          if (activeCatNameLower.includes(key) || activeCategoryTab.includes(key) || activeCatSlugLower.includes(key)) {
-            if (aliases.some(alias => pCatLower.includes(alias))) {
-              return true;
-            }
-          }
-        }
-        return false;
-      };
-
+      // Check strictly against the backend UUID or Slug mapping
+      const pCatId = product.categoryId || "";
+      const pCatSlug = (product.categorySlug || "").toLowerCase();
+      
       const cleanPCatId = pCatId.trim().toLowerCase();
       const cleanTargetId = targetCatId.trim().toLowerCase();
 
-      matchesCategory = 
-        (cleanPCatId && cleanTargetId && cleanPCatId === cleanTargetId) || 
-        isTextMatch(activeCatNameLower, pCatLower) || 
-        isTextMatch(activeCategoryTab, pCatLower) ||
-        isTextMatch(activeCatSlugLower, pCatSlug) ||
-        hasSemanticMatch();
+      if (cleanPCatId && cleanTargetId && cleanPCatId === cleanTargetId) {
+        matchesCategory = true;
+      } else if (pCatSlug && targetCatSlug && pCatSlug === targetCatSlug) {
+        matchesCategory = true;
+      } else {
+        // Fallback for legacy items without a category UUID: strict string equality only
+        const pCatLower = (product.category || "").toLowerCase().trim();
+        const activeCatNameLower = (activeCategoryObj?.name || activeCategoryTab).toLowerCase().trim();
         
-      // Debug log as requested by user
-      if (activeCategoryTab !== "all" && matchesCategory === false) {
-          // Only log the first mismatched product to avoid spamming the console
-          if (!(window as any).hasLoggedMismatch) {
-              console.log("--- CATEGORY MISMATCH DEBUG LOG ---");
-              console.log("Active Tab:", activeCategoryTab);
-              console.log("Target Category ID:", targetCatId);
-              console.log("Product:", product);
-              console.log("Product Category ID:", pCatId);
-              console.log("Product Category Name:", pCatLower);
-              console.log("-----------------------------------");
-              (window as any).hasLoggedMismatch = true;
-          }
+        if (pCatLower && (pCatLower === activeCatNameLower || pCatLower === activeCategoryTab.toLowerCase())) {
+          matchesCategory = true;
+        }
       }
     }
     
