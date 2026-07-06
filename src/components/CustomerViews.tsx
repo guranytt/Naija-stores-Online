@@ -353,12 +353,13 @@ export default function CustomerViews({
       const pCatId = product.categoryId || "";
       const pCatSlug = (product.categorySlug || "").toLowerCase();
       
-      const activeCategoryObj = categories?.find(c => c.id === activeCategoryTab);
-      const activeCatNameLower = (activeCategoryObj?.name || "").toLowerCase();
+      const activeCategoryObj = categories?.find(c => c.id === activeCategoryTab || (c.slug || "").toLowerCase() === activeCatLower || c.name.toLowerCase() === activeCatLower);
+      const targetCatId = activeCategoryObj ? activeCategoryObj.id : activeCategoryTab;
+      const activeCatNameLower = (activeCategoryObj?.name || activeCategoryTab).toLowerCase();
       const activeCatSlugLower = (activeCategoryObj?.slug || "").toLowerCase();
 
       matchesCategory = 
-        pCatId === activeCategoryTab || 
+        pCatId === targetCatId || 
         (activeCatNameLower && pCatLower.includes(activeCatNameLower)) || 
         (activeCatNameLower && activeCatNameLower.includes(pCatLower)) ||
         (activeCatSlugLower && pCatSlug === activeCatSlugLower) ||
