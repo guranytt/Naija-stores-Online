@@ -453,8 +453,8 @@ Return valid JSON only matching this schema exactly:
       } else if (type === "status_change") {
         result = await emailService.sendOrderStatusChange(to, name, ordId, data?.newStatus || "Processing");
       } else if (type === "customer_signup") {
+        // Sends welcome email to customer only. Admin is notified via the separate admin_new_account call from frontend.
         result = await emailService.sendWelcomeEmail(to, name);
-        await emailService.sendAdminNotificationEmail(to, "customer", name);
       } else if (type === "admin_new_account") {
         result = await emailService.sendAdminNotificationEmail(data?.emailAddress || "Unknown", data?.accountType || "User", data?.fullName || name);
       } else if (type === "vendor_signup") {

@@ -15,8 +15,17 @@ const SENDER = "Naija Online Stores <admin@naijaonlinestores.com.ng>";
 
 let resendInstance: Resend | null = null;
 const apiKey = process.env.RESEND_API_KEY;
-if (apiKey) {
+if (apiKey && apiKey.startsWith("re_")) {
   resendInstance = new Resend(apiKey);
+  console.log("[Email Service] ✅ Resend API initialised. Live email delivery active.");
+} else {
+  console.error(
+    "\n╔══════════════════════════════════════════════════════════╗\n" +
+    "║  ⚠️  RESEND_API_KEY is missing or invalid!               ║\n" +
+    "║  All emails will be SILENTLY DROPPED (mock mode).        ║\n" +
+    "║  Add RESEND_API_KEY=re_xxx to your .env / Vercel env.   ║\n" +
+    "╚══════════════════════════════════════════════════════════╝\n"
+  );
 }
 
 const BACKUP_FILE_PATH = path.join(process.cwd(), "email_logs_backup.json");
@@ -83,9 +92,9 @@ export async function logEmail(recipient: string, type: string, subject: string,
 // Low-level base email sender
 async function sendBaseEmail(to: string, subject: string, html: string, type: string, retries: number = 3) {
   if (!resendInstance) {
-    console.warn(`[EMAIL MOCK] Would send ${type} to ${to} with subject: ${subject}`);
-    await logEmail(to, type, subject, "Simulated");
-    return { success: true, simulated: true };
+    console.error(`[EMAIL NOT SENT] RESEND_API_KEY missing — dropped: ${type} → ${to}`);
+    await logEmail(to, type, subject, "Dropped — no API key");
+    return { success: false, simulated: true, error: "RESEND_API_KEY not configured" };
   }
 
   let attempt = 0;

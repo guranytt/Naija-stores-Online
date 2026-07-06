@@ -1,0 +1,13 @@
+[
+  {
+    "id": "log-1783360930984-xd7cbu4a1",
+    "recipient": "adminnaijastoresonline@gmail.com",
+    "email": "adminnaijastoresonline@gmail.com",
+    "template_name": "Admin Notification",
+    "type": "Admin Notification",
+    "subject": "[Admin Alert] New Customer Registration: John Testman",
+    "status": "Simulated",
+    "error_message": null,
+    "created_at": "2026-07-06T18:02:10.985Z"
+  }
+]
