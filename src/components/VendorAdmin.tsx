@@ -985,7 +985,7 @@ export default function VendorAdmin({
           {showAddProductModal && (
             <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-xs" onClick={() => setShowAddProductModal(false)} />
-              <div className="relative w-full max-w-md bg-white rounded-2xl shadow-premium p-6 overflow-hidden z-10">
+              <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-premium p-6 z-10 scrollbar-thin scrollbar-thumb-neutral-200">
                 <h3 className="text-lg font-black text-neutral-900 tracking-tight mb-4">Publish Custom Shop Product</h3>
                 
                 <form onSubmit={handleCreateProductSubmit} className="space-y-4">

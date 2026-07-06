@@ -455,6 +455,8 @@ Return valid JSON only matching this schema exactly:
       } else if (type === "customer_signup") {
         result = await emailService.sendWelcomeEmail(to, name);
         await emailService.sendAdminNotificationEmail(to, "customer", name);
+      } else if (type === "admin_new_account") {
+        result = await emailService.sendAdminNotificationEmail(data?.emailAddress || "Unknown", data?.accountType || "User", data?.fullName || name);
       } else if (type === "vendor_signup") {
         result = await emailService.sendVendorRegistrationReceived(to, name);
         await emailService.notifyAdminNewVendor(name, to);
@@ -1337,7 +1339,7 @@ function ensureUUID(idValue: any): string {
     });
 
   app.get("/api/categories", async (req, res) => {
-    res.setHeader("Vercel-CDN-Cache-Control", "max-age=300, stale-while-revalidate=600");
+    res.setHeader("Vercel-CDN-Cache-Control", "max-age=60, stale-while-revalidate=120");
     res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     try {
       if (!supabaseAdmin) {
