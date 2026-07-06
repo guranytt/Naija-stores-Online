@@ -192,12 +192,13 @@ export default function CustomerViews() {
     currentUserId,
     selectedVendorSlug: vendorSlug = "eko-heritage-weavers",
     setSelectedVendorSlug: onSelectVendor,
+    setIsCheckoutOpen,
   } = useStore();
   
   const isLoggedIn = !!currentUserId;
   const isLoading = false;
-  // TODO: Fix checkout and rate vendor handlers if needed
-  const onCheckout = () => { console.log('checkout'); };
+  // TODO: Fix rate vendor handlers if needed
+  const onCheckout = () => setIsCheckoutOpen(true);
   const onRateVendor = (id: string, star: number) => { console.log('rate vendor', id, star); };
   
   // Choose source of truth for ads
