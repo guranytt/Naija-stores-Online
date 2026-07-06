@@ -358,13 +358,19 @@ export default function CustomerViews({
       const activeCatNameLower = (activeCategoryObj?.name || activeCategoryTab).toLowerCase();
       const activeCatSlugLower = (activeCategoryObj?.slug || "").toLowerCase();
 
+      const isTextMatch = (a: string, b: string) => {
+        if (!a || !b) return false;
+        const normA = a.replace(/[^a-z0-9]/g, "");
+        const normB = b.replace(/[^a-z0-9]/g, "");
+        if (!normA || !normB) return false;
+        return normA.includes(normB) || normB.includes(normA);
+      };
+
       matchesCategory = 
-        pCatId === targetCatId || 
-        (activeCatNameLower && pCatLower.includes(activeCatNameLower)) || 
-        (activeCatNameLower && activeCatNameLower.includes(pCatLower)) ||
-        (activeCatSlugLower && pCatSlug === activeCatSlugLower) ||
-        pCatLower.includes(activeCatLower) || 
-        activeCatLower.includes(pCatLower);
+        (pCatId && targetCatId && pCatId === targetCatId) || 
+        isTextMatch(activeCatNameLower, pCatLower) || 
+        isTextMatch(activeCategoryTab, pCatLower) ||
+        isTextMatch(activeCatSlugLower, pCatSlug);
     }
     
     let matchesSearch = true;
