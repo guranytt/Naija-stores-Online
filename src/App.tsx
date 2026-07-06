@@ -1186,8 +1186,10 @@ export default function App() {
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
               <UserAuthHub
+               currentEmail={userEmail}
                onNavigate={(screen) => setCurrentScreen(screen)}
                onNavigateHome={() => setCurrentScreen("home")}
+               onUpdateEmail={(email) => setUserEmail(email)}
               />
             </motion.div>
           )}

@@ -229,7 +229,7 @@ export default function VendorAdmin({
                          phone: ""
                        } as Vendor;
 
-  const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com";
+  const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com" || userEmail?.toLowerCase() === "mcgigimeshai@gmail.com";
 
   // Keep adminTab state synced if standard vendor tries to access platform tabs
   React.useEffect(() => {
