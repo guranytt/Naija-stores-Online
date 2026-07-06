@@ -24,7 +24,7 @@ export default function ContactPage() {
         
         <div className="space-y-6">
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+            <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-[#4CAF50]">
               <Phone className="w-6 h-6" />
             </div>
             <div>
@@ -34,7 +34,7 @@ export default function ContactPage() {
           </div>
           
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+            <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-[#4CAF50]">
               <Mail className="w-6 h-6" />
             </div>
             <div>
@@ -44,7 +44,7 @@ export default function ContactPage() {
           </div>
           
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+            <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-[#4CAF50]">
               <MapPin className="w-6 h-6" />
             </div>
             <div>
@@ -55,27 +55,27 @@ export default function ContactPage() {
         </div>
       </div>
 
-      <div className="bg-white p-8 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100">
-        <h2 className="text-2xl font-bold mb-6">Send us a Message</h2>
+      <div className="bg-white p-8 rounded-3xl shadow-sm border border-neutral-100">
+        <h2 className="text-2xl font-black mb-6 text-neutral-900">Send us a Message</h2>
         {submitted ? (
-          <div className="p-4 bg-emerald-50 text-emerald-700 rounded-xl">
+          <div className="p-4 bg-[#4CAF50]/10 text-[#4CAF50] font-bold rounded-xl border border-green-100">
             Thank you for reaching out! We'll get back to you shortly.
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-1">Full Name</label>
-              <input type="text" required className="w-full border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              <label className="block text-sm font-bold text-neutral-700 mb-1">Full Name</label>
+              <input type="text" required className="w-full border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#4CAF50] transition-all" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-1">Email Address</label>
-              <input type="email" required className="w-full border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              <label className="block text-sm font-bold text-neutral-700 mb-1">Email Address</label>
+              <input type="email" required className="w-full border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#4CAF50] transition-all" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-1">Message</label>
-              <textarea rows={4} required className="w-full border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+              <label className="block text-sm font-bold text-neutral-700 mb-1">Message</label>
+              <textarea rows={4} required className="w-full border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#4CAF50] transition-all"></textarea>
             </div>
-            <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-colors">
+            <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-colors tracking-wide shadow-sm">
               Send Message
             </button>
           </form>

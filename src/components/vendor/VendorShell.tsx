@@ -99,7 +99,7 @@ export default function VendorShell({ vendor, isSuperAdmin = false }: Props) {
       {/* Mobile Header */}
       <div className="md:hidden bg-primary-dark text-white p-4 flex items-center justify-between shadow-md z-20">
         <div className="flex items-center space-x-2">
-          <Database className="w-6 h-6 text-accent" />
+          <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="w-6 h-auto drop-shadow-md" alt="Logo" />
           <h1 className="font-bold text-lg truncate max-w-[200px]">
             {activeVendor?.name || "Vendor Portal"}
           </h1>
@@ -112,7 +112,7 @@ export default function VendorShell({ vendor, isSuperAdmin = false }: Props) {
       {/* Sidebar Navigation */}
       <div className={`fixed inset-y-0 left-0 transform ${isMobileNavOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0 w-64 bg-primary-dark text-white shadow-xl transition-transform duration-300 ease-in-out z-10 flex flex-col flex-shrink-0`}>
         <div className="p-6 hidden md:flex items-center space-x-3 mb-6 border-b border-white/10 pb-6">
-          <Database className="w-8 h-8 text-accent" />
+          <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="w-10 h-auto drop-shadow-md" alt="Logo" />
           <div>
             <h1 className="font-bold text-xl leading-tight">Vendor Portal</h1>
             <p className="text-xs text-white/60 truncate max-w-[150px]">{activeVendor?.name}</p>

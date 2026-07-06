@@ -597,9 +597,7 @@ export default function CustomerViews() {
   const pageTransition = { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] };
 
   return (
-    <div className="font-sans text-neutral-800">
-      
-      
+    <div className="font-sans text-neutral-900 bg-white">
       {/* ---------------- 1. MARKETPLACE HOMEPAGE ---------------- */}
       <AnimatePresence mode="wait">
         {screen === "home" && (
@@ -613,17 +611,17 @@ export default function CustomerViews() {
             className="space-y-12 pb-16"
           >
             {/* HERO SECTION - Split Layout */}
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+            <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 mt-6">
               <div className="flex gap-6 relative">
                 {/* Left Sidebar (Categories Menu) */}
-                <div className="w-[250px] shrink-0 hidden lg:block bg-white border border-neutral-200 rounded-lg shadow-sm self-start">
-                   <div className="bg-orange-500 text-white font-bold px-4 py-3 rounded-t-lg flex items-center space-x-2">
+                <div className="w-[260px] shrink-0 hidden lg:block bg-white border border-neutral-200 rounded-xl shadow-ambient self-start overflow-hidden">
+                   <div className="bg-[#4CAF50] text-white font-bold px-5 py-4 flex items-center space-x-3">
                       <Menu className="w-5 h-5" />
-                      <span className="text-sm">BROWSE CATALOGUE</span>
+                      <span className="text-sm tracking-wide">BROWSE CATEGORIES</span>
                    </div>
-                   <ul className="py-2 text-sm text-neutral-600 font-medium">
+                   <ul className="py-2 text-sm text-neutral-700 font-semibold">
                      {categories.slice(0,10).map((cat, i) => (
-                       <li key={cat.id} className="px-5 py-2.5 hover:text-orange-500 cursor-pointer flex justify-between items-center group">
+                       <li key={cat.id} onClick={() => { setInitialCategory(cat.id); setScreen("shop"); }} className="px-5 py-3 hover:bg-orange-50 hover:text-orange-500 cursor-pointer flex justify-between items-center group transition-colors">
                           <span className="truncate pr-2">{cat.name}</span>
                           <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-orange-500" />
                        </li>
@@ -632,7 +630,7 @@ export default function CustomerViews() {
                 </div>
 
                 {/* Right Carousel / Banner Area */}
-                <div className="flex-1 bg-neutral-100 rounded-xl overflow-hidden relative min-h-[400px] sm:min-h-[500px]">
+                <div className="flex-1 bg-neutral-100 rounded-2xl overflow-hidden relative min-h-[400px] sm:min-h-[500px] shadow-sm">
                    {homepageAds.length > 0 && (
                      <div className="absolute inset-0">
                        <img 
@@ -640,15 +638,15 @@ export default function CustomerViews() {
                           alt="Hero Promo"
                           className="w-full h-full object-cover"
                        />
-                       <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/50 to-transparent flex items-center">
-                          <div className="p-8 sm:p-14 max-w-md">
-                            <h2 className="text-4xl sm:text-5xl font-black text-neutral-900 leading-tight mb-2">
+                       <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/70 to-transparent flex items-center">
+                          <div className="p-8 sm:p-14 max-w-lg">
+                            <h2 className="text-4xl sm:text-5xl font-extrabold text-neutral-900 leading-tight mb-3">
                                {homepageAds[currentAdIndex].title.split(' ').slice(0, 3).join(' ')} <br/>
                                <span className="text-orange-500">{homepageAds[currentAdIndex].title.split(' ').slice(3).join(' ')}</span>
                             </h2>
-                            <p className="text-neutral-600 font-medium mb-6">Total Order: <strong className="text-neutral-900">₦25,000.00</strong></p>
-                            <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full px-8 py-3 transition-colors shadow-lg shadow-blue-500/30">
-                              Shop Now
+                            <p className="text-neutral-600 font-medium mb-8 text-lg">Incredible deals waiting for you.</p>
+                            <button onClick={() => onNavigate("shop")} className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg px-8 py-3.5 transition-colors shadow-lg shadow-orange-500/30">
+                               Shop Now
                             </button>
                           </div>
                        </div>
@@ -658,7 +656,7 @@ export default function CustomerViews() {
                            <button 
                              key={idx}
                              onClick={() => setCurrentAdIndex(idx)}
-                             className={`w-2.5 h-2.5 rounded-full ${idx === currentAdIndex ? 'bg-orange-500 w-6' : 'bg-white/60'} transition-all`}
+                             className={`w-2.5 h-2.5 rounded-full ${idx === currentAdIndex ? 'bg-orange-500 w-8' : 'bg-white/80'} transition-all duration-300`}
                            />
                          ))}
                        </div>
@@ -669,59 +667,59 @@ export default function CustomerViews() {
             </div>
 
             {/* SUPER DEALS - Horizontal Track */}
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-               <div className="flex justify-between items-end border-b-2 border-blue-600 pb-2 mb-6">
+            <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+               <div className="flex justify-between items-end border-b-2 border-orange-500 pb-3 mb-8">
                  <div className="flex items-center space-x-4">
-                    <h3 className="text-2xl font-black text-neutral-900 italic pr-2">Super Deals</h3>
-                    <div className="hidden sm:flex items-center space-x-2 text-sm text-neutral-500 font-medium border-l border-neutral-300 pl-4">
-                      <span>top products, incredible prices</span>
+                    <h3 className="text-2xl font-extrabold text-neutral-900 italic pr-2">Super Deals</h3>
+                    <div className="hidden sm:flex items-center space-x-3 text-sm text-neutral-500 font-semibold border-l border-neutral-300 pl-4">
+                      <span>Ends in:</span>
                       <div className="flex space-x-1 font-bold text-white text-xs">
-                        <span className="bg-blue-600 px-1.5 py-0.5 rounded">04</span> :
-                        <span className="bg-blue-600 px-1.5 py-0.5 rounded">20</span> :
-                        <span className="bg-blue-600 px-1.5 py-0.5 rounded">59</span>
+                        <span className="bg-orange-500 px-2 py-1 rounded">04</span> :
+                        <span className="bg-orange-500 px-2 py-1 rounded">20</span> :
+                        <span className="bg-orange-500 px-2 py-1 rounded">59</span>
                       </div>
                     </div>
                  </div>
-                 <button onClick={() => onNavigate("shop")} className="text-sm font-bold text-blue-600 hover:underline">View more</button>
+                 <button onClick={() => onNavigate("shop")} className="text-sm font-bold text-orange-500 hover:underline">View All</button>
                </div>
                
-               <div className="flex overflow-x-auto pb-4 gap-6 scrollbar-thin">
+               <div className="flex overflow-x-auto pb-6 gap-6 scrollbar-thin">
                   {products.slice(0, 5).map(p => (
-                    <div key={p.id} onClick={() => { onSelectProduct(p.id); onNavigate("details"); }} className="w-56 shrink-0 bg-neutral-50/50 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-shadow group relative border border-transparent hover:border-neutral-200">
-                      <div className="aspect-square bg-white rounded-lg mb-3 overflow-hidden relative p-2">
-                         <img src={p.image} className="w-full h-full object-contain group-hover:scale-105 transition-transform" alt={p.title} />
+                    <div key={p.id} onClick={() => { onSelectProduct(p.id); onNavigate("details"); }} className="w-56 shrink-0 bg-white rounded-2xl p-4 cursor-pointer hover:shadow-ambient transition-all duration-300 group relative border border-neutral-100 hover:border-orange-200">
+                      <div className="aspect-square bg-[#F9FAFB] rounded-xl mb-4 overflow-hidden relative p-4 flex items-center justify-center">
+                         <img src={p.image} className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-500" alt={p.title} />
                          {p.salePercentage && (
-                            <span className="absolute bottom-2 right-2 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">-{p.salePercentage}%</span>
+                            <span className="absolute top-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">-{p.salePercentage}%</span>
                          )}
                       </div>
-                      <h4 className="font-bold text-sm text-neutral-800 line-clamp-1">{p.title}</h4>
-                      <p className="font-black text-neutral-900">{formatNaira(p.price)}</p>
-                      <p className="text-[10px] text-neutral-400 mt-1">{p.stock} orders</p>
+                      <h4 className="font-semibold text-sm text-neutral-800 line-clamp-2 mb-1">{p.title}</h4>
+                      <p className="font-extrabold text-lg text-neutral-900">{formatNaira(p.price)}</p>
+                      <p className="text-[11px] text-neutral-400 mt-1 font-medium">{p.stock} units available</p>
                     </div>
                   ))}
                </div>
             </div>
 
             {/* TWO GRIDS: Top Selection & New Arrivals */}
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 
                 {/* Top Selection */}
-                <div className="bg-neutral-100/60 rounded-2xl p-6 border border-neutral-200/50">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-black text-neutral-900">Top Selection</h3>
-                    <button className="text-sm font-bold text-blue-600 hover:underline">View more</button>
+                <div className="bg-[#F9FAFB] rounded-3xl p-8 border border-neutral-200">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-2xl font-extrabold text-neutral-900">Top Selection</h3>
+                    <button className="text-sm font-bold text-orange-500 hover:underline">View more</button>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-5">
                      {products.slice(5, 8).map(p => (
-                        <div key={p.id} onClick={() => { onSelectProduct(p.id); onNavigate("details"); }} className="bg-white rounded-xl p-3 cursor-pointer hover:shadow-md transition-shadow relative">
-                          <div className="aspect-square mb-2 overflow-hidden">
-                             <img src={p.image} className="w-full h-full object-contain" alt={p.title} />
+                        <div key={p.id} onClick={() => { onSelectProduct(p.id); onNavigate("details"); }} className="bg-white rounded-2xl p-3 cursor-pointer hover:shadow-ambient transition-all border border-neutral-100 hover:border-orange-200 relative group">
+                          <div className="aspect-square mb-3 overflow-hidden bg-neutral-50 rounded-xl p-2">
+                             <img src={p.image} className="w-full h-full object-contain group-hover:scale-105 transition-transform" alt={p.title} />
                           </div>
-                          <h4 className="font-bold text-xs text-neutral-800 line-clamp-1">{p.title}</h4>
-                          <p className="font-black text-sm text-neutral-900">{formatNaira(p.price)}</p>
+                          <h4 className="font-semibold text-xs text-neutral-800 line-clamp-1">{p.title}</h4>
+                          <p className="font-extrabold text-sm text-neutral-900 mt-0.5">{formatNaira(p.price)}</p>
                           {p.salePercentage && (
-                            <span className="bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block">-{p.salePercentage}%</span>
+                            <span className="bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1.5 inline-block">-{p.salePercentage}%</span>
                           )}
                         </div>
                      ))}
@@ -729,21 +727,21 @@ export default function CustomerViews() {
                 </div>
 
                 {/* New Arrivals */}
-                <div className="bg-neutral-100/60 rounded-2xl p-6 border border-neutral-200/50">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-black text-neutral-900">New Arrivals</h3>
-                    <button className="text-sm font-bold text-blue-600 hover:underline">View more</button>
+                <div className="bg-[#F9FAFB] rounded-3xl p-8 border border-neutral-200">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-2xl font-extrabold text-neutral-900">New Arrivals</h3>
+                    <button className="text-sm font-bold text-orange-500 hover:underline">View more</button>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-5">
                      {products.slice(8, 11).map(p => (
-                        <div key={p.id} onClick={() => { onSelectProduct(p.id); onNavigate("details"); }} className="bg-white rounded-xl p-3 cursor-pointer hover:shadow-md transition-shadow relative">
-                          <div className="aspect-square mb-2 overflow-hidden">
-                             <img src={p.image} className="w-full h-full object-contain" alt={p.title} />
+                        <div key={p.id} onClick={() => { onSelectProduct(p.id); onNavigate("details"); }} className="bg-white rounded-2xl p-3 cursor-pointer hover:shadow-ambient transition-all border border-neutral-100 hover:border-orange-200 relative group">
+                          <div className="aspect-square mb-3 overflow-hidden bg-neutral-50 rounded-xl p-2">
+                             <img src={p.image} className="w-full h-full object-contain group-hover:scale-105 transition-transform" alt={p.title} />
                           </div>
-                          <h4 className="font-bold text-xs text-neutral-800 line-clamp-1">{p.title}</h4>
-                          <p className="font-black text-sm text-neutral-900">{formatNaira(p.price)}</p>
+                          <h4 className="font-semibold text-xs text-neutral-800 line-clamp-1">{p.title}</h4>
+                          <p className="font-extrabold text-sm text-neutral-900 mt-0.5">{formatNaira(p.price)}</p>
                           {p.salePercentage && (
-                            <span className="bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block">-{p.salePercentage}%</span>
+                            <span className="bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md mt-1.5 inline-block">-{p.salePercentage}%</span>
                           )}
                         </div>
                      ))}
@@ -754,64 +752,66 @@ export default function CustomerViews() {
             </div>
 
             {/* CHOOSE CATEGORY BENTO */}
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-12 bg-neutral-100 rounded-3xl py-12 border border-neutral-200">
-               <div className="text-center mb-8">
-                 <h2 className="text-2xl font-black text-neutral-900">Choose Category</h2>
+            <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 mt-12 bg-[#F9FAFB] rounded-3xl py-12 border border-neutral-200">
+               <div className="text-center mb-10">
+                 <h2 className="text-3xl font-extrabold text-neutral-900">Popular Categories</h2>
                </div>
                
                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   {/* Big Banner Left */}
-                  <div className="bg-blue-600 rounded-2xl p-8 text-white relative overflow-hidden group cursor-pointer" onClick={() => onNavigate("shop")}>
+                  <div className="bg-[#4CAF50] rounded-2xl p-8 text-white relative overflow-hidden group cursor-pointer shadow-ambient" onClick={() => onNavigate("shop")}>
                      <div className="relative z-10">
-                       <span className="text-[10px] font-bold tracking-widest uppercase">On the weekend</span>
+                       <span className="text-xs font-bold tracking-widest uppercase text-green-100">Weekend Special</span>
                        <h3 className="text-3xl font-black mt-2 leading-tight">TOP CLOTHING</h3>
-                       <button className="bg-white text-blue-600 font-bold px-4 py-1.5 rounded-full text-xs mt-4">SHOP NOW!</button>
+                       <button className="bg-white text-[#4CAF50] hover:bg-neutral-100 transition-colors font-bold px-5 py-2.5 rounded-lg text-sm mt-6">Shop Now</button>
                      </div>
                      <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=300&q=80" className="absolute -bottom-10 -right-10 w-64 opacity-50 mix-blend-luminosity group-hover:scale-105 transition-transform duration-500" />
                   </div>
 
                   {/* 2x2 Grids in Middle */}
-                  <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                  <div className="md:col-span-2 grid grid-cols-2 gap-6">
                      {/* Top Rankings */}
-                     <div className="bg-white rounded-xl p-4 flex flex-col justify-between">
-                       <h4 className="font-bold text-sm text-neutral-900">Top Rankings</h4>
-                       <div className="flex gap-2 mt-4">
-                         <div className="flex-1 bg-neutral-50 rounded-lg p-2 aspect-square"><img src={products[0]?.image} className="w-full h-full object-contain" /></div>
-                         <div className="flex-1 bg-neutral-50 rounded-lg p-2 aspect-square"><img src={products[1]?.image} className="w-full h-full object-contain" /></div>
+                     <div className="bg-white rounded-2xl p-5 border border-neutral-100 flex flex-col justify-between hover:shadow-sm transition-shadow cursor-pointer" onClick={() => onNavigate("shop")}>
+                       <h4 className="font-extrabold text-sm text-neutral-900">Trending Now</h4>
+                       <div className="flex gap-3 mt-4">
+                         <div className="flex-1 bg-neutral-50 rounded-xl p-3 aspect-square flex items-center"><img src={products[0]?.image} className="max-w-full max-h-full object-contain" /></div>
+                         <div className="flex-1 bg-neutral-50 rounded-xl p-3 aspect-square flex items-center"><img src={products[1]?.image} className="max-w-full max-h-full object-contain" /></div>
                        </div>
                      </div>
                      {/* Smart Phone */}
-                     <div className="bg-white rounded-xl p-4 flex flex-col justify-between">
-                       <h4 className="font-bold text-sm text-neutral-900">Smart Phone</h4>
-                       <div className="flex gap-2 mt-4">
-                         <div className="flex-1 bg-neutral-50 rounded-lg p-2 aspect-square"><img src={products[2]?.image} className="w-full h-full object-contain" /></div>
-                         <div className="flex-1 bg-neutral-50 rounded-lg p-2 aspect-square"><img src={products[3]?.image} className="w-full h-full object-contain" /></div>
+                     <div className="bg-white rounded-2xl p-5 border border-neutral-100 flex flex-col justify-between hover:shadow-sm transition-shadow cursor-pointer" onClick={() => onNavigate("shop")}>
+                       <h4 className="font-extrabold text-sm text-neutral-900">Electronics</h4>
+                       <div className="flex gap-3 mt-4">
+                         <div className="flex-1 bg-neutral-50 rounded-xl p-3 aspect-square flex items-center"><img src={products[2]?.image} className="max-w-full max-h-full object-contain" /></div>
+                         <div className="flex-1 bg-neutral-50 rounded-xl p-3 aspect-square flex items-center"><img src={products[3]?.image} className="max-w-full max-h-full object-contain" /></div>
                        </div>
                      </div>
                      {/* Home Appliances */}
-                     <div className="bg-white rounded-xl p-4 flex flex-col justify-between">
-                       <h4 className="font-bold text-sm text-neutral-900">Home Appliances</h4>
-                       <div className="flex gap-2 mt-4">
-                         <div className="flex-1 bg-neutral-50 rounded-lg p-2 aspect-square"><img src={products[4]?.image} className="w-full h-full object-contain" /></div>
-                         <div className="flex-1 bg-neutral-50 rounded-lg p-2 aspect-square"><img src={products[5]?.image} className="w-full h-full object-contain" /></div>
+                     <div className="bg-white rounded-2xl p-5 border border-neutral-100 flex flex-col justify-between hover:shadow-sm transition-shadow cursor-pointer" onClick={() => onNavigate("shop")}>
+                       <h4 className="font-extrabold text-sm text-neutral-900">Home Appliances</h4>
+                       <div className="flex gap-3 mt-4">
+                         <div className="flex-1 bg-neutral-50 rounded-xl p-3 aspect-square flex items-center"><img src={products[4]?.image} className="max-w-full max-h-full object-contain" /></div>
+                         <div className="flex-1 bg-neutral-50 rounded-xl p-3 aspect-square flex items-center"><img src={products[5]?.image} className="max-w-full max-h-full object-contain" /></div>
                        </div>
                      </div>
                      {/* Sports */}
-                     <div className="bg-white rounded-xl p-4 flex flex-col justify-between">
-                       <h4 className="font-bold text-sm text-neutral-900">Sports</h4>
-                       <div className="flex gap-2 mt-4">
-                         <div className="flex-1 bg-neutral-50 rounded-lg p-2 aspect-square"><img src={products[6]?.image} className="w-full h-full object-contain" /></div>
-                         <div className="flex-1 bg-neutral-50 rounded-lg p-2 aspect-square"><img src={products[7]?.image} className="w-full h-full object-contain" /></div>
+                     <div className="bg-white rounded-2xl p-5 border border-neutral-100 flex flex-col justify-between hover:shadow-sm transition-shadow cursor-pointer" onClick={() => onNavigate("shop")}>
+                       <h4 className="font-extrabold text-sm text-neutral-900">Sports & Outdoors</h4>
+                       <div className="flex gap-3 mt-4">
+                         <div className="flex-1 bg-neutral-50 rounded-xl p-3 aspect-square flex items-center"><img src={products[6]?.image} className="max-w-full max-h-full object-contain" /></div>
+                         <div className="flex-1 bg-neutral-50 rounded-xl p-3 aspect-square flex items-center"><img src={products[7]?.image} className="max-w-full max-h-full object-contain" /></div>
                        </div>
                      </div>
                   </div>
 
                   {/* Auth Welcome Block */}
-                  <div className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center text-center">
-                    <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-16 w-auto mb-6" alt="Naija Stores Logo" />
-                    <div className="flex space-x-2 w-full">
-                      <button onClick={() => onNavigate("auth")} className="flex-1 bg-orange-50 text-orange-600 font-bold py-2 rounded-lg text-sm">Join us</button>
-                      <button onClick={() => onNavigate("auth")} className="flex-1 bg-orange-500 text-white font-bold py-2 rounded-lg text-sm">Sign in</button>
+                  <div className="bg-white rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-neutral-100 shadow-sm">
+                    <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-20 w-auto mb-6 drop-shadow-sm" alt="Naija Stores Logo" />
+                    <h4 className="font-extrabold text-lg text-neutral-900 mb-2">Welcome to Naija Stores</h4>
+                    <p className="text-sm text-neutral-500 mb-6 font-medium">Join us today for exclusive deals</p>
+                    <div className="flex flex-col space-y-3 w-full">
+                      <button onClick={() => onNavigate("auth")} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg text-sm transition-colors shadow-md shadow-orange-500/20">Sign In / Register</button>
+                      <button onClick={() => onNavigate("sell")} className="w-full bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold py-3 rounded-lg text-sm transition-colors">Become a Vendor</button>
                     </div>
                   </div>
                </div>
@@ -839,15 +839,15 @@ export default function CustomerViews() {
              <motion.div
                initial={{ opacity: 0, y: 10 }}
                animate={{ opacity: 1, y: 0 }}
-               className="w-full bg-linear-to-r from-emerald-900 to-emerald-950 text-white rounded-2xl overflow-hidden relative p-6 sm:p-8 flex flex-row items-center justify-between border-2 border-emerald-800 shadow-sm mb-4"
+               className="w-full bg-gradient-to-r from-[#2E7D32] to-[#1B5E20] text-white rounded-2xl overflow-hidden relative p-6 sm:p-8 flex flex-row items-center justify-between shadow-sm mb-4"
              >
                <div className="z-10 text-left">
-                  <span className="text-[10px] text-orange-400 font-extrabold uppercase tracking-widest bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-800/80">Search Directory</span>
+                  <span className="text-[10px] text-orange-400 font-extrabold uppercase tracking-widest bg-black/30 px-2.5 py-1 rounded-lg border border-white/20">Search Directory</span>
                   <h3 className="text-white font-black text-xl sm:text-2xl mt-2">Showing Results for "{searchFilter}"</h3>
-                  <p className="text-xs text-emerald-200 mt-1">Found top deals from trusted, verified merchants</p>
+                  <p className="text-xs text-green-100 mt-1">Found top deals from trusted, verified merchants</p>
                </div>
                
-               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white shrink-0 border-2 border-emerald-700 flex items-center justify-center p-1 shadow-md z-10">
+               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white shrink-0 border-2 border-green-700 flex items-center justify-center p-1 shadow-md z-10">
                  <img loading="lazy" 
                    src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" 
                    alt="Naija Online Stores Logo" 
@@ -858,7 +858,7 @@ export default function CustomerViews() {
                
                {/* Decorative background vectors */}
                <div className="absolute right-0 top-0 opacity-10 pointer-events-none translate-y-2 translate-x-2">
-                 <span className="text-[140px] font-black tracking-tighter text-emerald-500/20 select-none leading-none">SEARCH</span>
+                 <span className="text-[140px] font-black tracking-tighter text-green-500/20 select-none leading-none">SEARCH</span>
                </div>
              </motion.div>
           ) : activeCategoryTab !== "all" ? (() => {
@@ -962,11 +962,11 @@ export default function CustomerViews() {
                 }`}
               >
                 {activeCategoryTab === "all" && (
-                  <motion.div
-                    layoutId="activeCategoryTabHighlight"
-                    className="absolute inset-0 bg-emerald-950 rounded-xl -z-10"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
+                        <motion.div
+                        layoutId="activeCategoryTabHighlight"
+                        className="absolute inset-0 bg-[#4CAF50] rounded-xl -z-10"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
                 )}
                 All Categories
               </button>
@@ -1047,7 +1047,7 @@ export default function CustomerViews() {
               Array.from({ length: 8 }).map((_, skeletonIdx) => (
                 <div
                   key={`skeleton-card-${skeletonIdx}`}
-                  className="bg-white rounded-2xl border border-neutral-150 p-3 flex flex-col h-72 sm:h-80 shadow-ambient select-none text-left gap-3"
+                  className="bg-white rounded-2xl border border-neutral-100 p-3 flex flex-col h-72 sm:h-80 shadow-ambient select-none text-left gap-3"
                 >
                   <div className="w-full h-32 sm:h-40 shimmer-bg rounded-xl shrink-0" />
                   <div className="flex-1 flex flex-col justify-between py-1">
@@ -1078,7 +1078,7 @@ export default function CustomerViews() {
                   viewport={{ once: true, margin: "-10px" }}
                   transition={{ duration: 0.35, delay: Math.min(idx * 0.04, 0.3) }}
                   whileHover={shouldReduceMotion ? {} : { y: -5, scale: 1.01, boxShadow: "0 12px 20px -8px rgba(0,0,0,0.06)" }}
-                  className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-sm hover:shadow-md group cursor-pointer transition-all flex flex-col justify-between h-auto"
+                  className="bg-white rounded-2xl border border-neutral-100 overflow-hidden shadow-sm hover:shadow-ambient hover:border-orange-200 group cursor-pointer transition-all flex flex-col justify-between h-auto"
                   id={`product-cell-${p.id}`}
                 >
                   {/* Top Side: Square Image Area (Vertical layout context) */}
@@ -1166,7 +1166,7 @@ export default function CustomerViews() {
                         onClick={(e) => handleAddToCartWithFeedback(p, 1, p?.sizes?.[0], p?.colors?.[0], e)}
                         className={`px-2 py-1.5 sm:px-3 sm:py-1.5 font-bold text-[9px] sm:text-xs rounded-lg shadow-xs transition-all duration-300 shrink-0 ${
                           isAdded
-                            ? "bg-emerald-600 text-white"
+                            ? "bg-[#4CAF50] text-white"
                             : "bg-orange-500 hover:bg-orange-600 text-white"
                         }`}
                       >
@@ -1203,7 +1203,7 @@ export default function CustomerViews() {
                       }}
                       className={`w-9 h-9 rounded-xl text-xs font-bold select-none transition-all flex items-center justify-center cursor-pointer ${
                         isCurrent
-                          ? "bg-emerald-800 text-white font-extrabold shadow-sm scale-102"
+                          ? "bg-[#4CAF50] text-white font-extrabold shadow-sm scale-102"
                           : "border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600"
                       }`}
                     >
@@ -1233,7 +1233,7 @@ export default function CustomerViews() {
                     setActiveCategoryTab("all");
                     setSortOption("recommended");
                   }}
-                  className="px-4 py-2 bg-emerald-900 text-white font-bold text-xs rounded-xl hover:bg-emerald-800 mt-4 transition-colors"
+                  className="px-4 py-2 bg-[#4CAF50] text-white font-bold text-xs rounded-xl hover:bg-[#388E3C] mt-4 transition-colors shadow-sm"
                 >
                   Clear Filters
                 </button>
@@ -1399,7 +1399,7 @@ export default function CustomerViews() {
                   })()}
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full inline-block uppercase font-mono">Verified Plaza Partner</p>
+                  <p className="text-xs text-[#4CAF50] font-bold bg-green-50 px-2 py-0.5 rounded-full inline-block uppercase font-mono border border-green-100">Verified Plaza Partner</p>
                 </div>
               </div>
 
@@ -1509,8 +1509,8 @@ export default function CustomerViews() {
                       <span className="text-neutral-300">|</span>
                     </>
                   )}
-                  <span className="text-emerald-600 font-bold flex items-center space-x-1">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block mr-1.5" />
+                  <span className="text-[#4CAF50] font-bold flex items-center space-x-1">
+                    <span className="w-1.5 h-1.5 bg-[#4CAF50] rounded-full inline-block mr-1.5" />
                     Verified Direct Order
                   </span>
                 </div>
@@ -1586,7 +1586,7 @@ export default function CustomerViews() {
                           onClick={() => setSelectedColor(cl)}
                           className={`px-3 py-2 border rounded-xl text-xs font-bold transition-all ${
                             selectedColor === cl
-                              ? "border-emerald-950 bg-emerald-50 text-emerald-900 font-extrabold shadow-xs"
+                              ? "border-[#4CAF50] bg-[#4CAF50]/10 text-[#4CAF50] font-extrabold shadow-xs"
                               : "border-neutral-200 text-neutral-600 hover:bg-neutral-100"
                           }`}
                         >
@@ -1656,7 +1656,7 @@ export default function CustomerViews() {
                         setDetailQty(1);
                       }}
                       className={`flex-1 min-w-[200px] h-11 text-white font-bold rounded-xl shadow-md transition-all duration-300 flex items-center justify-center space-x-2 select-none ${
-                        detailIsAdded ? "bg-emerald-600" : "bg-orange-500 hover:bg-orange-600"
+                        detailIsAdded ? "bg-[#4CAF50]" : "bg-orange-500 hover:bg-orange-600"
                       }`}
                       id="add-to-cart-action"
                     >
@@ -1693,7 +1693,7 @@ export default function CustomerViews() {
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-neutral-600 font-semibold">
                     {detailProduct.highlights.map((h, idx) => (
                       <li key={idx} className="flex items-start space-x-2">
-                        <Check className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                        <Check className="w-4 h-4 text-[#4CAF50] flex-shrink-0 mt-0.5" />
                         <span>{h}</span>
                       </li>
                     ))}
@@ -1715,7 +1715,7 @@ export default function CustomerViews() {
                     <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                <p className="text-xs text-neutral-405 font-bold uppercase tracking-wider mt-1 text-emerald-600">Verified Shopper Reviews</p>
+                <p className="text-xs text-neutral-405 font-bold uppercase tracking-wider mt-1 text-[#4CAF50]">Verified Shopper Reviews</p>
               </div>
               
               {/* Form to leave a review */}
@@ -1731,7 +1731,7 @@ export default function CustomerViews() {
                   />
                   <button
                     type="submit"
-                    className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-xl tracking-wider uppercase transition-colors cursor-pointer"
+                    className="w-full py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl tracking-wider uppercase transition-colors cursor-pointer"
                   >
                     Publish Verified Review
                   </button>
@@ -1760,7 +1760,7 @@ export default function CustomerViews() {
                     viewport={{ once: true, margin: "-15px" }}
                     transition={{ duration: 0.35, delay: Math.min(idx * 0.05, 0.2) }}
                     whileHover={{ x: 4 }}
-                    className="p-4 bg-white border border-neutral-155 rounded-2xl flex space-x-4 items-start text-xs transition-shadow hover:shadow-xs"
+                    className="p-4 bg-white border border-neutral-100 rounded-2xl flex space-x-4 items-start text-xs transition-shadow hover:shadow-ambient hover:border-orange-200"
                   >
                     <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-black font-mono flex items-center justify-center flex-shrink-0">
                       {rev.avatarInitials}
@@ -1775,7 +1775,7 @@ export default function CustomerViews() {
                           <Star key={s} className={`w-3 h-3 ${s <= rev.stars ? "fill-amber-400 text-amber-400" : "text-neutral-200"}`} />
                         ))}
                         {rev.isVerified && (
-                          <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded ml-2">Verified Shopper</span>
+                          <span className="text-[9px] font-bold text-[#4CAF50] bg-green-50 px-1.5 py-0.5 rounded ml-2 border border-green-100">Verified Shopper</span>
                         )}
                       </div>
                       <p className="text-neutral-600 leading-relaxed font-semibold">{rev.text}</p>
@@ -1824,7 +1824,7 @@ export default function CustomerViews() {
                           onSelectProduct(p.id);
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
-                        className="group bg-white rounded-2xl border border-neutral-150 p-3 hover:shadow-md transition-all flex flex-col justify-between h-72"
+                        className="group bg-white rounded-2xl border border-neutral-100 p-3 hover:shadow-ambient hover:border-orange-200 transition-all flex flex-col justify-between h-72"
                       >
                         <div className="space-y-2">
                           <div className="aspect-square w-full rounded-xl overflow-hidden bg-neutral-50 relative">
@@ -1961,7 +1961,7 @@ export default function CustomerViews() {
                                 animate={{ y: 0, opacity: 1, scale: 1 }}
                                 exit={{ y: 6, opacity: 0, scale: 0.8 }}
                                 transition={{ type: "spring", stiffness: 350, damping: 20 }}
-                                className="font-bold text-xs select-none font-mono block text-emerald-600 font-black"
+                                className="font-bold text-xs select-none font-mono block text-[#4CAF50] font-black"
                               >
                                 {item.quantity}
                               </motion.span>
@@ -2104,9 +2104,9 @@ export default function CustomerViews() {
                   <span>Secure Direct Gateway</span>
                 </button>
 
-                <div className="p-3 bg-cyan-50/50 rounded-xl flex items-start space-x-2 text-[10px] border border-cyan-100 tracking-wide">
-                  <ShieldCheck className="w-4 h-4 text-cyan-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-cyan-800 font-medium">
+                <div className="p-3 bg-green-50/50 rounded-xl flex items-start space-x-2 text-[10px] border border-green-100 tracking-wide">
+                  <ShieldCheck className="w-4 h-4 text-[#4CAF50] flex-shrink-0 mt-0.5" />
+                  <p className="text-[#4CAF50] font-medium">
                   Secure verification handled by Paystack. Your details are safe.
                   </p>
                 </div>
@@ -2182,7 +2182,7 @@ export default function CustomerViews() {
                           <div>
                             <h3 className="font-extrabold text-neutral-900 text-lg leading-tight truncate">{vend.name}</h3>
                             <p className="text-xs text-neutral-500 font-medium leading-relaxed truncate">{vend.location}</p>
-                            <div className="flex items-center space-x-1 mt-1 text-[10px] uppercase font-bold tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md inline-block w-fit">
+                            <div className="flex items-center space-x-1 mt-1 text-[10px] uppercase font-bold tracking-widest text-[#4CAF50] bg-green-50 border border-green-100 px-2 py-0.5 rounded-md inline-block w-fit">
                               <Check className="w-3 h-3 inline-block" /> Verified
                             </div>
                           </div>
@@ -2206,9 +2206,8 @@ export default function CustomerViews() {
                             ))}
                           </div>
                         )}
-                        
                         <button
-                          className="w-full py-3 bg-neutral-900 group-hover:bg-orange-600 text-white rounded-xl text-sm font-bold shadow-sm transition-all text-center flex items-center justify-center space-x-2 relative z-10 mt-auto"
+                          className="w-full py-3 bg-neutral-900 group-hover:bg-orange-500 text-white rounded-xl text-sm font-bold shadow-sm transition-all text-center flex items-center justify-center space-x-2 relative z-10 mt-auto"
                         >
                           <span>Visit Storefront</span>
                           <ChevronRight className="w-4 h-4" />
@@ -2325,8 +2324,8 @@ export default function CustomerViews() {
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                     <h1 className="text-xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight">{matchedVendor.name}</h1>
-                    <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[10px] uppercase px-2.5 py-1 rounded-full border border-emerald-100 tracking-wider flex items-center gap-1 shadow-2xs">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="bg-green-50 text-[#4CAF50] font-extrabold text-[10px] uppercase px-2.5 py-1 rounded-full border border-green-100 tracking-wider flex items-center gap-1 shadow-2xs">
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#4CAF50]" />
                       <span>Verified Merchant</span>
                     </span>
                   </div>
@@ -2427,7 +2426,7 @@ export default function CustomerViews() {
                           show: { opacity: 1, y: 0 }
                         }}
                         whileHover={{ y: -8, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.08), 0 10px 10px -5px rgba(0,0,0,0.03)" }}
-                        className="bg-white rounded-2xl border border-neutral-150 overflow-hidden shadow-2xs group flex flex-col h-full text-left cursor-pointer transition-all relative"
+                        className="bg-white rounded-2xl border border-neutral-100 overflow-hidden shadow-xs group flex flex-col h-full text-left cursor-pointer hover:shadow-ambient hover:border-orange-200 transition-all relative"
                         onClick={() => {
                           onSelectProduct(p.id);
                           onNavigate("details");
@@ -2639,8 +2638,8 @@ export default function CustomerViews() {
                 <div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <h3 className="text-xl font-black text-neutral-800 tracking-tight">{showCredsVendor.name}</h3>
-                    <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[9px] uppercase px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1 shadow-2xs">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="bg-green-50 text-[#4CAF50] font-extrabold text-[9px] uppercase px-2.5 py-1 rounded-full border border-green-100 flex items-center gap-1 shadow-2xs">
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#4CAF50]" />
                       Verified Merchant
                     </span>
                   </div>
@@ -2690,7 +2689,7 @@ export default function CustomerViews() {
                       </div>
                     </div>
                     <div className="bg-white/80 px-2.5 py-1.5 rounded-xl border border-orange-100/50 flex items-center space-x-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF50] animate-pulse"></span>
                       <p className="text-[9px] font-black text-neutral-500 uppercase tracking-wide">Direct settlements audited. Verified by Paystack automated reconciliation.</p>
                     </div>
                   </div>
@@ -2698,11 +2697,11 @@ export default function CustomerViews() {
                   {/* WhatsApp contact */}
                   <div className="flex items-center justify-between p-3.5 bg-emerald-50/40 rounded-2xl border border-emerald-100/50 mt-1">
                     <div className="flex items-center space-x-3 text-left">
-                      <div className="w-8 h-8 rounded-full bg-emerald-105 bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-[#4CAF50] shrink-0">
                         💬
                       </div>
                       <div>
-                        <p className="text-[9px] font-black text-emerald-700 uppercase tracking-wider">Contact Seller Directly</p>
+                        <p className="text-[9px] font-black text-[#4CAF50] uppercase tracking-wider">Contact Seller Directly</p>
                         <p className="text-xs font-bold text-neutral-800 mt-0.5">{showCredsVendor.whatsappNumber || showCredsVendor.phone || "+23481234567"}</p>
                       </div>
                     </div>
@@ -2710,7 +2709,7 @@ export default function CustomerViews() {
                       href={`https://wa.me/${(showCredsVendor.whatsappNumber || showCredsVendor.phone || "").replace(/[^0-9]/g, "")}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:shadow-xs active:scale-95 flex items-center space-x-1 shrink-0"
+                      className="px-3.5 py-2 bg-[#4CAF50] hover:bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:shadow-xs active:scale-95 flex items-center space-x-1 shrink-0"
                     >
                       <span>WhatsApp Chat</span>
                       <span>&rarr;</span>

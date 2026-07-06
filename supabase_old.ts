@@ -107,8 +107,8 @@ const queryCache: Record<string, { data: any; timestamp: number }> = {};
 const CACHE_TTL = 60 * 1000; // 60 seconds
 
 // Helper to check if tables exist and fetch data, or return initial state
-export async function getSupabaseData<T>(tableName: string, fallbackData: T[], page: number = 1, limit: number = 30): Promise<{ data: T[]; synced: boolean; error?: string }> {
-  const cacheKey = `${tableName}_${page}_${limit}`;
+export async function getSupabaseData<T>(tableName: string, fallbackData: T[]): Promise<{ data: T[]; synced: boolean; error?: string }> {
+  const cacheKey = tableName;
   if (queryCache[cacheKey] && Date.now() - queryCache[cacheKey].timestamp < CACHE_TTL) {
     return { data: queryCache[cacheKey].data, synced: true };
   }
@@ -122,29 +122,22 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
           const resJson = await response.json();
           queryResult = { data: resJson.data, error: resJson.error };
         } else {
-          throw new Error("API Fetch failed");
+          queryResult = { data: null, error: new Error("Fetch failed") };
         }
       } catch (e: any) {
-        console.warn("/api/categories fetch failed, falling back to direct Supabase query.", e);
-        queryResult = await supabase.from("categories").select("id, name, slug, image_url").limit(100);
+        queryResult = { data: null, error: e };
       }
     } else if (tableName === "products") {
       try {
-        const response = await fetch(`/api/products?page=${page}&limit=${limit}`, { cache: "default" });
+        const response = await fetch(`/api/products`, { cache: "default" });
         if (response.ok) {
           const resJson = await response.json();
           queryResult = { data: resJson.data, error: resJson.error };
         } else {
-          throw new Error("API Fetch failed");
+          queryResult = { data: null, error: new Error("Fetch failed") };
         }
       } catch (e: any) {
-        console.warn("/api/products fetch failed, falling back to direct Supabase query.", e);
-        const baseCols = "id, name, slug, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at";
-        const offset = (page - 1) * limit;
-        queryResult = await supabase.from("products").select(`${baseCols}, product_images(image_url), categories(id, name, slug)`).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
-        if (queryResult.error) {
-           queryResult = await supabase.from("products").select(baseCols).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
-        }
+        queryResult = { data: null, error: e };
       }
     } else if (tableName === "vendors") {
       try {
@@ -153,18 +146,17 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
           const resJson = await response.json();
           queryResult = { data: resJson.data, error: resJson.error };
         } else {
-           throw new Error("API Fetch failed");
+          queryResult = { data: null, error: new Error("Fetch failed") };
         }
       } catch (e: any) {
-        console.warn("/api/vendors fetch failed, falling back to direct Supabase query.", e);
-        queryResult = await supabase.from("vendors").select("id, user_id, business_name, owner_name, business_description, logo_url, approval_status, bank_name, account_number, cac_number, whatsapp_number, physical_location, is_verified, created_at").order('created_at', { ascending: false }).limit(100);
+        queryResult = { data: null, error: e };
       }
     } else if (tableName === "orders") {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       queryResult = await supabase
         .from("orders")
-        .select("id, user_id, total_amount, order_status, payment_status, shipping_address, created_at")
+        .select("id, user_id, order_status, status, total_amount, value, shipping_address, trackingId, routeFrom, routeTo, deliveryProgress, currentCity, productIds, created_at, date, items")
         .gte("created_at", thirtyDaysAgo.toISOString())
         .limit(100);
     } else {
@@ -178,11 +170,11 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
     }
 
     if (error) {
-      console.warn(`Supabase: Table "${tableName}" fetch failed. Error:`, error.message || error);
+      console.warn(`Supabase: Table "${tableName}" is not yet provisioned. Falling back to high-fidelity simulated state. Error:`, error.message);
       if (tableName === "products" || tableName === "vendors" || tableName === "orders") {
-        return { data: [], synced: false, error: error.message || String(error) };
+        return { data: [], synced: false, error: error.message };
       }
-      return { data: fallbackData, synced: false, error: error.message || String(error) };
+      return { data: fallbackData, synced: false, error: error.message };
     }
 
     if (data && data.length > 0) {

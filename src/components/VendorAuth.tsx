@@ -254,11 +254,11 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
 
         <div className="relative">
           <div className="flex justify-center">
-            <div className="w-16 h-16 bg-neutral-900 rounded-2xl overflow-hidden flex items-center justify-center shadow-lg transform -rotate-3 hover:rotate-0 transition-transform cursor-pointer border-2 border-orange-400" onClick={onNavigateHome}>
+            <div className="w-20 h-20 bg-white rounded-2xl overflow-hidden flex items-center justify-center shadow-lg transform -rotate-3 hover:rotate-0 transition-transform cursor-pointer border-2 border-[#4CAF50]" onClick={onNavigateHome}>
               <img
                 src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png"
                 alt="NaijaStores Logo"
-                className="w-full h-full object-cover"
+                className="w-16 h-16 object-contain"
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -288,7 +288,7 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
         {verifyingEmail ? (
           <div className="mt-8 space-y-5 text-center">
             <div className="space-y-2 select-none">
-              <Mail className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+              <Mail className="w-12 h-12 text-[#FF9800] mx-auto mb-4" />
               <h3 className="text-xl font-black text-neutral-900">Check Your Email</h3>
               <p className="text-sm text-neutral-500">
                 We've sent a magic link to <strong className="text-neutral-700">{email}</strong>. Please click the link to confirm your address and activate your account.
@@ -565,7 +565,7 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
           <button
             type="submit"
             disabled={isLoading}
-            className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-neutral-900 hover:bg-neutral-800 disabled:opacity-70 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900 shadow-md transform hover:-translate-y-0.5 cursor-pointer"
+            className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-[#4CAF50] hover:bg-[#388E3C] disabled:opacity-70 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4CAF50] shadow-md transform hover:-translate-y-0.5 cursor-pointer"
           >
             {isLoading ? (
               <span className="flex items-center animate-pulse">
@@ -585,11 +585,11 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
         {isSignUp && (
           <div className="pt-6 border-t border-neutral-100 flex flex-col gap-3">
              <div className="flex items-center gap-3 text-xs text-neutral-500 font-medium">
-               <ShieldCheck className="w-4 h-4 text-orange-500 flex-shrink-0" />
+               <ShieldCheck className="w-4 h-4 text-[#FF9800] flex-shrink-0" />
                <span className="leading-tight">Bank-grade security and direct payout facilitation for all transactions.</span>
              </div>
              <div className="flex items-center gap-3 text-xs text-neutral-500 font-medium">
-               <TrendingUp className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+               <TrendingUp className="w-4 h-4 text-[#4CAF50] flex-shrink-0" />
                <span className="leading-tight">Access analytics, manage inventory, and grow your audience.</span>
              </div>
           </div>
@@ -611,7 +611,7 @@ export default function VendorAuth({ onLoginSuccess, onNavigateHome }: VendorAut
               {isSignUp ? "Already have a vendor account?" : "Ready to sell on NaijaStores?"}
               <button
                 onClick={() => { setIsSignUp(!isSignUp); setIsForgotPassword(false); }}
-                className="ml-2 font-bold text-neutral-900 hover:underline hover:text-orange-600 transition-colors"
+                className="ml-2 font-bold text-neutral-900 hover:underline hover:text-[#FF9800] transition-colors"
               >
                 {isSignUp ? "Sign In here" : "Open a Shop"}
               </button>

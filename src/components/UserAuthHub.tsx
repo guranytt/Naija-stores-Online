@@ -430,9 +430,9 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
           <div className="space-y-8 animate-fade-in">
             {/* Top Info Shield card */}
             <div className="p-6 bg-slate-50/70 border border-neutral-100 rounded-2xl flex items-center space-x-4">
-              <div className="w-14 h-14 bg-neutral-900 rounded-2xl flex items-center justify-center text-white relative">
-                <UserCircle className="w-8 h-8 text-orange-400" />
-                <span className="absolute -bottom-1.5 -right-1.5 px-2 py-0.5 bg-orange-500 text-[8px] font-extrabold uppercase rounded-md tracking-wider border border-white">
+              <div className="w-14 h-14 bg-neutral-50 rounded-2xl flex items-center justify-center relative shadow-inner">
+                <UserCircle className="w-8 h-8 text-[#4CAF50]" />
+                <span className="absolute -bottom-1.5 -right-1.5 px-2 py-0.5 bg-[#FF9800] text-white text-[8px] font-extrabold uppercase rounded-md tracking-wider border-2 border-white">
                   {profile.role}
                 </span>
               </div>
@@ -444,8 +444,8 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
 
             {/* Profile Modification Form */}
             <form onSubmit={handleUpdateProfile} className="space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 flex items-center space-x-2">
-                <Edit3 className="w-3.5 h-3.5 text-orange-400" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#FF9800] flex items-center space-x-2">
+                <Edit3 className="w-3.5 h-3.5 text-[#4CAF50]" />
                 <span>Update Account Information</span>
               </p>
 
@@ -519,7 +519,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-5 py-2.5 bg-neutral-900 text-white rounded-xl font-bold text-xs hover:bg-neutral-800 disabled:opacity-50 transition-all cursor-pointer shadow-sm active:scale-95"
+                className="px-5 py-2.5 bg-[#4CAF50] text-white rounded-xl font-bold text-xs hover:bg-[#388E3C] disabled:opacity-50 transition-all cursor-pointer shadow-sm active:scale-95"
               >
                 {isLoading ? "Saving..." : "Save Profile"}
               </button>
@@ -529,8 +529,8 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
 
             {/* Change password */}
             <form onSubmit={handleUpdateCredentials} className="space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 flex items-center space-x-2">
-                <Key className="w-3.5 h-3.5 text-orange-400" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#FF9800] flex items-center space-x-2">
+                <Key className="w-3.5 h-3.5 text-[#4CAF50]" />
                 <span>Change password</span>
               </p>
 
@@ -558,7 +558,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
               <button
                 type="submit"
                 disabled={isLoading || newPassword.length < 6}
-                className="px-5 py-2.5 bg-orange-500 text-white rounded-xl font-bold text-xs hover:bg-orange-600 disabled:opacity-50 transition-all cursor-pointer shadow-sm active:scale-95"
+                className="px-5 py-2.5 bg-[#4CAF50] text-white rounded-xl font-bold text-xs hover:bg-[#388E3C] disabled:opacity-50 transition-all cursor-pointer shadow-sm active:scale-95"
               >
                 Change password
               </button>
@@ -588,7 +588,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
           /* IF GUEST: SHOW REGISTRATION / LOGIN FORMS */
           <div className="space-y-6">
             <div className="text-center space-y-2">
-              <div className="w-14 h-14 bg-orange-100/70 border border-orange-200 text-orange-600 rounded-2xl flex items-center justify-center font-black text-2xl mx-auto shadow-md">₦</div>
+              <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-16 w-auto mx-auto drop-shadow-sm mb-4" alt="Naija Stores Logo" />
               <h2 className="text-2xl font-black text-neutral-905 text-neutral-900 tracking-tight">
                 {authMode === "login" && "Log In"}
                 {authMode === "register" && "Sign Up"}
@@ -753,7 +753,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 font-extrabold text-xs tracking-wider uppercase text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center space-x-1"
+                className="w-full py-3.5 bg-[#4CAF50] hover:bg-[#388E3C] font-extrabold text-xs tracking-wider uppercase text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center space-x-1"
               >
                 {isLoading && <RefreshCw className="w-4 h-4 animate-spin mr-1.5" />}
                 <span>

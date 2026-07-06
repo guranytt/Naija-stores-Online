@@ -525,8 +525,8 @@ export default function App() {
           (_, reject) => setTimeout(() => reject(new Error("Fetch timed out")), 30000)
         );
 
-        const safeFetch = <T,>(tableName: string, page: number = 1, limit: number = 60) => Promise.race([
-          getSupabaseData<T>(tableName, [], page, limit),
+        const safeFetch = <T,>(tableName: string) => Promise.race([
+          getSupabaseData<T>(tableName, []),
           timeoutPromise as Promise<{ data: T[]; synced: boolean; error?: string }>
         ]).catch(() => ({ data: [] as T[], synced: false, error: "timeout" }));
 
@@ -1794,136 +1794,181 @@ export default function App() {
       </AnimatePresence>
 
       {/* Custom Global Footer */}
-      <footer className="bg-neutral-900 py-16 border-t border-neutral-800 mt-auto animate-fade-in relative z-10 w-full overflow-hidden text-neutral-400 font-sans">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12 pb-12 border-b border-neutral-800">
-            {/* Column 1: Brand & Contact */}
-            <div className="space-y-6">
-              <div 
-                onClick={() => { setCurrentScreen("home"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                className="cursor-pointer inline-flex items-center space-x-3 group"
-              >
-                <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-10 w-auto" alt="Naija Stores Logo" />
-                <span className="font-extrabold text-xl text-white tracking-tight">Naija Stores</span>
-              </div>
-              <p className="text-sm text-neutral-500 font-medium leading-relaxed">
+      <footer className="bg-neutral-950 py-12 border-t border-neutral-900 border-opacity-50 mt-auto animate-fade-in relative z-10 w-full overflow-hidden text-neutral-400">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12 pb-10 border-b border-neutral-800/50">
+            {/* Brand Logo/Info */}
+            <div className="lg:col-span-2 space-y-4">
+              <h2 className="text-xl font-black tracking-tight text-white leading-none flex items-center">
+                <span className="text-emerald-400">Naija</span><span className="text-orange-400 ml-1">Online Store</span>
+              </h2>
+              <p className="text-xs text-neutral-500 font-medium leading-relaxed max-w-sm">
                 Naija Online Store is a trusted Nigerian multi-vendor ecommerce marketplace connecting buyers with verified vendors nationwide through secure payments, fast delivery, and quality products.
               </p>
               
-              <div className="space-y-4 pt-2">
-                <div className="flex items-start space-x-3">
-                  <span className="text-xl">📍</span>
-                  <div>
-                    <span className="text-white font-bold uppercase tracking-wider text-xs block mb-1">Headquarters</span>
-                    <p className="text-sm leading-relaxed font-medium">Petrocam Plaza, Opposite Guru Maharaji, Obawole, 12 Victor Olaleye Ave, Ishaga, Iju, Lagos</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <span className="text-xl">💬</span>
-                  <div>
-                    <span className="text-white font-bold uppercase tracking-wider text-xs block mb-1">WhatsApp / Hotline</span>
-                    <a href="https://wa.me/2348035237665" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 transition-colors font-bold text-sm">08035237665</a>
-                  </div>
+              {/* Address details and Customer contact line */}
+              <div className="text-[11px] space-y-2 border-t border-neutral-900 pt-3 max-w-sm">
+                <p className="text-neutral-400 leading-relaxed font-semibold">
+                  🏢 <span className="text-neutral-300 font-bold uppercase tracking-wider text-[10px] block mb-0.5">Headquarters Address</span>
+                  Petrocam Plaza, Opposite Guru Maharaji, Obawole, 12 Victor Olaleye Ave, Ishaga, Iju, Lagos 100216, Lagos
+                </p>
+                <div className="text-neutral-400 font-semibold pt-1">
+                  📞 <span className="text-neutral-300 font-bold uppercase tracking-wider text-[10px] block mb-0.5">WhatsApp / Customer Hotline</span>
+                  <a href="https://wa.me/2348035237665" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 transition-colors font-bold text-xs ring-offset-neutral-950 focus:outline-none">08035237665</a>
                 </div>
               </div>
-            </div>
 
-            {/* Column 2: Quick Links */}
-            <div className="space-y-6">
-              <h3 className="text-white font-bold text-sm uppercase tracking-widest">Quick Links</h3>
-              <ul className="space-y-3 text-sm font-semibold text-neutral-400 flex flex-col items-start">
-                <li>
-                  <button onClick={() => { setCurrentScreen("home"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-orange-500 transition-colors focus:outline-none">Marketplace Home</button>
-                </li>
-                <li>
-                  <button onClick={() => { setCurrentScreen("shop"); setInitialCategory("all"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-orange-500 transition-colors focus:outline-none">Shop Products</button>
-                </li>
-                <li>
-                  <button onClick={() => { setCurrentScreen("stores"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-orange-500 transition-colors focus:outline-none">Vendor Directory</button>
-                </li>
-                <li>
-                  <button onClick={() => { setCurrentScreen("about"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-orange-500 transition-colors focus:outline-none">About Us</button>
-                </li>
-                <li>
-                  <button onClick={() => { setCurrentScreen("contact"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-orange-500 transition-colors focus:outline-none">Contact Us</button>
-                </li>
-                <li>
-                  <button onClick={() => { setCurrentScreen("faq"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-orange-500 transition-colors focus:outline-none">Help Center & FAQ</button>
-                </li>
-              </ul>
-            </div>
-
-            {/* Column 3: Legal & Policies */}
-            <div className="space-y-6">
-              <h3 className="text-white font-bold text-sm uppercase tracking-widest">Policies</h3>
-              <ul className="space-y-3 text-sm font-semibold flex flex-col items-start">
-                <li>
-                  <button onClick={() => setActivePolicy("privacy")} className="hover:text-orange-500 transition-colors">Privacy Policy</button>
-                </li>
-                <li>
-                  <button onClick={() => setActivePolicy("terms")} className="hover:text-orange-500 transition-colors">Terms & Conditions</button>
-                </li>
-                <li>
-                  <button onClick={() => setActivePolicy("shipping")} className="hover:text-orange-500 transition-colors">Shipping & Delivery</button>
-                </li>
-                <li>
-                  <button onClick={() => setActivePolicy("refund")} className="hover:text-orange-500 transition-colors">Refund & Return Policy</button>
-                </li>
-              </ul>
-
-              <div className="pt-6">
-                <span className="text-white font-bold text-xs uppercase tracking-widest block mb-4">Follow Us</span>
-                <div className="flex flex-wrap gap-3">
-                  <a href="https://www.instagram.com/naijaonliestores/" target="_blank" rel="noopener noreferrer" className="bg-neutral-800 hover:bg-neutral-700 text-white p-2.5 rounded-lg transition-colors inline-flex items-center justify-center">
-                    📸
+              {/* Social Channels Connect */}
+              <div className="pt-2">
+                <span className="text-white font-bold text-[10px] uppercase tracking-widest block mb-1">Follow Us</span>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <a 
+                    href="https://www.instagram.com/naijaonliestores/" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="bg-neutral-900 hover:bg-neutral-800 border border-neutral-850 hover:border-neutral-700 text-neutral-400 hover:text-white px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all hover:scale-105 inline-flex items-center space-x-1"
+                  >
+                    <span>📸 Instagram</span>
                   </a>
-                  <a href="https://www.facebook.com/profile.php?id=61590778524548" target="_blank" rel="noopener noreferrer" className="bg-neutral-800 hover:bg-neutral-700 text-white p-2.5 rounded-lg transition-colors inline-flex items-center justify-center">
-                    👥
+                  <a 
+                    href="https://www.facebook.com/profile.php?id=61590778524548" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="bg-neutral-900 hover:bg-neutral-800 border border-neutral-850 hover:border-neutral-700 text-neutral-400 hover:text-white px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all hover:scale-105 inline-flex items-center space-x-1"
+                  >
+                    <span>👥 Facebook</span>
                   </a>
-                  <a href="https://www.youtube.com/channel/UCGI5qBdP-aQDEce9J_hQMvA" target="_blank" rel="noopener noreferrer" className="bg-neutral-800 hover:bg-neutral-700 text-white p-2.5 rounded-lg transition-colors inline-flex items-center justify-center">
-                    📺
+                  <a 
+                    href="https://www.youtube.com/channel/UCGI5qBdP-aQDEce9J_hQMvA" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="bg-neutral-900 hover:bg-neutral-800 border border-neutral-850 hover:border-neutral-700 text-neutral-400 hover:text-white px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all hover:scale-105 inline-flex items-center space-x-1"
+                  >
+                    <span>📺 YouTube</span>
                   </a>
                 </div>
               </div>
-            </div>
-
-            {/* Column 4: Partners & Payment */}
-            <div className="space-y-6">
-              <h3 className="text-white font-bold text-sm uppercase tracking-widest">Partner With Us</h3>
-              <div className="space-y-4">
-                <button 
-                  onClick={() => { setCurrentScreen("sell"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
-                  className="w-full bg-[#4CAF50] hover:bg-[#2E7D32] text-white py-3 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Store className="w-5 h-5" />
-                  <span>Start Selling on Naija Stores</span>
-                </button>
-                <button 
-                  onClick={() => { setCurrentScreen("auth"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
-                  className="w-full bg-neutral-800 hover:bg-neutral-700 text-white py-3 px-4 rounded-lg font-bold text-sm transition-colors"
-                >
-                  Vendor Portal Login
-                </button>
-              </div>
-
-              <div className="pt-6">
-                <h3 className="text-white font-bold text-xs uppercase tracking-widest mb-4">Secure Payments</h3>
+              
+              <div className="pt-2">
+                <h3 className="text-white font-bold text-[10px] uppercase tracking-widest mb-3">We Accept</h3>
                 <div className="flex flex-wrap gap-2 text-[10px] font-bold text-neutral-400 uppercase">
-                  <span className="bg-neutral-800 px-3 py-1.5 rounded-md">Paystack</span>
-                  <span className="bg-neutral-800 px-3 py-1.5 rounded-md">Visa</span>
-                  <span className="bg-neutral-800 px-3 py-1.5 rounded-md">Mastercard</span>
-                  <span className="bg-neutral-800 px-3 py-1.5 rounded-md">Transfer</span>
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">Paystack</span>
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">Visa</span>
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">Mastercard</span>
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">Bank Transfer</span>
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">USSD</span>
+                  <span className="bg-neutral-900 px-2.5 py-1.5 rounded-md border border-neutral-800">Pay on Delivery</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Navigation & Policies */}
+            <div className="lg:col-span-3 space-y-6">
+              <div className="space-y-3">
+                <h3 className="text-white font-bold text-xs uppercase tracking-widest">Useful Links</h3>
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-[11px] font-semibold text-neutral-400">
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("home"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    Marketplace Home
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("about"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    About Us
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("contact"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    Contact Us
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("shop"); setInitialCategory("all"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    Shop Now
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("faq"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    Help Center / FAQ
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-white font-bold text-xs uppercase tracking-widest">Policies</h3>
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-[11px] font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy("privacy")}
+                    className="hover:text-emerald-400 text-left text-neutral-400 cursor-pointer transition-colors hover:underline"
+                  >
+                    Privacy Policy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy("terms")}
+                    className="hover:text-emerald-400 text-left text-neutral-400 cursor-pointer transition-colors hover:underline"
+                  >
+                    Terms & Conditions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy("shipping")}
+                    className="hover:text-emerald-400 text-left text-neutral-400 cursor-pointer transition-colors hover:underline"
+                  >
+                    Shipping & Delivery
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy("refund")}
+                    className="hover:text-emerald-400 text-left text-neutral-400 cursor-pointer transition-colors hover:underline"
+                  >
+                    Refund & Return Policy
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-white font-bold text-xs uppercase tracking-widest">Sell With Us</h3>
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] font-semibold text-neutral-400">
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("sell"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-emerald-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none flex items-center text-orange-400"
+                  >
+                    <Store className="w-3 h-3 mr-1.5" /> Sell on Naija Online Stores
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setCurrentScreen("auth"); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className="hover:text-amber-400 text-left cursor-pointer transition-colors hover:underline focus:outline-none"
+                  >
+                    Vendor Portal Login
+                  </button>
+                  <span className="text-neutral-500 font-medium ml-auto hidden md:inline">
+                    Start selling to customers nationwide today.
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Copyright section with subtle border above */}
-          <div className="pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 pb-4">
-            <p className="text-xs text-neutral-500 font-semibold tracking-wide">
-              &copy; {new Date().getFullYear()} Naija Online Stores. All Rights Reserved.
+          <div className="pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <p className="text-[10px] text-neutral-500 font-medium tracking-wide">
+              &copy; 2026 Naija Online Store. All Rights Reserved.
             </p>
-            <p className="text-xs text-orange-500/80 font-bold tracking-wide">
+            <p className="text-[10px] text-emerald-600/50 font-bold tracking-wide">
               Powered by Dickson Greatman
             </p>
           </div>

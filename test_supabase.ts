@@ -1,21 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env' });
-const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+import dotenv from 'dotenv';
+dotenv.config();
 
-async function test() {
-  const { data, error } = await supabase.from('vendors').select('*').limit(1);
-  if (error) {
-    console.error(error);
-  } else if (data && data.length > 0) {
-    console.log("Columns:", Object.keys(data[0]));
-  } else {
-    // If no data, let's try to do a dummy insert to see the error
-    const dummy = { id: '00000000-0000-0000-0000-000000000000', business_name: 'test' };
-    const res = await supabase.from('vendors').upsert(dummy);
-    console.log(res);
-  }
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+async function run() {
+  console.log('Testing with Anon Key...');
+  const anonClient = createClient(supabaseUrl, supabaseAnonKey);
+  const res1 = await anonClient.from('products').select('*').limit(5);
+  console.log('Anon Key Result: length', res1.data?.length, 'error', res1.error);
+
+  console.log('\nTesting with Service Role Key...');
+  const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+  const res2 = await serviceClient.from('products').select('*').limit(5);
+  console.log('Service Key Result: length', res2.data?.length, 'error', res2.error);
 }
-test();
+
+run();
