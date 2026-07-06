@@ -218,32 +218,10 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
           } catch (usersErr) {
             console.warn("Users table trigger sync skipped during signup: ", usersErr);
           }
-          
-          // Send notification email to admin
-          try {
-            await fetch("/api/resend/send-custom", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                to: "adminnaijastoresonline@gmail.com",
-                subject: `New ${role === "vendor" ? "Vendor" : "User"} Registration - Naija Online Stores`,
-                html: `
-                  <h2>New Account Registered</h2>
-                  <p><strong>Name:</strong> ${payload.fullName}</p>
-                  <p><strong>Email:</strong> ${email}</p>
-                  <p><strong>Role:</strong> ${role}</p>
-                  <p><strong>Phone:</strong> ${payload.phone}</p>
-                  <p><strong>Location:</strong> ${payload.location}</p>
-                  <p><strong>Address:</strong> ${payload.deliveryAddress}</p>
-                  ${role === "vendor" ? `<p><strong>Shop Name:</strong> ${payload.shopName}</p>` : ""}
-                `
-              })
-            });
-          } catch (emailErr) {
-            console.warn("Admin notification email failed:", emailErr);
-          }
         }
 
+        // Admin notification is handled securely by the sendResendEmail pipelines below.
+        
         // Optionally, register a public records entry if user is a vendor
         if (role === "vendor" && data.user) {
           try {
@@ -285,21 +263,22 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
             }
           });
           
-          // Notify admin about new registration
-          await sendResendEmail({
-            to: "adminnaijastoresonline@gmail.com",
-            type: "admin_new_account",
-            data: {
-              accountType: role,
-              fullName: fullName,
-              emailAddress: email,
-              phoneNumber: phone || "Not provided",
-              businessName: role === "vendor" ? shopName : undefined,
-              userId: data.user?.id || "",
-              registrationDate: new Date().toISOString(),
-              adminDashboardLink: window.location.origin + "?admin=true"
-            }
-          });
+          // Notify admin about new registration (vendors are notified automatically via vendor_signup endpoint)
+          if (role !== "vendor") {
+            await sendResendEmail({
+              to: "adminnaijastoresonline@gmail.com",
+              type: "admin_new_account",
+              data: {
+                accountType: role,
+                fullName: fullName,
+                emailAddress: email,
+                phoneNumber: phone || "Not provided",
+                userId: data.user?.id || "",
+                registrationDate: new Date().toISOString(),
+                adminDashboardLink: window.location.origin + "?admin=true"
+              }
+            });
+          }
         } catch (e) {
           console.warn("Automated emails failed, proceeding smoothly.", e);
         }
