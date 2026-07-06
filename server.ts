@@ -1184,7 +1184,8 @@ function ensureUUID(idValue: any): string {
 }
 
   app.get("/api/vendors", async (req, res) => {
-    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    res.setHeader("Vercel-CDN-Cache-Control", "max-age=60, stale-while-revalidate=300");
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     try {
       if (!supabaseAdmin) {
         return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
@@ -1214,7 +1215,8 @@ function ensureUUID(idValue: any): string {
   });
 
   app.get("/api/products", async (req, res) => {
-    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    res.setHeader("Vercel-CDN-Cache-Control", "max-age=60, stale-while-revalidate=300");
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     try {
       if (!supabaseAdmin) {
         return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
@@ -1276,7 +1278,8 @@ function ensureUUID(idValue: any): string {
   });
     
     app.get("/api/product/:id", async (req, res) => {
-      res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+      res.setHeader("Vercel-CDN-Cache-Control", "max-age=60, stale-while-revalidate=300");
+      res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
       try {
         if (!supabaseAdmin) {
           return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
@@ -1317,7 +1320,8 @@ function ensureUUID(idValue: any): string {
     });
 
   app.get("/api/categories", async (req, res) => {
-    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+    res.setHeader("Vercel-CDN-Cache-Control", "max-age=300, stale-while-revalidate=600");
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     try {
       if (!supabaseAdmin) {
         return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
