@@ -15,7 +15,7 @@ export function initPostHog() {
       posthog.init(posthogKey, {
         api_host: posthogHost,
         loaded: () => {
-          console.log('PostHog analytics loaded successfully');
+
         },
         capture_pageview: true,
         persistence: 'localStorage',
@@ -47,7 +47,7 @@ export function trackProductViewed(productId: string, name: string, price: numbe
   if (isPostHogInitialized) {
     posthog.capture('product_viewed', payload);
   } else {
-    console.log('[PostHog Simulation] event: product_viewed', payload);
+
   }
 }
 
@@ -67,7 +67,7 @@ export function trackAddToCart(productId: string, name: string, price: number, q
   if (isPostHogInitialized) {
     posthog.capture('add_to_cart', payload);
   } else {
-    console.log('[PostHog Simulation] event: add_to_cart', payload);
+
   }
 }
 
@@ -93,7 +93,7 @@ export function trackCheckoutStarted(
   if (isPostHogInitialized) {
     posthog.capture('checkout_started', payload);
   } else {
-    console.log('[PostHog Simulation] event: checkout_started', payload);
+
   }
 }
 
@@ -111,7 +111,7 @@ export function trackPaymentCompleted(referenceId: string, totalAmount: number, 
   if (isPostHogInitialized) {
     posthog.capture('payment_completed', payload);
   } else {
-    console.log('[PostHog Simulation] event: payment_completed', payload);
+
   }
 }
 
@@ -129,6 +129,6 @@ export function trackOrderCompleted(orderId: string, totalAmount: number, itemsC
   if (isPostHogInitialized) {
     posthog.capture('order_completed', payload);
   } else {
-    console.log('[PostHog Simulation] event: order_completed', payload);
+
   }
 }

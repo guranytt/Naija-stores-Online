@@ -3,10 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
 
 import React, { useState, useEffect } from "react";
 import useSWR, { mutate } from "swr";
@@ -22,7 +18,6 @@ import CookiePopup from "./components/CookiePopup";
 import PolicyOverlay from "./components/PolicyOverlay";
 import { initPostHog, trackAddToCart, trackCheckoutStarted, trackPaymentCompleted, trackOrderCompleted } from "./lib/posthog";
 import { Product, CartItem, Order, Vendor, Category, FlashDealProposal } from "./types";
-import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS, MOCK_CATEGORIES } from "./data/mockData";
 import { formatNaira } from "./components/CustomerViews";
 import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText, Store, Bug } from "lucide-react";
 import { supabase, getSupabaseData, saveSupabaseRecord, PROVISION_SQL_SCRIPT, ensureUUID } from "./supabase";
@@ -608,7 +603,7 @@ export default function App() {
   useEffect(() => {
     if (!vendorAuthenticated) return;
     
-    console.log("[SUPABASE REALTIME] Initializing subscription to public:orders");
+
     const channel = supabase
       .channel("public-orders-changes")
       .on(
@@ -619,7 +614,7 @@ export default function App() {
           table: "orders"
         },
         async (payload) => {
-          console.log("[SUPABASE REALTIME] New postgres change received on orders:", payload);
+
           setOrders(prevOrders => {
             const updatedOrders = [...prevOrders];
             if (payload.eventType === "INSERT") {
@@ -640,10 +635,7 @@ export default function App() {
             return updatedOrders;
           });
         }
-      )
-      .subscribe((status) => {
-        console.log(`[SUPABASE REALTIME] Status changed: ${status}`);
-      });
+      ).subscribe();
 
     return () => {
       channel.unsubscribe();

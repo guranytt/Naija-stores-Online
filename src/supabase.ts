@@ -43,21 +43,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 });
 
-// Helper to update Supabase Authorization with Clerk issued JWT
-export function setSupabaseToken(token: string) {
-  if (token) {
-    try {
-      supabase.realtime.setAuth(token);
-      (supabase as any).headers = {
-        ...((supabase as any).headers || {}),
-        Authorization: `Bearer ${token}`,
-      };
-      supabase.auth.setSession({ access_token: token, refresh_token: "" }).catch(() => {});
-    } catch (e) {
-      console.warn("Could not set dynamic Supabase session headers:", e);
-    }
-  }
-}
+
 
 // Cache table columns dynamically to prevent sending invalid columns that crash requests
 const cachedColumns: Record<string, string[]> = {};
