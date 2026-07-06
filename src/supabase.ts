@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { getTransformedImageUrl } from "./utils/imageTransforms";
 
 // @ts-ignore
 const envSupabaseUrl = typeof process !== 'undefined' && process.env && (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) ? (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) : undefined;
@@ -203,7 +204,8 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
           const price = Number(extraMetadata.price !== undefined ? extraMetadata.price : (item.price || 0));
           const originalPrice = Number(extraMetadata.originalPrice || extraMetadata.discount_price || item.discount_price || item.originalPrice || extraMetadata.price || price);
           // Try loading image from joined product_images table, or property image_url/image fallback
-          const image = extraMetadata.image || extraMetadata.image_url || (item.product_images && item.product_images[0]?.image_url) || item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
+          const rawImage = extraMetadata.image || extraMetadata.image_url || (item.product_images && item.product_images[0]?.image_url) || item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
+          const image = getTransformedImageUrl(rawImage);
           const rating = Number(item.rating || extraMetadata.rating || 0);
           const reviewsCount = Number(item.reviewsCount || extraMetadata.reviewsCount || 0);
           // Category mapping support
@@ -246,7 +248,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
         }
         if (tableName === "vendors") {
           const name = item.business_name || item.name || "Naija Store Merchant";
-          const avatar = item.logo_url || item.avatar || "";
+          const avatar = getTransformedImageUrl(item.logo_url || item.avatar || "");
 
           let extraMetadata: any = {};
           if (item.business_description && item.business_description.trim().startsWith("{")) {
@@ -297,7 +299,8 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
             } catch (e) {}
           }
           const name = item.name || "General";
-          const image = meta.url || item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
+          const rawCatImage = meta.url || item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
+          const image = getTransformedImageUrl(rawCatImage);
           const description = meta.description || item.description || `${name} items and products`;
           const iconName = meta.icon_name || meta.iconName || item.icon_name || item.iconName || "Package";
           const itemCount = Number(meta.item_count || meta.itemCount || item.item_count || item.itemCount || 0);
