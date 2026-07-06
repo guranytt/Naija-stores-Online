@@ -28,6 +28,7 @@ export default function Navbar({
   const [searchVal, setSearchVal] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [isMobileCategoryOpen, setIsMobileCategoryOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -212,6 +213,39 @@ export default function Navbar({
              <div className="flex flex-col py-4 font-bold text-base text-neutral-800">
                 <button className="text-left px-6 py-4 border-b border-neutral-100 hover:text-orange-500 hover:bg-orange-50" onClick={() => { onNavigate("home"); setMobileMenuOpen(false); }}>Home</button>
                 <button className="text-left px-6 py-4 border-b border-neutral-100 hover:text-orange-500 hover:bg-orange-50" onClick={() => { onNavigate("shop"); setMobileMenuOpen(false); }}>Shop All</button>
+                
+                {/* Mobile Categories Dropdown */}
+                <div className="border-b border-neutral-100">
+                  <button 
+                    className="w-full text-left px-6 py-4 flex items-center justify-between hover:text-orange-500 hover:bg-orange-50" 
+                    onClick={() => setIsMobileCategoryOpen(!isMobileCategoryOpen)}
+                  >
+                    <span>Categories</span>
+                    <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isMobileCategoryOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isMobileCategoryOpen && categories && categories.length > 0 && (
+                    <div className="bg-neutral-50 py-2 flex flex-col">
+                      {categories.map((cat) => (
+                        <button 
+                          key={cat.id}
+                          className="text-left px-10 py-3 text-sm font-semibold text-neutral-600 hover:text-orange-500 hover:bg-orange-100/50"
+                          onClick={() => {
+                            if (onSelectCategory) {
+                              onSelectCategory(cat.id);
+                            } else {
+                              onSearch(cat.name);
+                              onNavigate("shop");
+                            }
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <button className="text-left px-6 py-4 border-b border-neutral-100 hover:text-orange-500 hover:bg-orange-50" onClick={() => { onNavigate("stores"); setMobileMenuOpen(false); }}>Vendor Directory</button>
                 <button className="text-left px-6 py-4 border-b border-neutral-100 hover:text-orange-500 hover:bg-orange-50" onClick={() => { onNavigate("sell"); setMobileMenuOpen(false); }}>Sell on Naija</button>
                 <button className="text-left px-6 py-4 border-b border-neutral-100 hover:text-orange-500 hover:bg-orange-50" onClick={() => { onNavigate("about"); setMobileMenuOpen(false); }}>About Us</button>

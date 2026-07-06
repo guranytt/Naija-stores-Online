@@ -525,12 +525,56 @@ export default function App() {
           (_, reject) => setTimeout(() => reject(new Error("Fetch timed out")), 30000)
         );
 
-        const safeFetch = <T,>(tableName: string, page: number = 1, limit: number = 60) => Promise.race([
-          getSupabaseData<T>(tableName, [], page, limit),
-          timeoutPromise as Promise<{ data: T[]; synced: boolean; error?: string }>
-        ]).catch(() => ({ data: [] as T[], synced: false, error: "timeout" }));
+        const readLocalCache = <T,>(key: string, maxAgeHours = 1) => {
+          try {
+             const data = localStorage.getItem(`naijastores_cache_${key}`);
+             const timestamp = localStorage.getItem(`naijastores_cache_${key}_timestamp`);
+             if (data && timestamp) {
+                if (Date.now() - parseInt(timestamp) < maxAgeHours * 60 * 60 * 1000) {
+                   return JSON.parse(data) as T[];
+                }
+             }
+          } catch(e){}
+          return null;
+        };
 
-        // Load all core datasets concurrently
+        const writeLocalCache = (key: string, data: any) => {
+          try {
+             localStorage.setItem(`naijastores_cache_${key}`, JSON.stringify(data));
+             localStorage.setItem(`naijastores_cache_${key}_timestamp`, Date.now().toString());
+          } catch(e){}
+        };
+
+        const safeFetch = async <T,>(tableName: string, page: number = 1, limit: number = 60) => {
+          if (tableName !== "orders") {
+            const cached = readLocalCache<T>(tableName, 1); // 1 hour egress-free cache
+            if (cached && cached.length > 0) return { data: cached, synced: true };
+          }
+          const result = await Promise.race([
+            getSupabaseData<T>(tableName, [], page, limit),
+            timeoutPromise as Promise<{ data: T[]; synced: boolean; error?: string }>
+          ]).catch(() => ({ data: [] as T[], synced: false, error: "timeout" }));
+          
+          if (result.synced && result.data && result.data.length > 0 && tableName !== "orders") {
+            writeLocalCache(tableName, result.data);
+          }
+          return result;
+        };
+
+        const cachedCategories = readLocalCache<Category>("categories", 24); // 24 hours for categories
+        let categoryPromise;
+        if (cachedCategories && cachedCategories.length > 0) {
+          categoryPromise = Promise.resolve({ data: cachedCategories, synced: true, error: undefined });
+        } else {
+          categoryPromise = Promise.race([
+            fetchAndEnrichCategories().then(data => {
+              if (data && data.length > 0) writeLocalCache("categories", data);
+              return { data, synced: true, error: undefined };
+            }),
+            timeoutPromise as Promise<{ data: Category[]; synced: boolean; error?: string }>
+          ]).catch(() => ({ data: [] as Category[], synced: false, error: "timeout" }));
+        }
+
         const [
           { data: dbVendorsRaw, synced: vSynced, error: vError },
           { data: dbProducts, synced: pSynced, error: pError },
@@ -540,10 +584,7 @@ export default function App() {
           safeFetch<Vendor>("vendors"),
           safeFetch<Product>("products"),
           safeFetch<Order>("orders"),
-          Promise.race([
-            fetchAndEnrichCategories().then(data => ({ data, synced: true, error: undefined })),
-            timeoutPromise as Promise<{ data: Category[]; synced: boolean; error?: string }>
-          ]).catch(() => ({ data: [] as Category[], synced: false, error: "timeout" }))
+          categoryPromise
         ]);
         
         let dbVendors = dbVendorsRaw || [];
