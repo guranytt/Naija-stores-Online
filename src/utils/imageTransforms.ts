@@ -3,9 +3,11 @@ export const getTransformedImageUrl = (url: string | null | undefined, width = 5
     return "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=300&q=80"; // fallback mock
   }
   
-  // 1. Supabase Storage URLs
+  // 1. Supabase Storage URLs 
+  // REMOVED /render/image/public/ transformation to save egress and compute quota.
+  // We now serve the original file from the bucket. Make sure to compress images BEFORE uploading.
   if (url.includes("/object/public/")) {
-    return url.replace("/object/public/", "/render/image/public/") + `?width=${width}&resize=contain&quality=${quality}&format=webp`;
+    return url;
   }
   
   // 2. Cloudinary URLs

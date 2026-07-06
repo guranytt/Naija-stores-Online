@@ -12,8 +12,8 @@ const viteSupabaseUrl = typeof import.meta !== 'undefined' && import.meta.env ? 
 // @ts-ignore
 const viteSupabaseKey = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_ANON_KEY : undefined;
 
-const SUPABASE_URL = viteSupabaseUrl || envSupabaseUrl || "https://qlavqcvsdeggafsrntff.supabase.co";
-const SUPABASE_ANON_KEY = viteSupabaseKey || envSupabaseKey || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsYXZxY3ZzZGVnZ2Fmc3JudGZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2NjUyMTgsImV4cCI6MjA5NzI0MTIxOH0.gsPRdFPvCjuVo3wAb2qKJ8KjTMg7lKmToQ5RR5Z3uOg";
+const SUPABASE_URL = viteSupabaseUrl || envSupabaseUrl || "https://jmmfogjefenmjqspspyg.supabase.co";
+const SUPABASE_ANON_KEY = viteSupabaseKey || envSupabaseKey || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptbWZvZ2plZmVubWpxc3BzcHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NjkwODEsImV4cCI6MjA5NjI0NTA4MX0.ah-wpbhIJKcF9fs4UVpXCAVwq5Bw10aTNPdtJxyPg3M";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -118,7 +118,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
     let queryResult: any;
     if (tableName === "categories") {
       try {
-        const response = await fetch(`/api/categories?_t=${Date.now()}`, { cache: "no-store" });
+        const response = await fetch(`/api/categories`, { cache: "default" });
         if (response.ok) {
           const resJson = await response.json();
           queryResult = { data: resJson.data, error: resJson.error };
