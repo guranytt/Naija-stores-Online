@@ -15,6 +15,7 @@ import ContactPage from "./ContactPage";
 import SellPage from "./SellPage";
 import FaqPage from "./FaqPage";
 import { formatNaira } from "../utils";
+import { getTransformedImageUrl } from "../utils/imageTransforms";
 import { useStore } from "../store/useStore";
 
 export const categoryPageThemes: Record<string, {
@@ -272,7 +273,7 @@ export default function CustomerViews() {
       try {
         const queryParams = new URLSearchParams({
           page: currentPage.toString(),
-          limit: "30",
+          limit: "24",
           search: searchFilter,
           category: activeCategoryTab === "all" ? "All" : activeCategoryTab,
           sort: sortOption
@@ -292,7 +293,8 @@ export default function CustomerViews() {
             stock: p.stock_quantity,
             vendorId: p.vendor_id,
             vendorName: "Merchant",
-            images: p.product_images?.length > 0 ? p.product_images.map((pi:any)=>pi.image_url) : [p.image_url || ""],
+            image: getTransformedImageUrl(p.product_images?.length > 0 ? p.product_images[0].image_url : p.image_url),
+            images: p.product_images?.length > 0 ? p.product_images.map((pi:any)=>getTransformedImageUrl(pi.image_url)) : [getTransformedImageUrl(p.image_url)],
             rating: 4.5,
             ratingCount: Math.floor(Math.random() * 50) + 1,
             colors: ["Default"],
@@ -301,7 +303,7 @@ export default function CustomerViews() {
           }));
           setServerProducts(mapped);
           const total = json.total || mapped.length;
-          setServerTotalPages(Math.max(1, Math.ceil(total / 30)));
+          setServerTotalPages(Math.max(1, Math.ceil(total / 24)));
         }
       } catch (err) {
         console.error("Pagination fetch error:", err);
@@ -559,10 +561,11 @@ export default function CustomerViews() {
     return 0; // standard mock recommended
   });
 
-  const PRODUCTS_PER_PAGE = 60;
+  const PRODUCTS_PER_PAGE = 24;
   // Use server total pages and server products for the shop grid
-  const totalPages = serverTotalPages;
-  const paginatedProducts = serverProducts.length > 0 ? serverProducts : sortedProducts.slice(0, PRODUCTS_PER_PAGE);
+  const totalPages = serverProducts.length > 0 ? serverTotalPages : Math.ceil(sortedProducts.length / PRODUCTS_PER_PAGE);
+  const startIdx = (currentPage - 1) * PRODUCTS_PER_PAGE;
+  const paginatedProducts = serverProducts.length > 0 ? serverProducts : sortedProducts.slice(startIdx, startIdx + PRODUCTS_PER_PAGE);
 
   const recentlyViewedProducts = recentlyViewedIds
     .map((id) => products.find((p) => p.id === id) || serverProducts.find(p => p.id === id))
@@ -2273,7 +2276,7 @@ export default function CustomerViews() {
         const vendorProducts = products.filter(p => p.vendorId === matchedVendor.id || p.vendorName === matchedVendor.name);
         
         // Vendor Products pagination
-        const PRODUCTS_PER_PAGE = 60;
+        const PRODUCTS_PER_PAGE = 24;
         const totalVendorPages = Math.ceil(vendorProducts.length / PRODUCTS_PER_PAGE);
         const startVendorIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
         const paginatedVendorProducts = vendorProducts.slice(startVendorIndex, startVendorIndex + PRODUCTS_PER_PAGE);
