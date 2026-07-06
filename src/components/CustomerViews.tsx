@@ -350,7 +350,20 @@ export default function CustomerViews({
       matchesCategory = true;
     } else {
       const pCatLower = (product.category || "").toLowerCase();
-      matchesCategory = pCatLower.includes(activeCatLower) || activeCatLower.includes(pCatLower);
+      const pCatId = product.categoryId || "";
+      const pCatSlug = (product.categorySlug || "").toLowerCase();
+      
+      const activeCategoryObj = categories?.find(c => c.id === activeCategoryTab);
+      const activeCatNameLower = (activeCategoryObj?.name || "").toLowerCase();
+      const activeCatSlugLower = (activeCategoryObj?.slug || "").toLowerCase();
+
+      matchesCategory = 
+        pCatId === activeCategoryTab || 
+        (activeCatNameLower && pCatLower.includes(activeCatNameLower)) || 
+        (activeCatNameLower && activeCatNameLower.includes(pCatLower)) ||
+        (activeCatSlugLower && pCatSlug === activeCatSlugLower) ||
+        pCatLower.includes(activeCatLower) || 
+        activeCatLower.includes(pCatLower);
     }
     
     let matchesSearch = true;
