@@ -377,9 +377,6 @@ export default function CustomerViews({
       const targetCatSlug = (activeCategoryObj?.slug || "").toLowerCase();
 
       // Check strictly against the backend UUID or Slug mapping
-      const pCatId = product.categoryId || "";
-      const pCatSlug = (product.categorySlug || "").toLowerCase();
-      
       const cleanPCatId = pCatId.trim().toLowerCase();
       const cleanTargetId = targetCatId.trim().toLowerCase();
 
