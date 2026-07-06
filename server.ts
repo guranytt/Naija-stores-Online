@@ -433,7 +433,7 @@ Return valid JSON only matching this schema exactly:
   });
 
   // 1. Send system email via specific payload types
-  app.post("/api/resend/send", requireAuth, async (req, res) => {
+  app.post("/api/resend/send", async (req, res) => {
     const { to, type, data } = req.body;
     const name = data?.customerName || data?.vendorName || "Esteemed Patron";
     const ordId = data?.orderId || "NS-ORDER";
