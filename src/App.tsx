@@ -452,6 +452,12 @@ export default function App() {
     setCategories(newCats);
     try {
       localStorage.setItem("NAIJA_CATEGORIES_STATE", JSON.stringify(newCats));
+      // Sync to Supabase so vendors can see the newly created categories
+      newCats.forEach(cat => {
+        saveSupabaseRecord("categories", cat).catch(err => 
+          console.warn("Failed to sync category to Supabase:", err)
+        );
+      });
     } catch (e) {
       console.error(e);
     }
@@ -600,6 +606,8 @@ export default function App() {
 
   // Set up real-time orders sync subscription
   useEffect(() => {
+    if (!vendorAuthenticated) return;
+    
     console.log("[SUPABASE REALTIME] Initializing subscription to public:orders");
     const channel = supabase
       .channel("public-orders-changes")
@@ -640,7 +648,7 @@ export default function App() {
     return () => {
       channel.unsubscribe();
     };
-  }, []);
+  }, [vendorAuthenticated]);
 
   const handleRateVendor = (vendorId: string, starRating: number) => {
     setVendors(prevVendors => {

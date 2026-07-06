@@ -152,11 +152,46 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
         
         // Dispatch first login greeting if not dispatched on this device yet
         if (data.user) {
+          const userMeta = data.user.user_metadata;
+          const uName = userMeta?.fullName || userMeta?.shopName || email.split("@")[0];
+          const userRole = userMeta?.role || "customer";
+
+          // Sync users table upon successful login
+          try {
+            await supabase.from("users").upsert({
+              id: data.user.id,
+              full_name: userMeta?.fullName || uName,
+              email: data.user.email,
+              role: userRole,
+              avatar_url: null
+            });
+          } catch (e) {
+            console.warn("User table sync failed during login", e);
+          }
+
+          // Sync vendors table upon successful login
+          if (userRole === "vendor") {
+            try {
+              await saveSupabaseRecord("vendors", {
+                id: ensureUUID(data.user.id),
+                user_id: data.user.id,
+                name: userMeta?.shopName || `${uName}'s Store`,
+                ownerName: userMeta?.fullName || uName,
+                avatar: "https://lh3.googleusercontent.com/v_alaba",
+                email: data.user.email,
+                phone: userMeta?.phone,
+                location: userMeta?.location,
+                whatsappNumber: userMeta?.phone // pre-fill whatsapp with phone
+              });
+            } catch (e) {
+              console.warn("Vendor table sync failed during login", e);
+            }
+          }
+
           const sentKey = `hasSentGreeting_${data.user.id}`;
           if (!localStorage.getItem(sentKey)) {
             localStorage.setItem(sentKey, "true");
             try {
-              const uName = data.user.user_metadata?.fullName || data.user.user_metadata?.shopName || email.split("@")[0];
               await sendResendEmail({
                 to: email,
                 type: "first_login",
@@ -297,7 +332,18 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
         setFeedback({ type: "success", msg: "Password reset link sent to your email." });
       }
     } catch (err: any) {
-      setFeedback({ type: "error", msg: err.message || "Login error" });
+      console.warn("Auth Error:", err);
+      let errMsg = err.message || "An unexpected error occurred.";
+      if (err.status === 429 || err.code === 'over_email_send_rate_limit') {
+        errMsg = "Registration temporarily paused due to high traffic limit. Please try again later or contact support.";
+      } else if (errMsg.toLowerCase().includes("already registered")) {
+        errMsg = "This email is already registered. Please try logging in instead.";
+      } else if (errMsg.toLowerCase().includes("password")) {
+        errMsg = "Your password is too weak. Please use at least 6 characters.";
+      } else if (errMsg.toLowerCase().includes("fetch")) {
+        errMsg = "Network error. Please check your internet connection or disable adblockers.";
+      }
+      setFeedback({ type: "error", msg: errMsg });
     } finally {
       setIsLoading(false);
     }
