@@ -385,11 +385,34 @@ export default function CustomerViews({
         return normA.includes(normB) || normB.includes(normA);
       };
 
+      const semanticMap: Record<string, string[]> = {
+        "beauty": ["beauty", "health", "cosmetics", "makeup", "skincare", "fragrance", "hair"],
+        "phone": ["phone", "mobile", "smartphone", "gadget", "tablet", "accessories"],
+        "electronic": ["electronic", "audio", "camera", "computer", "laptop", "tv", "appliance", "gadgets", "video", "tech"],
+        "men": ["men", "male", "boy", "guy"],
+        "women": ["women", "female", "girl", "lady"],
+        "kid": ["kid", "child", "baby", "toy", "toddler"],
+        "grocer": ["grocery", "food", "drink", "beverage", "snack"],
+      };
+
+      const hasSemanticMatch = () => {
+        if (!pCatLower) return false;
+        for (const [key, aliases] of Object.entries(semanticMap)) {
+          if (activeCatNameLower.includes(key) || activeCategoryTab.includes(key) || activeCatSlugLower.includes(key)) {
+            if (aliases.some(alias => pCatLower.includes(alias))) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
       matchesCategory = 
         (pCatId && targetCatId && pCatId === targetCatId) || 
         isTextMatch(activeCatNameLower, pCatLower) || 
         isTextMatch(activeCategoryTab, pCatLower) ||
-        isTextMatch(activeCatSlugLower, pCatSlug);
+        isTextMatch(activeCatSlugLower, pCatSlug) ||
+        hasSemanticMatch();
     }
     
     let matchesSearch = true;
