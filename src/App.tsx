@@ -546,20 +546,20 @@ export default function App() {
   const { data: dbVendors } = useSWR(
     ["vendors", { limit: 30 }],
     ([table]) => getSupabaseData<Vendor>(table as string, [], 1, 30).then(res => res.data),
-    { revalidateOnFocus: false, dedupingInterval: 60000 }
+    { revalidateOnFocus: false, dedupingInterval: 300000 }
   );
 
   const { data: dbProducts } = useSWR(
     ["products", { limit: 30 }],
     ([table]) => getSupabaseData<Product>(table as string, [], 1, 30).then(res => res.data),
-    { revalidateOnFocus: false, dedupingInterval: 60000 }
+    { revalidateOnFocus: false, dedupingInterval: 300000 }
   );
 
   const { data: dbOrders } = useSWR(
-    ["orders", currentUserId, currentScreen === "admin" || currentScreen === "vendor" ? 30 : null],
+    ["orders", currentUserId],
     ([table]) => {
-      const isDashboard = currentScreen === "admin" || currentScreen === "vendor";
-      let opts: any = isDashboard ? { limit: 100 } : { limit: 50 };
+      const isDashboard = currentUserId ? true : false;
+      let opts: any = { limit: 100 };
       
       if (isDashboard) {
         const last30Days = new Date();
@@ -568,7 +568,7 @@ export default function App() {
       }
       return getSupabaseData<Order>(table as string, [], 1, opts.limit).then(res => res.data);
     },
-    { revalidateOnFocus: false, dedupingInterval: 30000 }
+    { revalidateOnFocus: false, dedupingInterval: 300000 }
   );
 
   useEffect(() => {
@@ -612,10 +612,25 @@ export default function App() {
         },
         async (payload) => {
           console.log("[SUPABASE REALTIME] New postgres change received on orders:", payload);
-          const { data: dbOrders, synced } = await getSupabaseData<Order>("orders", [], 1, 50);
-          if (synced && dbOrders) {
-            setOrders(dbOrders);
-          }
+          setOrders(prevOrders => {
+            const updatedOrders = [...prevOrders];
+            if (payload.eventType === "INSERT") {
+              // Ensure we don't duplicate if already present
+              if (!updatedOrders.some(o => o.id === payload.new.id)) {
+                updatedOrders.unshift(payload.new as any);
+              }
+            } else if (payload.eventType === "UPDATE") {
+              const idx = updatedOrders.findIndex(o => o.id === payload.new.id);
+              if (idx !== -1) {
+                updatedOrders[idx] = { ...updatedOrders[idx], ...payload.new } as any;
+              } else {
+                updatedOrders.unshift(payload.new as any);
+              }
+            } else if (payload.eventType === "DELETE") {
+              return updatedOrders.filter(o => o.id !== payload.old?.id);
+            }
+            return updatedOrders;
+          });
         }
       )
       .subscribe((status) => {

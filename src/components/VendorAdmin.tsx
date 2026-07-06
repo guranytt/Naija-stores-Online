@@ -229,7 +229,7 @@ export default function VendorAdmin({
                          phone: ""
                        } as Vendor;
 
-  const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com" || userEmail?.toLowerCase() === "mcgigimeshai@gmail.com";
+  const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com";
 
   // Keep adminTab state synced if standard vendor tries to access platform tabs
   React.useEffect(() => {
@@ -600,18 +600,6 @@ export default function VendorAdmin({
                 <span>Ad Campaigns</span>
               </button>
 
-              <button
-                onClick={() => setAdminTab("emails")}
-                className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                  adminTab === "emails"
-                    ? "bg-white text-neutral-900 shadow-sm font-extrabold font-black"
-                    : "text-neutral-500 hover:text-neutral-950"
-                }`}
-              >
-                <Mail className="w-4 h-4 text-orange-500" />
-                <span>Resend Mail Automation Hub</span>
-                <span className="bg-orange-100 text-orange-850 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold">AUTO</span>
-              </button>
             </>
           )}
         </div>
