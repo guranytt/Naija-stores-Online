@@ -1197,8 +1197,8 @@ function ensureUUID(idValue: any): string {
       const limit = parseInt(req.query.limit as string) || 30;
       const offset = (page - 1) * limit;
       
-      const columns = "id, business_name, owner_name, logo_url, created_at, user_id, email, is_verified, approval_status, physical_location, phone, business_description, bank_name, account_number, cac_number, whatsapp_number, users(email)";
-      const fallbackColumns = "id, business_name, owner_name, logo_url, created_at, user_id, email, is_verified, approval_status, physical_location, phone, business_description, bank_name, account_number, cac_number, whatsapp_number";
+      const columns = "id, business_name, owner_name, logo_url, created_at, user_id, email, is_verified, approval_status, physical_location, phone, business_description, whatsapp_number, users(email)";
+      const fallbackColumns = "id, business_name, owner_name, logo_url, created_at, user_id, email, is_verified, approval_status, physical_location, phone, business_description, whatsapp_number";
 
       let queryResult: any = await supabaseAdmin.from("vendors").select(columns).range(offset, offset + limit - 1);
       if (queryResult.error) {
@@ -1345,7 +1345,7 @@ function ensureUUID(idValue: any): string {
       if (!supabaseAdmin) {
         return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
       }
-      const { data, error } = await supabaseAdmin.from("categories").select("id, name, slug, description, image_url, parent_id, sort_order, created_at").limit(100);
+      const { data, error } = await supabaseAdmin.from("categories").select("id, name, slug, image_url, created_at").limit(100);
       if (error) {
         console.error("GET /api/categories error:", error);
         return res.status(500).json({ error: error.message });
@@ -1633,10 +1633,11 @@ Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml`);
   });
   app.get("/sitemap.xml", sitemapLimiter, async (req, res) => {
     res.header("Content-Type", "application/xml");
+    res.setHeader("Cache-Control", "public, max-age=3600");
     
     try {
       // Fetch products dynamically for sitemap SEO indexing
-      const { data: products } = await supabaseAdmin.from("products").select("id, name, description, created_at").limit(1000);
+      const { data: products } = await supabaseAdmin.from("products").select("id, name, created_at").limit(1000);
       const { data: vendors } = await supabaseAdmin.from("vendors").select("id, business_name, owner_name, created_at").limit(100);
       const { data: categories } = await supabaseAdmin.from("categories").select("id").limit(100);
       
@@ -1692,13 +1693,7 @@ Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml`);
 
       if (products) {
         (products as any[]).forEach(prod => {
-          let extraMetadata: any = {};
-          if (prod.description && typeof prod.description === "string" && prod.description.trim().startsWith("{")) {
-            try {
-              extraMetadata = JSON.parse(prod.description);
-            } catch (err) {}
-          }
-          const pName = prod.name || extraMetadata.title || extraMetadata.name || "Product";
+          const pName = prod.name || "Product";
           const slug = slugify(pName);
           const productUrl = `https://www.naijaonlinestores.com.ng/product/${prod.id}${slug ? `-${slug}` : ""}`;
           xml += `  <url>\n    <loc>${productUrl}</loc>\n    <lastmod>${new Date(prod.created_at || Date.now()).toISOString().split('T')[0]}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;

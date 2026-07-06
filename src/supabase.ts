@@ -144,7 +144,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
         }
       } catch (e: any) {
         console.warn("/api/vendors fetch failed, falling back to direct Supabase query.", e);
-        queryResult = await supabase.from("vendors").select("id, user_id, business_name, owner_name, business_description, logo_url, approval_status, bank_name, account_number, cac_number, whatsapp_number, physical_location, is_verified, created_at").order('created_at', { ascending: false }).limit(100);
+        queryResult = await supabase.from("vendors").select("id, user_id, business_name, owner_name, business_description, logo_url, approval_status, whatsapp_number, physical_location, is_verified, created_at").order('created_at', { ascending: false }).limit(100);
       }
     } else if (tableName === "orders") {
       const thirtyDaysAgo = new Date();
