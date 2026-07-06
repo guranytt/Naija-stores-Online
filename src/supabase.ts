@@ -140,7 +140,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
         }
       } catch (e: any) {
         console.warn("/api/products fetch failed, falling back to direct Supabase query.", e);
-        const baseCols = "id, name, slug, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at";
+        const baseCols = "id, name, slug, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at, description";
         const offset = (page - 1) * limit;
         queryResult = await supabase.from("products").select(`${baseCols}, product_images(image_url), categories(id, name, slug)`).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
         if (queryResult.error) {

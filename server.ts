@@ -1229,7 +1229,7 @@ function ensureUUID(idValue: any): string {
       const categoryFilter = req.query.category as string;
       const sort = req.query.sort as string; // price-low, price-high, rating, new
 
-      const baseCols = "id, name, slug, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at";
+      const baseCols = "id, name, slug, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at, description";
       
       let query = supabaseAdmin.from("products").select(`${baseCols}, product_images(image_url), categories(id, name, slug)`, { count: 'exact' });
 
@@ -1270,7 +1270,23 @@ function ensureUUID(idValue: any): string {
         return res.status(500).json({ error: queryResult.error.message });
       }
       
-      if(queryResult.data){queryResult.data.forEach((p:any)=>{let i=p.product_images?.[0]?.image_url||p.image_url;if(!i&&p.description&&typeof p.description==="string"){try{const d=JSON.parse(p.description);i=d.image||d.image_url;}catch(e){}}if(i)optimizeImageBackground(p.id,i);});} res.json({ data: queryResult.data || [], total: queryResult.count || 0 });
+      if (queryResult.data) {
+        queryResult.data.forEach((p: any) => {
+          let i = p.product_images?.[0]?.image_url || p.image_url;
+          if (!i && p.description && typeof p.description === "string") {
+            try {
+              const d = JSON.parse(p.description);
+              i = d.image || d.image_url;
+            } catch(e) {}
+          }
+          if (i) {
+            p.image_url = i; // Map it directly to image_url for the frontend
+            optimizeImageBackground(p.id, i);
+          }
+          delete p.description; // Strip the heavy description payload to save egress
+        });
+      }
+      res.json({ data: queryResult.data || [], total: queryResult.count || 0 });
     } catch (err: any) {
       console.error("GET /api/products exception:", err);
       res.status(500).json({ error: "Internal Server Error" });
