@@ -28,10 +28,9 @@ import { Order } from "../types";
 interface MapTrackingProps {
   orders: Order[];
   onUpdateOrderProgress: (orderId: string, progress: number, currentCity: string, status?: Order["status"]) => void;
-  onConfirmReceipt?: (orderId: string) => void;
 }
 
-export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmReceipt }: MapTrackingProps) {
+export default function MapTracking({ orders, onUpdateOrderProgress }: MapTrackingProps) {
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [isSimulating, setIsSimulating] = useState(false);
   const [simSpeed, setSimSpeed] = useState<number>(400); // ms per step
@@ -148,7 +147,7 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
       <div className="lg:col-span-5 flex flex-col space-y-4 border-r border-neutral-100 pr-0 lg:pr-6">
         <div>
           <h2 className="text-xl font-black text-neutral-900 tracking-tight flex items-center gap-2">
-            <ClipboardList className="w-5.5 h-5.5 text-[#FF9800]" />
+            <ClipboardList className="w-5.5 h-5.5 text-orange-500" />
             <span>Order History Ledger</span>
           </h2>
           <p className="text-xs text-neutral-400 mt-0.5">Complete archives and status tracking of your custom orders.</p>
@@ -161,7 +160,7 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
             placeholder="Search order ID, status or key..."
             value={searchPhrase}
             onChange={(e) => setSearchPhrase(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-[#FF9800] outline-none placeholder-neutral-400 font-medium"
+            className="w-full pl-9 pr-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none placeholder-neutral-400 font-medium"
           />
           <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
         </div>
@@ -197,7 +196,7 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
                   }}
                   className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-center justify-between ${
                     isActive
-                      ? "bg-neutral-50 border-[#FF9800] shadow-sm"
+                      ? "bg-neutral-50 border-orange-500 shadow-sm"
                       : "bg-white border-neutral-105 hover:border-neutral-200"
                   }`}
                 >
@@ -249,7 +248,7 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
             {/* Header */}
             <div className="bg-neutral-50 p-4 border border-neutral-150 rounded-2xl flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-0.5 text-left">
-                <span className="text-[9px] bg-[#FF9800]/10 text-[#FF9800] font-extrabold uppercase px-2 py-0.5 rounded">Live Telemetry Details</span>
+                <span className="text-[9px] bg-orange-100 text-orange-700 font-extrabold uppercase px-2 py-0.5 rounded">Live Telemetry Details</span>
                 <h3 className="font-black text-sm sm:text-base text-neutral-900 mt-1">
                   Tracking ID: <span className="text-neutral-600 font-mono font-bold">{activeOrder.trackingId}</span>
                 </h3>
@@ -281,7 +280,7 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
                       key={step.label}
                       className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden ${
                         isCurrent 
-                          ? "bg-[#FF9800]/5 border-[#FF9800]/50 shadow-xs"
+                          ? "bg-orange-50 border-orange-350 shadow-xs"
                           : isDone
                           ? "bg-neutral-50 border-neutral-200/70 opacity-90"
                           : "bg-white border-neutral-100 opacity-55"
@@ -290,9 +289,9 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
                       <div className="flex items-center justify-between mb-2">
                         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${
                           isDone 
-                            ? "bg-[#4CAF50] text-white" 
+                            ? "bg-emerald-500 text-white" 
                             : isCurrent
-                            ? "bg-[#FF9800] text-white animate-pulse"
+                            ? "bg-orange-500 text-white animate-pulse"
                             : "bg-neutral-100 text-neutral-400"
                         }`}>
                           {isDone ? <Check className="w-3.5 h-3.5" /> : idx + 1}
@@ -300,13 +299,13 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
                         
                         {isCurrent && (
                           <span className="flex h-2 w-2 relative">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF9800] opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F57C00]"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-600"></span>
                           </span>
                         )}
                       </div>
 
-                      <p className={`text-xs font-black ${isCurrent ? "text-neutral-900" : "text-neutral-900"}`}>{step.label}</p>
+                      <p className={`text-xs font-black ${isCurrent ? "text-orange-950" : "text-neutral-900"}`}>{step.label}</p>
                       <p className="text-[10px] text-neutral-400 mt-1 leading-snug">{step.description}</p>
                     </div>
                   );
@@ -317,13 +316,13 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
               <div className="space-y-1.5 pt-2">
                 <div className="flex justify-between items-center text-[10px] font-black tracking-wider uppercase pl-1">
                   <span className="text-neutral-400">Dispatch Hub</span>
-                  <span className="text-[#FF9800] font-bold">Transit Progress - {activeOrder.deliveryProgress}% Completed</span>
+                  <span className="text-orange-600 font-bold">Transit Progress - {activeOrder.deliveryProgress}% Completed</span>
                   <span className="text-neutral-400">Doorstep</span>
                 </div>
                 <div className="w-full h-3 bg-neutral-100 rounded-full overflow-hidden relative border border-neutral-150 p-0.5">
                   <motion.div
                     className={`h-full rounded-full transition-all duration-300 ${
-                      activeOrder.status === "Flagged" ? "bg-red-500" : "bg-[#FF9800]"
+                      activeOrder.status === "Flagged" ? "bg-red-500" : "bg-orange-500"
                     }`}
                     style={{ width: `${activeOrder.deliveryProgress}%` }}
                     animate={{ width: `${activeOrder.deliveryProgress}%` }}
@@ -338,7 +337,7 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
               <div className="bg-neutral-50 rounded-2xl p-4 border border-neutral-150 text-left">
                 <h5 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2.5">Carrier Service Dispatch</h5>
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-[#FF9800]/10 text-[#FF9800] font-extrabold flex items-center justify-center text-xs">
+                  <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 font-extrabold flex items-center justify-center text-xs">
                     {carrierInfo.avatar}
                   </div>
                   <div className="min-w-0">
@@ -354,7 +353,7 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
                   📍 Start Node: <span className="uppercase text-neutral-900">{activeOrder.routeFrom}</span>
                 </p>
                 <p className="text-[11px] font-bold text-neutral-700 mt-1">
-                  📍 Last Scanned: <span className="uppercase text-[#FF9800] bg-[#FF9800]/10 border border-[#FF9800]/20 px-1.5 py-0.5 rounded text-[10px]">{activeOrder.currentCity}</span>
+                  📍 Last Scanned: <span className="uppercase text-orange-600 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded text-[10px]">{activeOrder.currentCity}</span>
                 </p>
                 <p className="text-[11px] font-bold text-neutral-700 mt-1">
                   🏁 Destination: <span className="uppercase text-neutral-900">{activeOrder.routeTo}</span>
@@ -364,11 +363,11 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
 
             {/* Live logistics ticker */}
             <div className="bg-neutral-900 text-neutral-100 px-4 py-3 rounded-2xl flex items-center space-x-3 text-xs leading-normal font-medium mt-auto">
-              <div className="p-1.5 rounded-lg bg-[#FF9800]/10 text-[#FF9800] shrink-0">
+              <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-400 shrink-0">
                 <Info className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0 flex-1 text-left">
-                <span className="text-[9px] text-[#FF9800] font-black uppercase tracking-widest leading-none block">Automated Dispatch Logs</span>
+                <span className="text-[9px] text-orange-400 font-black uppercase tracking-widest leading-none block">Automated Dispatch Logs</span>
                 <p className="text-[11px] text-neutral-300 font-mono mt-0.5 truncate">{trafficUpdate}</p>
               </div>
             </div>
@@ -379,14 +378,6 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
                 <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider pl-1">Logistics Agent Manual Controls</span>
                 
                 <div className="flex gap-2">
-                  {onConfirmReceipt && activeOrder.receiptPrompted && !activeOrder.receiptConfirmed && (
-                    <button
-                      onClick={() => onConfirmReceipt(activeOrder.id)}
-                      className="px-5 py-2.5 bg-[#FF9800] hover:bg-[#F57C00] text-white text-xs font-black rounded-xl transition-all shadow shadow-[#FF9800]/20 active:scale-95 animate-bounce"
-                    >
-                      Confirm I have received this package
-                    </button>
-                  )}
                   {isSimulating ? (
                     <button
                       onClick={stopSim}
@@ -401,7 +392,7 @@ export default function MapTracking({ orders, onUpdateOrderProgress, onConfirmRe
                       className={`px-4 py-2 text-white text-xs font-black rounded-xl transition-all active:scale-95 ${
                         activeOrder.status === "Flagged"
                           ? "bg-neutral-200 text-neutral-400 cursor-not-allowed border border-neutral-300"
-                          : "bg-[#4CAF50] hover:bg-[#388E3C]"
+                          : "bg-emerald-600 hover:bg-emerald-700"
                       }`}
                     >
                       <span>{activeOrder.status === "Delivered" ? "Re-Route Transit" : "Start Live Track"}</span>

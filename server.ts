@@ -271,15 +271,16 @@ Return valid JSON only matching this schema exactly:
   "suggestedCategory": "Category if blank or better match"
 }`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
+      const interaction = await ai.interactions.create({
+        model: 'gemini-3.5-flash',
+        input: prompt,
+        response_format: {
+          type: "text",
+          mime_type: "application/json"
         }
       });
       
-      const text = response.text;
+      const text = interaction.output_text;
       if (!text) {
         throw new Error("No text returned from model");
       }
