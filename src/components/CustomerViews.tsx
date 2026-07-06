@@ -379,8 +379,8 @@ export default function CustomerViews({
 
       const isTextMatch = (a: string, b: string) => {
         if (!a || !b) return false;
-        const normA = a.replace(/[^a-z0-9]/g, "");
-        const normB = b.replace(/[^a-z0-9]/g, "");
+        const normA = a.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const normB = b.toLowerCase().replace(/[^a-z0-9]/g, "");
         if (!normA || !normB) return false;
         return normA.includes(normB) || normB.includes(normA);
       };
@@ -407,12 +407,30 @@ export default function CustomerViews({
         return false;
       };
 
+      const cleanPCatId = pCatId.trim().toLowerCase();
+      const cleanTargetId = targetCatId.trim().toLowerCase();
+
       matchesCategory = 
-        (pCatId && targetCatId && pCatId === targetCatId) || 
+        (cleanPCatId && cleanTargetId && cleanPCatId === cleanTargetId) || 
         isTextMatch(activeCatNameLower, pCatLower) || 
         isTextMatch(activeCategoryTab, pCatLower) ||
         isTextMatch(activeCatSlugLower, pCatSlug) ||
         hasSemanticMatch();
+        
+      // Debug log as requested by user
+      if (activeCategoryTab !== "all" && matchesCategory === false) {
+          // Only log the first mismatched product to avoid spamming the console
+          if (!(window as any).hasLoggedMismatch) {
+              console.log("--- CATEGORY MISMATCH DEBUG LOG ---");
+              console.log("Active Tab:", activeCategoryTab);
+              console.log("Target Category ID:", targetCatId);
+              console.log("Product:", product);
+              console.log("Product Category ID:", pCatId);
+              console.log("Product Category Name:", pCatLower);
+              console.log("-----------------------------------");
+              (window as any).hasLoggedMismatch = true;
+          }
+      }
     }
     
     let matchesSearch = true;
