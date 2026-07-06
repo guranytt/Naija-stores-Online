@@ -913,8 +913,8 @@ export default function App() {
     
     triggerToast("Security Code 200: Transaction reconciled. Shipments logged successfully!");
 
-    // Automatically trigger Resend payment confirmation emails
-    if (autoSendEmails) {
+    // Automatically trigger Resend payment confirmation emails if this was a local fallback
+    if (autoSendEmails && !serverOrder) {
       // 1. Payment confirmation
       sendResendEmail({
         to: userEmail,
