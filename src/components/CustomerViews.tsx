@@ -340,6 +340,25 @@ export default function CustomerViews({
     setCurrentPage(1);
   }, [activeCategoryTab, searchFilter]);
 
+  // Dynamic Category Resolver (Strict ID Linking + Fuzzy Inference for missing IDs)
+  const getResolvedCategory = (p: Product) => {
+    let catId = p.categoryId || p.category_id || "";
+    if (catId) {
+      const cat = categories?.find(c => c.id === catId);
+      if (cat) return { id: cat.id, name: cat.name };
+    }
+    const pCatLower = (p.category || "").toLowerCase();
+    if (pCatLower) {
+      const cat = categories?.find(c => {
+        const normC = c.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const normP = pCatLower.replace(/[^a-z0-9]/g, "");
+        return normC && normP && (normC.includes(normP) || normP.includes(normC));
+      });
+      if (cat) return { id: cat.id, name: cat.name };
+    }
+    return { id: catId, name: p.category || "General" };
+  };
+
   // Dynamic products filtering logic
   const filteredProducts = products.filter((product) => {
     const activeCatLower = activeCategoryTab.toLowerCase();
@@ -349,7 +368,8 @@ export default function CustomerViews({
     if (activeCatLower === "all") {
       matchesCategory = true;
     } else {
-      const pCatId = product.categoryId || product.category_id || "";
+      const resolvedCat = getResolvedCategory(product);
+      const pCatId = resolvedCat.id;
       
       const activeCategoryObj = categories?.find(c => c.id === activeCategoryTab || (c.slug || "").toLowerCase() === activeCatLower || c.name.toLowerCase() === activeCatLower);
       const targetCatId = activeCategoryObj ? activeCategoryObj.id : activeCategoryTab;
@@ -937,7 +957,7 @@ export default function CustomerViews({
                         <div className="flex items-center space-x-2">
                           <p className="text-[9px] font-extrabold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
                           <span className="text-[8px] font-bold text-neutral-400 uppercase bg-neutral-100 px-1.5 py-0.5 rounded">
-                            {categories?.find(c => c.id === (p.categoryId || p.category_id))?.name || "General"}
+                            {getResolvedCategory(p).name}
                           </span>
                         </div>
                         <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-2 leading-snug mt-1">{p.title}</h3>
@@ -1117,7 +1137,7 @@ export default function CustomerViews({
                             )}
                           </div>
                           <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest truncate">
-                            {categories?.find(c => c.id === (p.categoryId || p.category_id))?.name || "General"}
+                            {getResolvedCategory(p).name}
                           </p>
                         </div>
                         <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-1 truncate group-hover:text-orange-500 transition-colors">
@@ -1403,7 +1423,7 @@ export default function CustomerViews({
                               {p.vendorName}
                             </span>
                             <span className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest block truncate bg-neutral-100 w-fit px-1.5 py-0.5 rounded">
-                              {categories?.find(c => c.id === (p.categoryId || p.category_id))?.name || "General"}
+                              {getResolvedCategory(p).name}
                             </span>
                           </div>
                           {p.condition === "Fairly Used" && (
