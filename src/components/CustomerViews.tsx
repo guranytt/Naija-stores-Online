@@ -342,7 +342,7 @@ export default function CustomerViews({
 
   // Helper to dynamically display category name under products
   const getResolvedCategoryName = (p: Product) => {
-    let catId = p.categoryId || p.category_id || "";
+    let catId = p.categoryId || (p as any).category_id || "";
     if (catId) {
       const cat = categories?.find(c => c.id === catId);
       if (cat) return cat.name;
