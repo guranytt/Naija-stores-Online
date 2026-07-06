@@ -340,12 +340,12 @@ export default function CustomerViews({
     setCurrentPage(1);
   }, [activeCategoryTab, searchFilter]);
 
-  // Dynamic Category Resolver (Strict ID Linking + Fuzzy Inference for missing IDs)
-  const getResolvedCategory = (p: Product) => {
+  // Helper to dynamically display category name under products
+  const getResolvedCategoryName = (p: Product) => {
     let catId = p.categoryId || p.category_id || "";
     if (catId) {
       const cat = categories?.find(c => c.id === catId);
-      if (cat) return { id: cat.id, name: cat.name };
+      if (cat) return cat.name;
     }
     const pCatLower = (p.category || "").toLowerCase();
     if (pCatLower) {
@@ -354,9 +354,9 @@ export default function CustomerViews({
         const normP = pCatLower.replace(/[^a-z0-9]/g, "");
         return normC && normP && (normC.includes(normP) || normP.includes(normC));
       });
-      if (cat) return { id: cat.id, name: cat.name };
+      if (cat) return cat.name;
     }
-    return { id: catId, name: p.category || "General" };
+    return p.category || "General";
   };
 
   // Dynamic products filtering logic
@@ -368,14 +368,28 @@ export default function CustomerViews({
     if (activeCatLower === "all") {
       matchesCategory = true;
     } else {
-      const resolvedCat = getResolvedCategory(product);
-      const pCatId = resolvedCat.id;
+      const pCatLower = (product.category || "").toLowerCase();
+      const pCatId = product.categoryId || "";
+      const pCatSlug = (product.categorySlug || "").toLowerCase();
       
       const activeCategoryObj = categories?.find(c => c.id === activeCategoryTab || (c.slug || "").toLowerCase() === activeCatLower || c.name.toLowerCase() === activeCatLower);
       const targetCatId = activeCategoryObj ? activeCategoryObj.id : activeCategoryTab;
+      const activeCatNameLower = (activeCategoryObj?.name || activeCategoryTab).toLowerCase();
+      const activeCatSlugLower = (activeCategoryObj?.slug || "").toLowerCase();
 
-      // STRICT RELATIONAL MATCHING BY CATEGORY ID
-      matchesCategory = !!(pCatId && targetCatId && pCatId === targetCatId);
+      const isTextMatch = (a: string, b: string) => {
+        if (!a || !b) return false;
+        const normA = a.replace(/[^a-z0-9]/g, "");
+        const normB = b.replace(/[^a-z0-9]/g, "");
+        if (!normA || !normB) return false;
+        return normA.includes(normB) || normB.includes(normA);
+      };
+
+      matchesCategory = 
+        (pCatId && targetCatId && pCatId === targetCatId) || 
+        isTextMatch(activeCatNameLower, pCatLower) || 
+        isTextMatch(activeCategoryTab, pCatLower) ||
+        isTextMatch(activeCatSlugLower, pCatSlug);
     }
     
     let matchesSearch = true;
@@ -957,7 +971,7 @@ export default function CustomerViews({
                         <div className="flex items-center space-x-2">
                           <p className="text-[9px] font-extrabold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
                           <span className="text-[8px] font-bold text-neutral-400 uppercase bg-neutral-100 px-1.5 py-0.5 rounded">
-                            {getResolvedCategory(p).name}
+                            {getResolvedCategoryName(p)}
                           </span>
                         </div>
                         <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-2 leading-snug mt-1">{p.title}</h3>
@@ -1137,7 +1151,7 @@ export default function CustomerViews({
                             )}
                           </div>
                           <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest truncate">
-                            {getResolvedCategory(p).name}
+                            {getResolvedCategoryName(p)}
                           </p>
                         </div>
                         <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-1 truncate group-hover:text-orange-500 transition-colors">
@@ -1418,16 +1432,16 @@ export default function CustomerViews({
                     <div className="space-y-1 sm:space-y-1.5">
                       <div className="flex items-center justify-between gap-1">
                         <div className="flex items-center space-x-1.5 min-w-0">
-                          <div className="mb-1.5 flex flex-col space-y-1">
+                          <div className="flex flex-col space-y-0.5">
                             <span className="text-[8px] sm:text-[9px] font-bold text-orange-500 uppercase tracking-widest block truncate">
                               {p.vendorName}
                             </span>
                             <span className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest block truncate bg-neutral-100 w-fit px-1.5 py-0.5 rounded">
-                              {getResolvedCategory(p).name}
+                              {getResolvedCategoryName(p)}
                             </span>
                           </div>
                           {p.condition === "Fairly Used" && (
-                            <span className="text-[7px] sm:text-[8px] uppercase tracking-wider bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap">Pre-Owned</span>
+                            <span className="text-[7px] sm:text-[8px] uppercase tracking-wider bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap self-start">Pre-Owned</span>
                           )}
                         </div>
                         {p.isBestSeller && (
