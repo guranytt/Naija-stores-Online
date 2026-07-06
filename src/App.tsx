@@ -15,7 +15,7 @@ import Navbar from "./components/Navbar";
 import CustomerViews from "./components/CustomerViews";
 import MapTracking from "./components/MapTracking";
 import VendorAdmin from "./components/VendorAdmin";
-import VendorAuth from "./components/VendorAuth";
+
 import UserAuthHub from "./components/UserAuthHub";
 import PaystackCheckout from "./components/PaystackCheckout";
 import CookiePopup from "./components/CookiePopup";
@@ -1185,9 +1185,9 @@ export default function App() {
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              <VendorAuth 
-                onLoginSuccess={() => setVendorAuthenticated(true)} 
-                onNavigateHome={() => setCurrentScreen("home")}
+              <UserAuthHub
+               onNavigate={(screen) => setCurrentScreen(screen)}
+               onNavigateHome={() => setCurrentScreen("home")}
               />
             </motion.div>
           )}
