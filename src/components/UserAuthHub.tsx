@@ -234,7 +234,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin + "/auth",
+            emailRedirectTo: window.location.origin,
             data: payload
           }
         });
@@ -335,13 +335,17 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
       console.warn("Auth Error:", err);
       let errMsg = err.message || "An unexpected error occurred.";
       if (err.status === 429 || err.code === 'over_email_send_rate_limit') {
-        errMsg = "Registration temporarily paused due to high traffic limit. Please try again later or contact support.";
+        errMsg = "Registration temporarily paused due to high traffic. Please try again later.";
+      } else if (errMsg.toLowerCase().includes("email not confirmed")) {
+        errMsg = "Please verify your email address to log in. We sent a confirmation link to your inbox.";
+      } else if (errMsg.toLowerCase().includes("invalid login credentials")) {
+        errMsg = "Invalid email or password. Please try again.";
       } else if (errMsg.toLowerCase().includes("already registered")) {
         errMsg = "This email is already registered. Please try logging in instead.";
       } else if (errMsg.toLowerCase().includes("password")) {
         errMsg = "Your password is too weak. Please use at least 6 characters.";
       } else if (errMsg.toLowerCase().includes("fetch")) {
-        errMsg = "Network error. Please check your internet connection or disable adblockers.";
+        errMsg = "Network error. Please check your internet connection.";
       }
       setFeedback({ type: "error", msg: errMsg });
     } finally {
