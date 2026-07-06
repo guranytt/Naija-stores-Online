@@ -7,11 +7,12 @@ import GracefulErrorScreen from "./GracefulErrorScreen";
 
 interface UserAuthHubProps {
   currentEmail: string;
-  onNavigateHome: () => void;
+  onNavigateHome?: () => void;
+  onNavigate?: (screen: string) => void;
   onUpdateEmail: (email: string) => void;
 }
 
-export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmail }: UserAuthHubProps) {
+export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, onUpdateEmail }: UserAuthHubProps) {
   // Session states
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<{
@@ -172,6 +173,18 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onUpdateEmai
 
         onUpdateEmail(data.user?.email || "");
         setFeedback({ type: "success", msg: "Reconciliation successful! Session synchronized." });
+        
+        // Role-based Redirect
+        const userRole = data.user?.user_metadata?.role || "customer";
+        const isAdminOrVendor = userRole === "vendor" || userRole === "admin" || ["adminnaijastoresonline@gmail.com", "mcgigimeshai@gmail.com"].includes(email.toLowerCase());
+        
+        setTimeout(() => {
+          if (isAdminOrVendor && onNavigate) {
+            onNavigate("admin");
+          } else if (onNavigateHome) {
+            onNavigateHome();
+          }
+        }, 800);
       } else if (authMode === "register") {
         const payload = sanitizeFields({
           fullName,

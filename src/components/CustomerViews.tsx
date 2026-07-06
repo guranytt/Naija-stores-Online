@@ -198,7 +198,14 @@ export default function CustomerViews() {
   const isLoggedIn = !!currentUserId;
   const isLoading = false;
   // TODO: Fix rate vendor handlers if needed
-  const onCheckout = () => setIsCheckoutOpen(true);
+  const onCheckout = () => {
+    if (!isLoggedIn) {
+      alert("Please sign in or register to complete your order securely.");
+      onNavigate("auth");
+      return;
+    }
+    setIsCheckoutOpen(true);
+  };
   const onRateVendor = (id: string, star: number) => { console.log('rate vendor', id, star); };
   
   // Choose source of truth for ads

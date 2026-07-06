@@ -1523,6 +1523,7 @@ export default function App() {
               <UserAuthHub
                 currentEmail={userEmail}
                 onNavigateHome={() => setCurrentScreen("home")}
+                onNavigate={(screen) => setCurrentScreen(screen)}
                 onUpdateEmail={(email) => setUserEmail(email)}
               />
             </motion.div>
