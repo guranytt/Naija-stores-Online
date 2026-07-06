@@ -873,6 +873,7 @@ export default function CustomerViews({
                   
                   <div className="relative text-left text-white z-10 space-y-1">
                     <h3 className="font-extrabold text-base leading-snug tracking-tight">{cat.name}</h3>
+                    <p className="text-[10px] font-mono text-white/70">{cat.id}</p>
                   </div>
                 </motion.div>
               ))}
@@ -1353,9 +1354,9 @@ export default function CustomerViews({
                 <button
                   key={c.id}
                   onClick={() => setActiveCategoryTab(c.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold relative transition-colors duration-200 whitespace-nowrap ${
+                  className={`px-4 py-2 rounded-xl relative transition-colors duration-200 whitespace-nowrap flex flex-col items-center justify-center min-w-[100px] ${
                     activeCategoryTab === c.id
-                      ? "text-white font-extrabold"
+                      ? "text-white"
                       : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                   }`}
                 >
@@ -1366,7 +1367,10 @@ export default function CustomerViews({
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
-                  {c.name}
+                  <span className="text-xs font-bold">{c.name}</span>
+                  <span className={`text-[9px] font-mono mt-0.5 ${activeCategoryTab === c.id ? 'text-white/80' : 'text-neutral-400'}`}>
+                    {c.id.split('-')[0]}...
+                  </span>
                 </button>
               ))}
             </div>
