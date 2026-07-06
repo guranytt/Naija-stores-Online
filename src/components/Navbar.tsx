@@ -70,8 +70,9 @@ export default function Navbar({
               className="flex items-center space-x-3 cursor-pointer select-none group"
             >
               <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-10 w-auto" alt="Naija Stores Logo" />
-              <span className="font-extrabold text-xl text-neutral-900 tracking-tight hidden sm:block">
-                Naija Stores
+              <span className="font-extrabold text-xl tracking-tight hidden sm:block">
+                <span className="text-[#4CAF50]">Naija </span>
+                <span className="text-[#FF9800]">Online Stores</span>
               </span>
             </div>
           </div>
@@ -198,7 +199,10 @@ export default function Navbar({
              <div className="flex justify-between items-center p-4 border-b border-neutral-100 bg-[#F9FAFB]">
                 <div className="flex items-center space-x-3">
                   <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-8 w-auto" alt="Naija Stores Logo" />
-                  <span className="font-extrabold text-lg text-neutral-900 tracking-tight">Naija Stores</span>
+                  <span className="font-extrabold text-lg tracking-tight">
+                    <span className="text-[#4CAF50]">Naija </span>
+                    <span className="text-[#FF9800]">Online Stores</span>
+                  </span>
                 </div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-lg bg-white shadow-sm border border-neutral-200">
                   <X className="w-5 h-5 text-neutral-600" />

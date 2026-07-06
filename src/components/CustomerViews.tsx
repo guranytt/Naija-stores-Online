@@ -807,7 +807,11 @@ export default function CustomerViews() {
                   {/* Auth Welcome Block */}
                   <div className="bg-white rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-neutral-100 shadow-sm">
                     <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-20 w-auto mb-6 drop-shadow-sm" alt="Naija Stores Logo" />
-                    <h4 className="font-extrabold text-lg text-neutral-900 mb-2">Welcome to Naija Stores</h4>
+                    <h4 className="font-extrabold text-lg mb-2">
+                      <span className="text-neutral-900">Welcome to </span>
+                      <span className="text-[#4CAF50]">Naija </span>
+                      <span className="text-[#FF9800]">Online Stores</span>
+                    </h4>
                     <p className="text-sm text-neutral-500 mb-6 font-medium">Join us today for exclusive deals</p>
                     <div className="flex flex-col space-y-3 w-full">
                       <button onClick={() => onNavigate("auth")} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg text-sm transition-colors shadow-md shadow-orange-500/20">Sign In / Register</button>
