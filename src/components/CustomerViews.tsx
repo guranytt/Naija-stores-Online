@@ -349,28 +349,13 @@ export default function CustomerViews({
     if (activeCatLower === "all") {
       matchesCategory = true;
     } else {
-      const pCatLower = (product.category || "").toLowerCase();
-      const pCatId = product.categoryId || "";
-      const pCatSlug = (product.categorySlug || "").toLowerCase();
+      const pCatId = product.categoryId || product.category_id || "";
       
       const activeCategoryObj = categories?.find(c => c.id === activeCategoryTab || (c.slug || "").toLowerCase() === activeCatLower || c.name.toLowerCase() === activeCatLower);
       const targetCatId = activeCategoryObj ? activeCategoryObj.id : activeCategoryTab;
-      const activeCatNameLower = (activeCategoryObj?.name || activeCategoryTab).toLowerCase();
-      const activeCatSlugLower = (activeCategoryObj?.slug || "").toLowerCase();
 
-      const isTextMatch = (a: string, b: string) => {
-        if (!a || !b) return false;
-        const normA = a.replace(/[^a-z0-9]/g, "");
-        const normB = b.replace(/[^a-z0-9]/g, "");
-        if (!normA || !normB) return false;
-        return normA.includes(normB) || normB.includes(normA);
-      };
-
-      matchesCategory = 
-        (pCatId && targetCatId && pCatId === targetCatId) || 
-        isTextMatch(activeCatNameLower, pCatLower) || 
-        isTextMatch(activeCategoryTab, pCatLower) ||
-        isTextMatch(activeCatSlugLower, pCatSlug);
+      // STRICT RELATIONAL MATCHING BY CATEGORY ID
+      matchesCategory = !!(pCatId && targetCatId && pCatId === targetCatId);
     }
     
     let matchesSearch = true;
@@ -949,7 +934,12 @@ export default function CustomerViews({
                     {/* Right: Info */}
                     <div className="flex-1 pl-4 py-1 flex flex-col justify-between">
                       <div>
-                        <p className="text-[9px] font-extrabold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
+                        <div className="flex items-center space-x-2">
+                          <p className="text-[9px] font-extrabold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
+                          <span className="text-[8px] font-bold text-neutral-400 uppercase bg-neutral-100 px-1.5 py-0.5 rounded">
+                            {categories?.find(c => c.id === (p.categoryId || p.category_id))?.name || "General"}
+                          </span>
+                        </div>
                         <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-2 leading-snug mt-1">{p.title}</h3>
                         <div className="flex items-center space-x-1 text-[10px] text-neutral-500 mt-1">
                           <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
@@ -1119,11 +1109,16 @@ export default function CustomerViews({
 
                     <div className="p-4 flex-1 flex flex-col justify-between text-left space-y-2">
                       <div className="space-y-1">
-                        <div className="flex items-center space-x-1">
-                          <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
-                          {p.condition === "Fairly Used" && (
-                            <span className="text-[8px] uppercase tracking-wider bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap">Fairly Used</span>
-                          )}
+                        <div className="flex flex-col space-y-1 mb-1">
+                          <div className="flex items-center space-x-1">
+                            <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{p.vendorName}</p>
+                            {p.condition === "Fairly Used" && (
+                              <span className="text-[8px] uppercase tracking-wider bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap">Fairly Used</span>
+                            )}
+                          </div>
+                          <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest truncate">
+                            {categories?.find(c => c.id === (p.categoryId || p.category_id))?.name || "General"}
+                          </p>
                         </div>
                         <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-1 truncate group-hover:text-orange-500 transition-colors">
                           {p.title}
@@ -1402,10 +1397,14 @@ export default function CustomerViews({
                   <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between text-left min-w-0">
                     <div className="space-y-1 sm:space-y-1.5">
                       <div className="flex items-center justify-between gap-1">
-                        <div className="flex items-center space-x-1.5 min-w-0">
+                        <div className="mb-1.5 flex flex-col space-y-1">
                           <span className="text-[8px] sm:text-[9px] font-bold text-orange-500 uppercase tracking-widest block truncate">
                             {p.vendorName}
                           </span>
+                          <span className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest block truncate bg-neutral-100 w-fit px-1.5 py-0.5 rounded">
+                            {categories?.find(c => c.id === (p.categoryId || p.category_id))?.name || "General"}
+                          </span>
+                        </div>
                           {p.condition === "Fairly Used" && (
                             <span className="text-[7px] sm:text-[8px] uppercase tracking-wider bg-neutral-200 text-neutral-700 px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap">Pre-Owned</span>
                           )}
