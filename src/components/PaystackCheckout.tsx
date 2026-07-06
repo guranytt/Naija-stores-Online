@@ -144,7 +144,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
     }
 
     const script = document.createElement("script");
-    script.src = "https://js.paystack.co/v1/inline.js";
+    script.src = "https://js.paystack.co/v2/inline.js";
     script.id = "paystack-inline-js";
     script.async = true;
     script.onload = () => {
@@ -259,6 +259,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
               email: checkoutEmail || email || "customer@example.com",
               amount: paymentAmountKobo,
               currency: "NGN",
+              reference: referenceCode,
               ref: referenceCode,
               metadata: {
                 custom_fields: [
@@ -297,6 +298,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
           email: checkoutEmail || email || "customer@example.com",
           amount: paymentAmountKobo,
           currency: "NGN",
+          reference: referenceCode,
           ref: referenceCode,
           metadata: {
             custom_fields: [
@@ -765,9 +767,10 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
 
                       {/* Real Live Sandbox Gateway Gateway Option */}
                       <motion.button
+                        type="button"
                         whileHover={{ scale: 1.025, borderColor: "#0284c7" }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={handleRealPaystackPayment}
+                        onClick={() => handleRealPaystackPayment(false)}
                         className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-cyan-500 bg-cyan-50/20 hover:bg-cyan-50/40 transition-all text-left bg-white cursor-pointer group"
                       >
                         <div className="flex items-center space-x-3">
@@ -788,6 +791,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
                       </motion.button>
 
                       <motion.button
+                        type="button"
                         whileHover={{ scale: 1.02, borderColor: "#06b6d4" }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => handleRealPaystackPayment(true)}
