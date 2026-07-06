@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Navbar from "./components/Navbar";
 import CustomerViews from "./components/CustomerViews";
@@ -550,14 +550,14 @@ export default function App() {
   );
 
   const { data: dbVendors } = useSWR(
-    ["vendors", { limit: 30 }],
-    ([table]) => getSupabaseData<Vendor>(table as string, [], 1, 30).then(res => res.data),
+    ["vendors", { limit: 1000 }],
+    ([table]) => getSupabaseData<Vendor>(table as string, [], 1, 1000).then(res => res.data),
     { revalidateOnFocus: false, dedupingInterval: 300000 }
   );
 
   const { data: dbProducts } = useSWR(
-    ["products", { limit: 30 }],
-    ([table]) => getSupabaseData<Product>(table as string, [], 1, 30).then(res => res.data),
+    ["products", { limit: 1000 }],
+    ([table]) => getSupabaseData<Product>(table as string, [], 1, 1000).then(res => res.data),
     { revalidateOnFocus: false, dedupingInterval: 300000 }
   );
 
@@ -693,11 +693,14 @@ export default function App() {
       } else {
         updated = [...prevVendors, resolvedVendor];
       }
-      saveSupabaseRecord("vendors", resolvedVendor);
+      saveSupabaseRecord("vendors", resolvedVendor).then(() => {
+        mutate(["vendors", { limit: 1000 }]);
+      });
       triggerToast(`Store profile updated successfully!`, "success");
       return updated;
     });
   };
+
 
   const updateMailLogs = async () => {
     const logs = await fetchEmailLogs();
@@ -1066,7 +1069,9 @@ export default function App() {
     setProducts([prod, ...products]);
     
     // Push new product into Supabase table
-    saveSupabaseRecord("products", prod);
+    saveSupabaseRecord("products", prod).then(() => {
+      mutate(["products", { limit: 1000 }]);
+    });
     
     triggerToast(`Successfully published ${prod.title} to NaijaStores Catalog.`, "success");
   };
