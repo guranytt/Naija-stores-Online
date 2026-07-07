@@ -242,12 +242,16 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
 
         // Register a public records entry to trigger Database Webhooks
         if (data.user) {
+          // Enforce server-side: only 'customer' or 'vendor' roles are accepted.
+          // Any other value (e.g. injected 'admin') is silently clamped to 'customer'.
+          const allowedRoles = ["customer", "vendor"];
+          const safeRole = allowedRoles.includes(role) ? role : "customer";
           try {
             await supabase.from("users").upsert({
               id: data.user.id,
               full_name: payload.fullName,
               email: email,
-              role: role as any,
+              role: safeRole as any,
               avatar_url: null
             });
           } catch (usersErr) {
@@ -671,7 +675,6 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
                       >
                         <option value="customer">Customer</option>
                         <option value="vendor">Merchant / Vendor</option>
-                        <option value="admin">Platform Admin</option>
                       </select>
                     </div>
 

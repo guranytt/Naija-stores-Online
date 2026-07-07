@@ -167,8 +167,12 @@ async function startServer() {
   const requireAuth = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const authHeader = req.headers.authorization;
     
-    // Check for fallback user ID for mocked auth testing
-    const fallbackUserId = req.headers["x-user-id"] || req.headers["x-mock-user-id"];
+    // Header-based mock auth is ONLY permitted in non-production environments.
+    // In production this fallback is disabled to prevent auth bypass via spoofed headers.
+    const isProduction = process.env.NODE_ENV === "production";
+    const fallbackUserId = !isProduction
+      ? (req.headers["x-user-id"] || req.headers["x-mock-user-id"])
+      : null;
     
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       if (fallbackUserId) {
@@ -599,50 +603,32 @@ Return valid JSON only matching this schema exactly:
         country, state, city, lga, postalCode, deliveryNotes, deliveryFee
       };
 
-      const payload = {
-        total_amount: Number(orderValue),
-        order_status: "processing",
-        payment_status: "paid",
-        shipping_address: JSON.stringify(meta),
-        user_id: userId || null
-      };
-
-      // Before inserting, map column names correctly since Supabase schema might filter them
-      const mappedPayload: any = { ...payload };
-      
-      // We can also insert the user's legacy columns just in case
-      mappedPayload.customerName = customerName;
-      mappedPayload.status = "Processing";
-      mappedPayload.value = Number(orderValue);
-      mappedPayload.id = orderId;
-      mappedPayload.trackingId = trackingId;
-      mappedPayload.routeFrom = startState;
-      mappedPayload.routeTo = actualDest;
-      mappedPayload.deliveryProgress = 0;
-      mappedPayload.currentCity = startState;
-      mappedPayload.date = new Date().toISOString().split("T")[0];
-      mappedPayload.itemsCount = itemsCount;
-      mappedPayload.deliveryAddress = deliveryAddress || "Address verified by Paystack Gateway";
-      mappedPayload.deliveryFee = deliveryFee || 0;
-
-      // Determine columns using hardcoded schema array to avoid live row dependency
-      const orderTableColumns: string[] = ['id', 'user_id', 'total_amount', 'order_status', 'payment_status', 'shipping_address', 'created_at', 'status', 'value', 'trackingId', 'routeFrom', 'routeTo', 'deliveryProgress', 'currentCity', 'productIds', 'customerName', 'deliveryAddress', 'deliveryFee'];
-
-      let finalPayload: any = {};
-      orderTableColumns.forEach((col: string) => {
-        if (mappedPayload[col] !== undefined) {
-          finalPayload[col] = mappedPayload[col];
-        }
-      });
-      
-      // Merge fallback mapping to be safe
-      finalPayload = {
-        total_amount: Number(orderValue),
-        order_status: "processing",
-        payment_status: "paid",
-        shipping_address: JSON.stringify(meta),
+      // Build a single, canonical payload that writes both DB schema columns
+      // (total_amount, order_status, payment_status, shipping_address) AND
+      // the app-readable columns (value, status, date, etc.) in one place so they
+      // never drift out of sync.
+      const finalPayload: any = {
+        // --- Canonical DB columns ---
+        id: orderId,
         user_id: userId || null,
-        ...finalPayload
+        total_amount: Number(orderValue),
+        order_status: "processing",
+        payment_status: "paid",
+        shipping_address: JSON.stringify(meta),
+        // --- App-readable / dashboard columns ---
+        status: "Processing",
+        value: Number(orderValue),
+        date: new Date().toISOString().split("T")[0],
+        customerName,
+        itemsCount,
+        trackingId,
+        routeFrom: startState,
+        routeTo: actualDest,
+        deliveryProgress: 0,
+        currentCity: startState,
+        productIds,
+        deliveryAddress: deliveryAddress || "Address verified by Paystack Gateway",
+        deliveryFee: deliveryFee || 0
       };
 
       console.log(`[SERVER DB INSERT] Inserting order id: ${orderId} value: ₦${orderValue} into 'orders' table.`, finalPayload);
@@ -707,9 +693,12 @@ Return valid JSON only matching this schema exactly:
         }
       }
 
-      // Send payment confirmation email and order confirmation email
-      await emailService.sendPaymentSuccessful(email, customerName, orderId, orderValue).catch(err => console.error("Error sending payment email:", err));
-      await emailService.sendOrderConfirmation(email, customerName, orderId, cart, orderValue, meta).catch(err => console.error("Error sending order email:", err));
+      // Send payment confirmation email and order confirmation email (fire-and-forget)
+      // Do NOT await these — they must not block the verify response.
+      emailService.sendPaymentSuccessful(email, customerName, orderId, orderValue)
+        .catch(err => console.error("Error sending payment email (async):", err));
+      emailService.sendOrderConfirmation(email, customerName, orderId, cart, orderValue, meta)
+        .catch(err => console.error("Error sending order confirmation email (async):", err));
 
       console.log("[SERVER] Database insertion succeeded! Returning record:", data?.[0] || finalPayload);
       return {
@@ -887,14 +876,19 @@ Return valid JSON only matching this schema exactly:
   app.post("/api/vendor/upsert", express.json(), requireAuth, async (req, res) => {
     try {
       const payload = req.body;
-      if (!payload || !payload.id) {
+      const authUserId = (req as any).user?.id;
+      if (authUserId) {
+        payload.id = authUserId;
+        payload.user_id = authUserId;
+      } else if (!payload.id) {
         return res.status(400).json({ error: "Invalid payload: Vendor ID is required" });
       }
 
       const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
       
       // Try to find an existing vendor by user_id or email to update ONLY if a valid ID was not passed
-      let shouldUseFallbackLookup = true;
+      // (If authUserId is present, the ID is already valid)
+      let shouldUseFallbackLookup = !authUserId;
       if (payload.id && UUID_REGEX.test(payload.id)) {
         // If they provided a valid UUID, verify if it exists
         const { data: existingById } = await supabaseAdmin.from("vendors").select("id").eq("id", payload.id).limit(1);

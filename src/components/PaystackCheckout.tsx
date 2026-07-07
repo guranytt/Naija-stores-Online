@@ -233,9 +233,10 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
             }
           })
           .catch(verifyErr => {
-            console.warn("[PAYSTACK VERIFY ERR] Fallback simulation trigger:", verifyErr);
-            // Default verification fail-safe (allow user view fallback success if server has hiccups)
-            setStep("success");
+            console.warn("[PAYSTACK VERIFY ERR] Network/parse error during verification:", verifyErr);
+            // Do NOT silently advance to success — the order may not have been created.
+            // Show an actionable error so the user can retry or contact support.
+            setSdkError(`Payment verification could not be reached: ${verifyErr?.message || "Network error"}. If you were charged, please contact support with your transaction reference.`);
           })
           .finally(() => {
             setLoading(false);
@@ -421,7 +422,8 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
       }
     } catch (err: any) {
       console.warn("[SIMULATOR VERIFY ERR]", err);
-      setStep("success");
+      // Do NOT silently advance to success — order may not have been created server-side.
+      setSdkError(`Payment verification failed: ${err?.message || "Network error"}. If you were charged, please contact support.`);
     } finally {
       setLoading(false);
     }

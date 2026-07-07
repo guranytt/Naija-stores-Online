@@ -1,15 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getTemplate } from "./templates.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const WEBHOOK_SECRET = Deno.env.get("WEBHOOK_SECRET") || "";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-webhook-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -22,8 +22,8 @@ const supabaseAdmin = createClient(
 async function logEmailAction(logData: {
   email: string;
   template_name: string;
+  subject?: string;
   status: string;
-  resend_message_id?: string;
   error_message?: string;
 }) {
   try {
@@ -31,12 +31,11 @@ async function logEmailAction(logData: {
       .from("email_logs")
       .insert([
         {
-          email: logData.email,
-          template_name: logData.template_name,
+          recipient: logData.email,
+          type: logData.template_name,
+          subject: logData.subject || null,
           status: logData.status,
-          resend_message_id: logData.resend_message_id,
-          sent_at: logData.status === "sent" ? new Date().toISOString() : null,
-          error_message: logData.error_message,
+          error_message: logData.error_message || null,
         },
       ]);
     if (error) console.error("Error logging email:", error);
@@ -45,14 +44,42 @@ async function logEmailAction(logData: {
   }
 }
 
+// Templates helper
+function baseWrap(title: string, content: string) {
+  return `
+  <div style="font-family: 'Inter', system-ui, sans-serif; padding: 40px 20px; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;">
+    <div style="text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 24px; margin-bottom: 32px;">
+      <h1 style="color: #0f172a; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em;">Naija Online Stores</h1>
+      <p style="color: #f97316; margin: 8px 0 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;">${title}</p>
+    </div>
+    <div style="color: #334155; font-size: 16px; line-height: 1.6;">
+      ${content}
+    </div>
+    <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center; color: #94a3b8; font-size: 13px;">
+      <p style="margin: 0;">Support: admin@naijaonlinestores.com.ng | Phone: +234 800 000 0000</p>
+      <p style="margin: 6px 0 0;">© ${new Date().getFullYear()} Naija Online Stores. All rights reserved.</p>
+    </div>
+  </div>`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // --- Auth check: only accept calls carrying our shared secret ---
+  // Deploy this function with --no-verify-jwt and rely on this instead,
+  // since pg_net triggers can't easily carry a real user JWT.
+  if (!WEBHOOK_SECRET || req.headers.get("x-webhook-secret") !== WEBHOOK_SECRET) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const payload = await req.json().catch(() => ({}));
-    
+
     // Support either direct REST payload OR Supabase table watch triggers
     let to = payload.to || payload.email;
     let templateType = payload.type || payload.template_name || "welcome";
@@ -60,38 +87,24 @@ serve(async (req) => {
 
     // Postgres trigger normalization
     if (payload?.type === "INSERT" && payload?.table === "users") {
-      to = "adminnaijastoresonline@gmail.com"; // Admin email
-      templateType = "user_signup";
-      data = { 
-        fullName: payload.record.full_name || payload.record.name || "N/A",
-        email: payload.record.email || "N/A",
-        phone: payload.record.phone || payload.record.phone_number || "Not provided",
-        registrationDate: payload.record.created_at || new Date().toISOString(),
-        userId: payload.record.id
-      };
-    } else if (payload?.type === "INSERT" && payload?.table === "vendors") {
-      to = "adminnaijastoresonline@gmail.com"; // Admin email
-      templateType = "vendor_signup";
+      // Route new-user signups to the ADMIN, not the user themselves.
+      to = "adminnaijastoresonline@gmail.com";
+      templateType = "admin_new_user";
       data = {
-        businessName: payload.record.name || payload.record.business_name || "N/A",
-        ownerName: payload.record.owner_name || payload.record.ownerName || "N/A",
+        customerName: payload.record.full_name || "N/A",
         email: payload.record.email || "N/A",
-        phone: payload.record.phone || payload.record.whatsappNumber || "N/A",
-        businessAddress: payload.record.business_address || payload.record.location || "N/A",
-        category: payload.record.category || payload.record.categoryId || "N/A",
-        registrationDate: payload.record.created_at || new Date().toISOString(),
-        vendorId: payload.record.id,
-        approvalStatus: payload.record.is_verified ? "approved" : "pending"
+        role: payload.record.role || "customer",
+        shopName: payload.record.shop_name || null,
       };
     } else if (payload?.type === "INSERT" && payload?.table === "orders") {
       to = payload.record.email || "shopper@example.com";
       templateType = "order_received";
-      data = { 
+      data = {
         orderNumber: payload.record.id,
         customerName: payload.record.customer_name || "Customer",
         date: payload.record.created_at,
         amount: payload.record.total_amount || 0,
-        itemsHtml: "<li>Order items from Database trigger</li>"
+        itemsHtml: "<li>Order items from Database trigger</li>",
       };
     }
 
@@ -105,8 +118,8 @@ serve(async (req) => {
     const { data: dupLogs } = await supabaseAdmin
       .from("email_logs")
       .select("id")
-      .eq("email", to)
-      .eq("template_name", templateType)
+      .eq("recipient", to)
+      .eq("type", templateType)
       .gt("created_at", oneMinAgo)
       .limit(1);
 
@@ -115,13 +128,169 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, skipped: true, message: "Duplicate suppressed." }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
     }
 
+    let subject = "";
+    let html = "";
+
     const name = data.firstName || data.customerName || "Customer";
-    
-    const { subject, html } = getTemplate(templateType, data, name);
+
+    switch (templateType) {
+      case "welcome":
+      case "customer_signup":
+        subject = "Welcome to Naija Online Stores! 🎉";
+        html = baseWrap("Welcome Aboard", `
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>Welcome to Naija Online Stores! We are thrilled to have you join our marketplace.</p>
+          <p>Get ready to explore the best local and international products, authentic fashion, and direct-from-vendor deals.</p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${data.actionUrl || 'https://naijastores.com'}" style="background-color: #f97316; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; display: inline-block;">Start Shopping Now</a>
+          </div>
+        `);
+        break;
+
+      case "vendor_signup":
+        subject = "Welcome, Premium Merchant! 🏪";
+        html = baseWrap("Vendor Approval", `
+          <p>Hi <strong>${data.vendorName || name}</strong>,</p>
+          <p>Congratulations! Your merchant account has been successfully created on Naija Online Stores.</p>
+          <div style="background: #fff7ed; border: 1px solid #ffedd5; padding: 20px; border-radius: 8px; margin: 24px 0;">
+            <p style="margin:0 0 8px; color: #ea580c;"><strong>Next Steps to Success:</strong></p>
+            <ul style="margin:0; padding-left: 20px; color: #9a3412;">
+              <li style="margin-bottom: 6px;">Complete your store profile and banner</li>
+              <li style="margin-bottom: 6px;">Upload your first 5 high-quality products</li>
+              <li>Set up your payout bank details</li>
+            </ul>
+          </div>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${data.actionUrl || 'https://naijastores.com'}/dashboard" style="background-color: #171717; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; display: inline-block;">Access Vendor Dashboard</a>
+          </div>
+        `);
+        break;
+
+      case "admin_new_user":
+        subject = `[ADMIN ALERT] New User Registration: ${data.role || 'Customer'}`;
+        html = baseWrap("Admin Notification", `
+          <p>Hello Admin,</p>
+          <p>A new user just registered on the platform.</p>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin: 24px 0;">
+            <p style="margin:0 0 8px;"><strong>Name:</strong> ${data.customerName}</p>
+            <p style="margin:0 0 8px;"><strong>Email:</strong> ${data.email}</p>
+            <p style="margin:0 0 8px;"><strong>Role:</strong> <span style="background: #f97316; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase;">${data.role}</span></p>
+            ${data.shopName ? `<p style="margin:0;"><strong>Shop Name:</strong> ${data.shopName}</p>` : ''}
+          </div>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="https://naijastores.com/dashboard" style="background-color: #171717; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; display: inline-block;">View in Admin Panel</a>
+          </div>
+        `);
+        break;
+
+      case "email_verification":
+        subject = "Verify Your Email Address";
+        html = baseWrap("Account Security", `
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>Thanks for registering! Please verify your email address to secure your account and unlock all marketplace features.</p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${data.verificationLink || '#'}" style="background-color: #0f172a; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; display: inline-block;">Verify Email Address</a>
+          </div>
+          <p style="font-size: 13px; color: #64748b;"><em>Note: This link expires in 24 hours.</em></p>
+        `);
+        break;
+
+      case "password_reset":
+        subject = "Password Reset Request";
+        html = baseWrap("Account Recovery", `
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>We received a request to reset your password. If you didn't make this request, you can safely ignore this email.</p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${data.resetLink || '#'}" style="background-color: #ef4444; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; display: inline-block;">Reset Password</a>
+          </div>
+          <p style="font-size: 13px; color: #ef4444; border-left: 3px solid #ef4444; padding-left: 12px;"><strong>Security Warning:</strong> Never share your reset link with anyone.</p>
+        `);
+        break;
+
+      case "order_received":
+        subject = `Order Received #${data.orderNumber}`;
+        html = baseWrap("Order Received 📦", `
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>Thank you for shopping with us! Your order has been received and is currently being processed.</p>
+          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 24px 0;">
+            <p style="margin:0 0 8px;"><strong>Order Number:</strong> #${data.orderNumber}</p>
+            <p style="margin:0 0 8px;"><strong>Order Date:</strong> ${new Date(data.date || Date.now()).toLocaleDateString()}</p>
+            <p style="margin:0 0 8px;"><strong>Total Amount:</strong> ₦${Number(data.amount || 0).toLocaleString()}</p>
+            <p style="margin: 16px 0 8px;"><strong>Items Ordered:</strong></p>
+            <ul style="margin:0; padding-left: 20px;">${data.itemsHtml}</ul>
+          </div>
+          <p>Estimated processing time: <strong>1-2 business days</strong>.</p>
+        `);
+        break;
+
+      case "payment_confirmation":
+        subject = `Payment Confirmed - Order #${data.orderNumber}`;
+        html = baseWrap("Payment Successful 🎉", `
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>We've successfully processed your payment.</p>
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; margin: 24px 0;">
+            <p style="margin:0 0 8px;"><strong>Transaction ID:</strong> ${data.transactionId || 'TXN-' + Date.now()}</p>
+            <p style="margin:0 0 8px;"><strong>Amount Paid:</strong> ₦${Number(data.amount || 0).toLocaleString()}</p>
+            <p style="margin:0 0 8px;"><strong>Payment Method:</strong> ${data.paymentMethod || 'Paystack'}</p>
+            <p style="margin:0 0 0;"><strong>Order Number:</strong> #${data.orderNumber}</p>
+          </div>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${data.receiptLink || '#'}" style="background-color: #0f172a; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; display: inline-block;">View Full Receipt</a>
+          </div>
+        `);
+        break;
+
+      case "order_shipped":
+        subject = `Your Order #${data.orderNumber} is on the way! 🚚`;
+        html = baseWrap("Order Shipped", `
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>Great news! Your order <strong>#${data.orderNumber}</strong> has been shipped.</p>
+          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 24px 0;">
+            <p style="margin:0 0 8px;"><strong>Courier Partner:</strong> ${data.courier || 'Naija Logistics Core'}</p>
+            <p style="margin:0 0 8px;"><strong>Tracking Number:</strong> ${data.trackingNumber || 'PENDING'}</p>
+            <p style="margin:0 0 0;"><strong>Expected Delivery:</strong> ${data.expectedDelivery || '2-4 Business Days'}</p>
+          </div>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${data.trackingUrl || '#'}" style="background-color: #f97316; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; display: inline-block;">Track Shipment Live</a>
+          </div>
+        `);
+        break;
+
+      case "order_delivered":
+        subject = `Order #${data.orderNumber} Delivered ✅`;
+        html = baseWrap("Package Delivered", `
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>Your order <strong>#${data.orderNumber}</strong> has been successfully delivered! We hope you love your new items.</p>
+          <p>We'd love to hear about your experience. Please take a moment to review your purchase.</p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${data.reviewUrl || '#'}" style="background-color: #0f172a; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; display: inline-block;">Leave a Review</a>
+          </div>
+        `);
+        break;
+
+      case "refund_processed":
+        subject = `Refund Processed - Order #${data.orderNumber}`;
+        html = baseWrap("Refund Processed 💸", `
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>We have successfully processed a refund for your order.</p>
+          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 24px 0;">
+            <p style="margin:0 0 8px;"><strong>Refund Amount:</strong> ₦${Number(data.amount || 0).toLocaleString()}</p>
+            <p style="margin:0 0 8px;"><strong>Refund Reference:</strong> ${data.refundReference || 'REF-' + Date.now()}</p>
+            <p style="margin:0 0 0;"><strong>Order Number:</strong> #${data.orderNumber}</p>
+          </div>
+          <p>Please note: It may take <strong>3-5 business days</strong> for the funds to settle in your account depending on your bank.</p>
+        `);
+        break;
+
+      default:
+        subject = `Important Update from Naija Online Stores`;
+        html = baseWrap("Notification", `<p>${data.customMessage || "You have a new alert."}</p>`);
+        break;
+    }
 
     if (!RESEND_API_KEY) {
       console.warn("[WARNING] RESEND_API_KEY missing. Simulating send.");
-      await logEmailAction({ email: to, template_name: templateType, status: "sent", resend_message_id: "sim-" + Date.now() });
+      await logEmailAction({ email: to, template_name: templateType, subject, status: "sent" });
       return new Response(JSON.stringify({ success: true, simulated: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
     }
 
@@ -129,7 +298,7 @@ serve(async (req) => {
     const maxRetries = 2;
     let resendResponse;
     let responseData;
-    
+
     while (retryCount <= maxRetries) {
       resendResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -148,30 +317,29 @@ serve(async (req) => {
       responseData = await resendResponse.json();
 
       if (resendResponse.ok) {
-        break; 
+        break;
       }
-      
+
       // If rate limited or transient error, retry
       if (resendResponse.status >= 500 || resendResponse.status === 429) {
         retryCount++;
-        await new Promise(res => setTimeout(res, 1000 * retryCount)); // Exponential backoff
+        await new Promise((res) => setTimeout(res, 1000 * retryCount)); // Exponential backoff
       } else {
         break; // Other errors don't retry
       }
     }
 
     if (!resendResponse || !resendResponse.ok) {
-      await logEmailAction({ email: to, template_name: templateType, status: "failed", error_message: responseData?.message || "Delivery failed" });
+      await logEmailAction({ email: to, template_name: templateType, subject, status: "failed", error_message: responseData?.message || "Delivery failed" });
       throw new Error(responseData?.message || "Resend email delivery failed");
     }
 
-    await logEmailAction({ email: to, template_name: templateType, status: "sent", resend_message_id: responseData.id });
+    await logEmailAction({ email: to, template_name: templateType, subject, status: "sent" });
 
     return new Response(
       JSON.stringify({ success: true, messageId: responseData.id }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
-
   } catch (error: any) {
     console.error("[EDGE ERROR]", error);
     await logEmailAction({ email: "unknown", template_name: "unknown", status: "failed", error_message: error.message });

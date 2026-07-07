@@ -209,25 +209,31 @@ export default function VendorAdmin({
   const [fdError, setFdError] = useState<string | null>(null);
 
   const vendorsList = vendors && vendors.length > 0 ? vendors : [];
-  const stableFallbackId = currentUserId || (userEmail ? `v_fallback_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}` : "v_fallback_temp");
-  const activeVendor = vendorsList.find(v => v.email?.toLowerCase() === userEmail?.toLowerCase()) || 
-                       {
-                         id: stableFallbackId,
-                         userId: currentUserId || undefined,
-                         user_id: currentUserId || undefined,
-                         name: "My Store",
-                         ownerName: "Vendor Owner",
-                         email: userEmail || "vendor@naijaonlinestores.com.ng",
-                         location: "Nigeria",
-                         rating: 0,
-                         ratingCount: 0,
-                         salesToday: 0,
-                         isVerified: false,
-                         avatar: "",
-                         ordersPending: 0,
-                         stockAlerts: 0,
-                         phone: ""
-                       } as Vendor;
+
+  // Vendor resolution priority (Issues 1 & 2):
+  // 1. Find by user_id — most stable, never drifts
+  // 2. Fall back to email match — handles legacy records without user_id
+  // 3. Use stub with currentUserId as the id so new products get the right vendorId
+  const activeVendor =
+    (currentUserId && vendorsList.find(v => v.user_id === currentUserId || (v as any).userId === currentUserId)) ||
+    vendorsList.find(v => v.email?.toLowerCase() === userEmail?.toLowerCase()) ||
+    ({
+      id: currentUserId || (userEmail ? `v_fallback_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}` : "v_fallback_temp"),
+      userId: currentUserId || undefined,
+      user_id: currentUserId || undefined,
+      name: "My Store",
+      ownerName: "Vendor Owner",
+      email: userEmail || "vendor@naijaonlinestores.com.ng",
+      location: "Nigeria",
+      rating: 0,
+      ratingCount: 0,
+      salesToday: 0,
+      isVerified: false,
+      avatar: "",
+      ordersPending: 0,
+      stockAlerts: 0,
+      phone: ""
+    } as Vendor);
 
   const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com";
 
@@ -238,16 +244,21 @@ export default function VendorAdmin({
     }
   }, [adminTab, isMasterAdmin]);
 
-  // Filter products and orders dynamically for real, active vendor statistics
+  // Filter products and orders dynamically for real, active vendor statistics.
+  // Match by vendorId OR user_id so products remain visible regardless of ID drift (Issues 1 & 2).
   const vendorProducts = products.filter(p => {
     const vId = p.vendorId || (p as any).vendor_id;
-    return vId === activeVendor.id;
+    const productUserId = (p as any).user_id || (p as any).userId;
+    return (
+      vId === activeVendor.id ||
+      (currentUserId && (vId === currentUserId || productUserId === currentUserId))
+    );
   });
 
   const vendorOrders = orders.filter(o => {
     const oVendorId = (o as any).vendorId || (o as any).vendor_id;
     if (oVendorId) {
-      return oVendorId === activeVendor.id;
+      return oVendorId === activeVendor.id || (currentUserId && oVendorId === currentUserId);
     }
     if (o.productIds && o.productIds.length > 0) {
       return o.productIds.some(pId => vendorProducts.some(vp => vp.id === pId));
@@ -641,6 +652,28 @@ export default function VendorAdmin({
                   <span>Welcome back, {activeVendor.ownerName}</span>
                 </h2>
                 <p className="text-xs text-neutral-400 font-bold">{activeVendor.name} &bull; 📍 {activeVendor.location}</p>
+                {/* Verification badge — visible immediately without opening edit modal (Issue 3) */}
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  {activeVendor.isVerified ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-extrabold uppercase tracking-wider">
+                      <Check className="w-3 h-3" /> Verified Merchant
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-extrabold uppercase tracking-wider">
+                      <AlertCircle className="w-3 h-3" /> Pending Verification
+                    </span>
+                  )}
+                  {(activeVendor.cacNumber || activeVendor.cac_number) && (
+                    <span className="text-[10px] font-bold text-neutral-500 font-mono">
+                      CAC: {activeVendor.cacNumber || activeVendor.cac_number}
+                    </span>
+                  )}
+                  {activeVendor.approval_status && activeVendor.approval_status !== "approved" && (
+                    <span className="text-[10px] font-bold text-orange-500 uppercase">
+                      Status: {activeVendor.approval_status}
+                    </span>
+                  )}
+                </div>
                 <button 
                   onClick={() => setShowEditProfileModal(true)}
                   className="text-[10px] text-orange-500 hover:text-orange-600 font-black tracking-wider uppercase underline mt-1 block"
