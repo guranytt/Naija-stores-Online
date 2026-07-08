@@ -1,11 +1,4 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-
-export interface Env {
-  SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
-  RESEND_API_KEY: string;
-  WEBHOOK_SECRET: string; // The secret configured in Supabase Webhook headers
-}
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 export interface WebhookPayload<T = any> {
   type: 'INSERT' | 'UPDATE' | 'DELETE';
@@ -15,13 +8,10 @@ export interface WebhookPayload<T = any> {
   old_record: T | null;
 }
 
-/**
- * Verify Supabase Webhook Signature (Bearer token)
- */
-export async function verifyWebhook(request: Request, env: Env): Promise<{ isValid: boolean; payload?: WebhookPayload; errorResponse?: Response }> {
-  // We use a Bearer token verification configured in Supabase Webhook Headers: Authorization: Bearer <secret>
+export async function verifyWebhook(request: Request): Promise<{ isValid: boolean; payload?: WebhookPayload; errorResponse?: Response }> {
   const authHeader = request.headers.get('Authorization');
-  const expectedToken = `Bearer ${env.WEBHOOK_SECRET}`;
+  const webhookSecret = Deno.env.get('WEBHOOK_SECRET');
+  const expectedToken = `Bearer ${webhookSecret}`;
 
   if (!authHeader || authHeader !== expectedToken) {
     console.error('Webhook verification failed: Invalid or missing Authorization token.');
@@ -49,22 +39,16 @@ export async function verifyWebhook(request: Request, env: Env): Promise<{ isVal
   }
 }
 
-/**
- * Initialize Supabase Client
- */
-export function getSupabase(env: Env): SupabaseClient {
-  return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+export function getSupabase(): SupabaseClient {
+  const url = Deno.env.get('SUPABASE_URL') || '';
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  return createClient(url, key, {
     auth: {
       persistSession: false,
     },
   });
 }
 
-/**
- * Check if the email has already been sent for the given (user_id, type, reference_id).
- * If not, inserts a notification record with status = 'queued'.
- * Enforces database-level uniqueness.
- */
 export async function checkIdempotencyAndQueue(
   supabase: SupabaseClient,
   userId: string,
@@ -72,7 +56,7 @@ export async function checkIdempotencyAndQueue(
   referenceId: string,
   payload: any = {}
 ): Promise<{ alreadySent: boolean; notificationId?: string; error?: string }> {
-  // 1. Check if it's already sent
+  // Check if already sent
   const { data: existing, error: checkError } = await supabase
     .from('notifications')
     .select('id, status')
@@ -91,7 +75,7 @@ export async function checkIdempotencyAndQueue(
     return { alreadySent: true };
   }
 
-  // 2. Insert as queued, using ON CONFLICT to prevent race conditions
+  // Insert as queued, using ON CONFLICT to avoid race conditions
   const { data: inserted, error: insertError } = await supabase
     .from('notifications')
     .upsert({
@@ -114,7 +98,6 @@ export async function checkIdempotencyAndQueue(
 
   // If upsert ignored it (because it already exists), check its status
   if (!inserted) {
-    // Fetch the existing one (could be queued/sent/failed)
     const { data: current } = await supabase
       .from('notifications')
       .select('id, status')
@@ -132,9 +115,6 @@ export async function checkIdempotencyAndQueue(
   return { alreadySent: false, notificationId: inserted.id };
 }
 
-/**
- * Update notification status to 'sent'
- */
 export async function markNotificationSent(supabase: SupabaseClient, notificationId: string): Promise<void> {
   await supabase
     .from('notifications')
@@ -145,9 +125,6 @@ export async function markNotificationSent(supabase: SupabaseClient, notificatio
     .eq('id', notificationId);
 }
 
-/**
- * Update notification status to 'failed'
- */
 export async function markNotificationFailed(supabase: SupabaseClient, notificationId: string, errorDetail: any): Promise<void> {
   await supabase
     .from('notifications')
@@ -161,24 +138,21 @@ export async function markNotificationFailed(supabase: SupabaseClient, notificat
     .eq('id', notificationId);
 }
 
-/**
- * Call Resend API to send email
- */
 export async function sendEmail(
-  env: Env,
   to: string,
   subject: string,
   html: string
 ): Promise<{ success: boolean; error?: string }> {
+  const resendApiKey = Deno.env.get('RESEND_API_KEY');
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+        'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Naija Stores Online <noreply@clerk.naijaonlinestores.com.ng>', // Authorized domain
+        from: 'Naija Stores Online <noreply@clerk.naijaonlinestores.com.ng>',
         to: [to],
         subject: subject,
         html: html,

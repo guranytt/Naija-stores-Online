@@ -3,7 +3,7 @@ import {
   Truck, CheckCircle, Clock, AlertTriangle, Download, BarChart2, Package
 } from "lucide-react";
 import { Order, Vendor } from "../types";
-import { formatNaira } from "../utils";
+import { formatNaira } from "./CustomerViews";
 import {
   ResponsiveContainer,
   BarChart,

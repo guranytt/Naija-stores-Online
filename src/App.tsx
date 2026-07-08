@@ -1093,6 +1093,7 @@ export default function App() {
                onNavigate={(screen) => setCurrentScreen(screen)}
                onNavigateHome={() => setCurrentScreen("home")}
                onUpdateEmail={(email) => setUserEmail(email)}
+               vendorOnly={true}
               />
             </motion.div>
           )}

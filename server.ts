@@ -127,7 +127,7 @@ interface BackendMailLog {
 
 const serverMailLogs: BackendMailLog[] = [];
 
-async function startServer() {
+export async function startServer() {
   const app = express();
   app.set("trust proxy", 1);
   const PORT = 3000;
@@ -208,7 +208,7 @@ async function startServer() {
       const email = email_addresses?.[0]?.email_address || "";
       const name = `${first_name || ''} ${last_name || ''}`.trim() || email.split('@')[0];
       
-      const { error } = await supabase.from('users').upsert({
+      const { error } = await supabaseAdmin.from('users').upsert({
         id,
         email,
         name,
@@ -223,7 +223,7 @@ async function startServer() {
     }
 
     if (eventType === 'user.deleted') {
-      const { error } = await supabase.from('users').delete().eq('id', id);
+      const { error } = await supabaseAdmin.from('users').delete().eq('id', id);
       if (error) console.error("[CLERK WEBHOOK ERROR] Delete Failed", error);
     }
 

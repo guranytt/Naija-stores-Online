@@ -192,7 +192,8 @@ export default function VendorAdmin({
     await supabase.from('order_items').update({ fulfillment_status: newStatus }).eq('id', itemId);
   };
 
-  // Flash deals statewCommissionPercent, setNewCommissionPercent] = useState<string>("5");
+  const [newCondition, setNewCondition] = useState<string>("New");
+  const [newCommissionPercent, setNewCommissionPercent] = useState<string>("5");
   const [isUploading, setIsUploading] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -1649,7 +1650,7 @@ export default function VendorAdmin({
                     return (
                       <tr key={item.id} className="hover:bg-neutral-50/50">
                         <td className="px-6 py-4 font-bold text-neutral-800 text-[11px] font-mono">{item.order_id}</td>
-                        <td className="px-6 py-4 text-neutral-705">{item.product?.name || 'Product'}</td>
+                        <td className="px-6 py-4 text-neutral-705">{item.product?.title || 'Product'}</td>
                         <td className="px-6 py-4 font-mono font-bold text-neutral-700">{item.quantity} x {formatNaira(item.unit_price)}</td>
                         <td className="px-6 py-4">
                           <span className={`inline-block font-extrabold text-[10px] uppercase px-2 py-0.5 rounded border ${

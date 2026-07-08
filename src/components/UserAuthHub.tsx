@@ -11,9 +11,10 @@ interface UserAuthHubProps {
   onNavigateHome?: () => void;
   onNavigate?: (screen: string) => void;
   onUpdateEmail: (email: string) => void;
+  vendorOnly?: boolean;
 }
 
-export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, onUpdateEmail }: UserAuthHubProps) {
+export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, onUpdateEmail, vendorOnly = false }: UserAuthHubProps) {
   // Session states
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<{
@@ -39,7 +40,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState("customer");
+  const [role, setRole] = useState(vendorOnly ? "vendor" : "customer");
   const [location, setLocation] = useState("Lagos Mainland, Lagos");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [shopName, setShopName] = useState("");
@@ -637,8 +638,8 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
             <div className="text-center space-y-2">
               <img src={getOptimizedImageUrl("https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png", { width: 300, quality: "auto" })} className="h-16 w-auto mx-auto drop-shadow-sm mb-4" alt="Naija Stores Logo" />
               <h2 className="text-2xl font-black text-neutral-905 text-neutral-900 tracking-tight">
-                {authMode === "login" && "Log In"}
-                {authMode === "register" && "Sign Up"}
+                {authMode === "login" && (vendorOnly ? "Vendor Log In" : "Log In")}
+                {authMode === "register" && (vendorOnly ? "Create Vendor Account" : "Sign Up")}
                 {authMode === "forgot" && "Reset Password"}
               </h2>
               <p className="text-xs text-neutral-400">
@@ -666,18 +667,20 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">System Role</label>
-                      <select
-                        value={role}
-                        onChange={(e) => setRole(e.target.value)}
-                        className="w-full px-3 py-3 text-xs border border-neutral-200 rounded-xl outline-none bg-white font-bold"
-                      >
-                        <option value="customer">Customer</option>
-                        <option value="vendor">Merchant / Vendor</option>
-                      </select>
-                    </div>
+                  <div className={`grid ${vendorOnly ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+                    {!vendorOnly && (
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">System Role</label>
+                        <select
+                          value={role}
+                          onChange={(e) => setRole(e.target.value)}
+                          className="w-full px-3 py-3 text-xs border border-neutral-200 rounded-xl outline-none bg-white font-bold"
+                        >
+                          <option value="customer">Customer</option>
+                          <option value="vendor">Merchant / Vendor</option>
+                        </select>
+                      </div>
+                    )}
 
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">State / FCT</label>

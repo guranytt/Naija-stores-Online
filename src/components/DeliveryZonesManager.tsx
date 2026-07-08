@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { MapPin, Plus, Trash2, Edit2, Check, X } from "lucide-react";
-import { formatNaira } from "../utils";
+import { formatNaira } from "./CustomerViews";
 
 export default function DeliveryZonesManager({ deliveryZones, onUpdateDeliveryZones }: { deliveryZones: any[], onUpdateDeliveryZones: (zones: any[]) => void }) {
   const [zones, setZones] = useState<any[]>(deliveryZones || []);
