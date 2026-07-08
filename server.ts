@@ -136,7 +136,10 @@ export async function startServer() {
   
   const allowedOrigins = [
     "https://naija-stores.com",
-    /\.pages\.dev$/
+    "https://www.naijaonlinestores.com.ng",
+    "https://naijaonlinestores.com.ng",
+    /\.pages\.dev$/,
+    /\.vercel\.app$/
   ];
   if (process.env.NODE_ENV !== "production") {
     allowedOrigins.push("http://localhost:5173", "http://localhost:3000");

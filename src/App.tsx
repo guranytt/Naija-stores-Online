@@ -1166,9 +1166,20 @@ export default function App() {
         onSuccess={handlePaymentSuccess}
       />
 
+      {/* Floating Settings Button */}
+      <div className="fixed bottom-6 left-6 z-40">
+        <button
+          onClick={() => setSettingsDrawerOpen(true)}
+          className="p-3 bg-white hover:bg-neutral-50 border border-neutral-200 rounded-full shadow-lg transition-all hover:scale-110 active:scale-95 group cursor-pointer"
+          title="Open Simulation Settings"
+        >
+          <Settings2 className="w-5 h-5 text-neutral-605 text-neutral-600 group-hover:rotate-45 transition-transform duration-300" />
+        </button>
+      </div>
+
       {/* Stylized custom Settings drawer/overlay */}
       <AnimatePresence>
-        {false && (
+        {settingsDrawerOpen && (
           <div className="fixed inset-0 z-100 flex justify-end">
             <motion.div
               initial={{ opacity: 0 }}
