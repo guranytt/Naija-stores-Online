@@ -9,7 +9,6 @@ coverage/
 
 # Vercel Configuration & Linkages
 .vercel/
-vercel.json
 
 # Supabase Stale Artifacts
 supabase/.temp/
