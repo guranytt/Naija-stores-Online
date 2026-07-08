@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { getTransformedImageUrl } from "./utils/imageTransforms";
+import { getOptimizedImageUrl } from "./utils/imageTransforms";
 
 // @ts-ignore
 const envSupabaseUrl = typeof process !== 'undefined' && process.env && (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) ? (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) : undefined;
@@ -12,8 +12,8 @@ const viteSupabaseUrl = typeof import.meta !== 'undefined' && import.meta.env ? 
 // @ts-ignore
 const viteSupabaseKey = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_ANON_KEY : undefined;
 
-const SUPABASE_URL = viteSupabaseUrl || envSupabaseUrl || "https://jmmfogjefenmjqspspyg.supabase.co";
-const SUPABASE_ANON_KEY = viteSupabaseKey || envSupabaseKey || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptbWZvZ2plZmVubWpxc3BzcHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NjkwODEsImV4cCI6MjA5NjI0NTA4MX0.ah-wpbhIJKcF9fs4UVpXCAVwq5Bw10aTNPdtJxyPg3M";
+const SUPABASE_URL = viteSupabaseUrl || envSupabaseUrl;
+const SUPABASE_ANON_KEY = viteSupabaseKey || envSupabaseKey;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -151,7 +151,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       queryResult = await supabase
         .from("orders")
-        .select("id, user_id, total_amount, order_status, payment_status, shipping_address, created_at")
+        .select("id, user_id, total_amount, order_status, payment_status, shipping_address, created_at, order_items(*, products(name))")
         .gte("created_at", thirtyDaysAgo.toISOString())
         .limit(100);
     } else {
@@ -191,7 +191,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
           const originalPrice = Number(extraMetadata.originalPrice || extraMetadata.discount_price || item.discount_price || item.originalPrice || extraMetadata.price || price);
           // Try loading image from joined product_images table, or property image_url/image fallback
           const rawImage = extraMetadata.image || extraMetadata.image_url || (item.product_images && item.product_images[0]?.image_url) || item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
-          const image = getTransformedImageUrl(rawImage);
+          const image = getOptimizedImageUrl(rawImage, { width: 500, quality: "auto" });
           const rating = Number(item.rating || extraMetadata.rating || 0);
           const reviewsCount = Number(item.reviewsCount || extraMetadata.reviewsCount || 0);
           // Category mapping support
@@ -234,7 +234,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
         }
         if (tableName === "vendors") {
           const name = item.business_name || item.name || "Naija Store Merchant";
-          const avatar = getTransformedImageUrl(item.logo_url || item.avatar || "");
+          const avatar = getOptimizedImageUrl(item.logo_url || item.avatar || "", { width: 300, quality: "auto" });
 
           let extraMetadata: any = {};
           if (item.business_description && item.business_description.trim().startsWith("{")) {
@@ -286,7 +286,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
           }
           const name = item.name || "General";
           const rawCatImage = meta.url || item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
-          const image = getTransformedImageUrl(rawCatImage);
+          const image = getOptimizedImageUrl(rawCatImage, { width: 300, quality: "auto" });
           const description = meta.description || item.description || `${name} items and products`;
           const iconName = meta.icon_name || meta.iconName || item.icon_name || item.iconName || "Package";
           const itemCount = Number(meta.item_count || meta.itemCount || item.item_count || item.itemCount || 0);
@@ -327,7 +327,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
             customerName: parsedMeta.customerName || customerName,
             value,
             status,
-           trackingId: parsedMeta.trackingId || item.trackingId || "",
+            trackingId: parsedMeta.trackingId || item.trackingId || "",
             routeFrom: parsedMeta.routeFrom || item.routeFrom || "Lagos",
             routeTo: parsedMeta.routeTo || item.routeTo || "Abuja",
             deliveryProgress: parsedMeta.deliveryProgress !== undefined ? parsedMeta.deliveryProgress : (item.deliveryProgress || 0),
@@ -336,7 +336,8 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
             location: parsedMeta.shipping_address || item.shipping_address || "",
             deliveryAddress: parsedMeta.shipping_address || item.shipping_address || item.deliveryAddress || "",
             phoneNumber: parsedMeta.phoneNumber || item.phoneNumber || "",
-            emailAddress: parsedMeta.emailAddress || item.emailAddress || ""
+            emailAddress: parsedMeta.emailAddress || item.emailAddress || "",
+            order_items: item.order_items || []
           };
         }
         return item;

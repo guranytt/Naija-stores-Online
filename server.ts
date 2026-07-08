@@ -9,6 +9,9 @@ import rateLimit from "express-rate-limit";
 import { createServer as createViteServer } from "vite";
 import { Resend } from "resend";
 import dotenv from "dotenv";
+import { clerkMiddleware, requireAuth as clerkRequireAuth } from '@clerk/express';
+import { Webhook } from 'svix';
+import bodyParser from 'body-parser';
 
 dotenv.config();
 
@@ -77,8 +80,8 @@ if (vapidPublicKey && vapidPrivateKey) {
 
 const vendorSubscriptions: Record<string, any[]> = {};
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "https://qlavqcvsdeggafsrntff.supabase.co";
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsYXZxY3ZzZGVnZ2Fmc3JudGZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2NjUyMTgsImV4cCI6MjA5NzI0MTIxOH0.gsPRdFPvCjuVo3wAb2qKJ8KjTMg7lKmToQ5RR5Z3uOg";
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!SUPABASE_SERVICE_KEY) {
@@ -130,7 +133,20 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(cors());
+  
+  const allowedOrigins = [
+    "https://naija-stores.com",
+    /\.pages\.dev$/
+  ];
+  if (process.env.NODE_ENV !== "production") {
+    allowedOrigins.push("http://localhost:5173", "http://localhost:3000");
+  }
+
+  app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+  }));
+  app.use(clerkMiddleware());
   
   // Rate limiter: max 300 requests per windowMs for general APIs
   const apiLimiter = rateLimit({ 
@@ -152,6 +168,68 @@ async function startServer() {
   app.use("/api/vendor/upsert", strictLimiter);
   app.use("/api/product/upsert", strictLimiter);
 
+  // Clerk Webhook Endpoint (Must use raw body parser for Svix verification)
+  app.post('/api/webhooks/clerk', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
+    const SIGNING_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+
+    if (!SIGNING_SECRET) {
+      console.error('Error: Please add CLERK_WEBHOOK_SECRET from Clerk Dashboard to .env');
+      return res.status(500).json({ error: "Missing secret" });
+    }
+
+    const wh = new Webhook(SIGNING_SECRET);
+    const headers = req.headers;
+    const payload = req.body;
+
+    const svix_id = headers['svix-id'] as string;
+    const svix_timestamp = headers['svix-timestamp'] as string;
+    const svix_signature = headers['svix-signature'] as string;
+
+    if (!svix_id || !svix_timestamp || !svix_signature) {
+      return res.status(400).json({ error: "Error: Missing svix headers" });
+    }
+
+    let evt: any;
+    try {
+      evt = wh.verify(payload, {
+        'svix-id': svix_id,
+        'svix-timestamp': svix_timestamp,
+        'svix-signature': svix_signature,
+      });
+    } catch (err: any) {
+      console.error('Error: Could not verify webhook:', err.message);
+      return res.status(400).json({ error: 'Error: Verification error' });
+    }
+
+    const { id, email_addresses, first_name, last_name, image_url } = evt.data;
+    const eventType = evt.type;
+
+    if (eventType === 'user.created' || eventType === 'user.updated') {
+      const email = email_addresses?.[0]?.email_address || "";
+      const name = `${first_name || ''} ${last_name || ''}`.trim() || email.split('@')[0];
+      
+      const { error } = await supabase.from('users').upsert({
+        id,
+        email,
+        name,
+        avatar_url: image_url || "",
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+
+      if (error) {
+        console.error("[CLERK WEBHOOK ERROR] Supabase Upsert Failed", error);
+        return res.status(500).json({ error: error.message });
+      }
+    }
+
+    if (eventType === 'user.deleted') {
+      const { error } = await supabase.from('users').delete().eq('id', id);
+      if (error) console.error("[CLERK WEBHOOK ERROR] Delete Failed", error);
+    }
+
+    return res.status(200).json({ success: true, message: "Webhook received" });
+  });
+
   app.use(express.json({ limit: "2mb" }));
   app.use(express.urlencoded({ limit: "2mb", extended: true }));
 
@@ -163,40 +241,26 @@ async function startServer() {
     next();
   });
 
-  // Middleware to enforce Supabase JWT validation on protected routes
-  const requireAuth = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const authHeader = req.headers.authorization;
-    
-    // Header-based mock auth is ONLY permitted in non-production environments.
-    // In production this fallback is disabled to prevent auth bypass via spoofed headers.
-    const isProduction = process.env.NODE_ENV === "production";
-    const fallbackUserId = !isProduction
-      ? (req.headers["x-user-id"] || req.headers["x-mock-user-id"])
-      : null;
-    
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      if (fallbackUserId) {
-        (req as any).user = { id: fallbackUserId };
-        return next();
+  // Middleware to enforce Clerk JWT validation on protected routes
+  const requireAuth = [
+    clerkRequireAuth(),
+    async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const clerkId = (req as any).auth?.userId;
+      if (!clerkId) {
+        return res.status(401).json({ error: "Unauthorized access or invalid token" });
       }
-      return res.status(401).json({ error: "Missing or invalid Authorization header" });
-    }
-    
-    const token = authHeader.split(" ")[1];
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    
-    if (error || !user) {
-      if (fallbackUserId) {
-        (req as any).user = { id: fallbackUserId };
-        return next();
+      
+      const { data, error } = await supabaseAdmin.from('users').select('id, role').eq('clerk_id', clerkId).single();
+      if (error || !data) {
+         // Gracefully handle if webhook hasn't synced yet
+         return res.status(401).json({ error: "User profile not yet synced" });
       }
-      return res.status(401).json({ error: "Unauthorized access or invalid token" });
+      
+      // Attach user to req object for downstream routes to use (backwards compatibility)
+      (req as any).user = { id: data.id, role: data.role, clerk_id: clerkId };
+      next();
     }
-    
-    // Attach user to req object for downstream routes to optionally use
-    (req as any).user = user;
-    next();
-  };
+  ];
 
   // In-memory cache to track daily AI usage limits per vendor
   const aiUsageTracker = new Map<string, { count: number, date: string }>();
@@ -322,7 +386,7 @@ Return valid JSON only matching this schema exactly:
       const optimizedBuffer = await converted.toBuffer();
       
       // 3. Upload to Cloudinary via stream
-      const uploadStream = cloudinary.uploader.upload_stream({ resource_type: "image" }, (error, result) => {
+      const uploadStream = cloudinary.uploader.upload_stream({ resource_type: "image", width: 1600, height: 1600, crop: "limit", quality: "auto:good" }, (error, result) => {
         if (error) {
           console.error("Cloudinary upload error:", error);
           return res.status(500).json({ success: false, error: "Upload failed" });
@@ -360,7 +424,7 @@ Return valid JSON only matching this schema exactly:
       const converted = source.convert({type: ["image/webp", "image/avif"]});
       const optimizedBuffer = await converted.toBuffer();
 
-      cloudinary.uploader.upload_stream({ resource_type: "image" }, async (error, result) => {
+      cloudinary.uploader.upload_stream({ resource_type: "image", width: 1600, height: 1600, crop: "limit", quality: "auto:good" }, async (error, result) => {
         if (result && result.secure_url) {
           const { data: prod } = await supabaseAdmin.from("products").select("description").eq("id", productId).single();
           if (prod && prod.description) {
@@ -1181,7 +1245,6 @@ function ensureUUID(idValue: any): string {
 }
 
   app.get("/api/vendors", async (req, res) => {
-    res.setHeader("Vercel-CDN-Cache-Control", "max-age=60, stale-while-revalidate=300");
     res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     try {
       if (!supabaseAdmin) {
@@ -1212,7 +1275,6 @@ function ensureUUID(idValue: any): string {
   });
 
   app.get("/api/products", async (req, res) => {
-    res.setHeader("Vercel-CDN-Cache-Control", "max-age=60, stale-while-revalidate=300");
     res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     try {
       if (!supabaseAdmin) {
@@ -1291,7 +1353,6 @@ function ensureUUID(idValue: any): string {
   });
     
     app.get("/api/product/:id", async (req, res) => {
-      res.setHeader("Vercel-CDN-Cache-Control", "max-age=60, stale-while-revalidate=300");
       res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
       try {
         if (!supabaseAdmin) {
@@ -1333,7 +1394,6 @@ function ensureUUID(idValue: any): string {
     });
 
   app.get("/api/categories", async (req, res) => {
-    res.setHeader("Vercel-CDN-Cache-Control", "max-age=60, stale-while-revalidate=120");
     res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     try {
       if (!supabaseAdmin) {
@@ -1933,7 +1993,7 @@ Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml`);
     });
   }
 
-    if (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1") {
+    if (process.env.NODE_ENV !== "production") {
       app.listen(PORT, "0.0.0.0", () => {
         console.log(`[FULL-STACK BACKEND SERVER] Running securely on port ${PORT}`);
       });
@@ -1951,14 +2011,4 @@ if (!isMain && typeof process !== "undefined" && process.argv[1]?.includes("serv
 
 if (isMain) {
   startServer();
-}
-
-// Global cached instance for Vercel Serverless Functions
-let appInstance: any = null;
-
-export default async function appHandler(req: any, res: any) {
-  if (!appInstance) {
-    appInstance = await startServer();
-  }
-  return appInstance(req, res);
 }

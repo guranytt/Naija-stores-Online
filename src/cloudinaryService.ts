@@ -2,6 +2,7 @@
  * Fullstack Cloudinary Upload Action Dispatcher for React frontend
  * Handles file-to-base64 reading and secure server API routing.
  */
+import imageCompression from 'browser-image-compression';
 
 export interface CloudinaryUploadResponse {
   success: boolean;
@@ -59,4 +60,23 @@ export function convertFileToBase64(file: File): Promise<string> {
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = (error) => reject(error);
   });
+}
+
+/**
+ * Compresses an image client-side before uploading.
+ * Maximum width/height is capped at 1600px and file size is soft-capped ~500KB.
+ */
+export async function compressImage(file: File): Promise<File> {
+  const options = {
+    maxSizeMB: 0.5,
+    maxWidthOrHeight: 1600,
+    useWebWorker: true,
+    initialQuality: 0.8,
+  };
+  try {
+    return await imageCompression(file, options);
+  } catch (error) {
+    console.error("Image compression failed:", error);
+    return file; // fallback to original file if compression fails
+  }
 }

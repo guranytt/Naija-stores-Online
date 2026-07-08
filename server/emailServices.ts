@@ -6,8 +6,8 @@ import path from "path";
 
 dotenv.config();
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://jmmfogjefenmjqspspyg.supabase.co";
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptbWZvZ2plZmVubWpxc3BzcHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NjkwODEsImV4cCI6MjA5NjI0NTA4MX0.ah-wpbhIJKcF9fs4UVpXCAVwq5Bw10aTNPdtJxyPg3M";
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -23,7 +23,7 @@ if (apiKey && apiKey.startsWith("re_")) {
     "\n╔══════════════════════════════════════════════════════════╗\n" +
     "║  ⚠️  RESEND_API_KEY is missing or invalid!               ║\n" +
     "║  All emails will be SILENTLY DROPPED (mock mode).        ║\n" +
-    "║  Add RESEND_API_KEY=re_xxx to your .env / Vercel env.   ║\n" +
+    "║  Add RESEND_API_KEY=re_xxx to your .env or hosting env. ║\n" +
     "╚══════════════════════════════════════════════════════════╝\n"
   );
 }

@@ -372,6 +372,32 @@ export default function MapTracking({ orders, onUpdateOrderProgress }: MapTracki
               </div>
             </div>
 
+            {/* Order Items List */}
+            {activeOrder.order_items && activeOrder.order_items.length > 0 && (
+              <div className="bg-white border border-neutral-150 rounded-2xl p-4 mt-2">
+                <h5 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-3 pl-1">Package Contents</h5>
+                <div className="space-y-2">
+                  {activeOrder.order_items.map((item: any, idx) => (
+                    <div key={item.id || idx} className="flex justify-between items-center bg-neutral-50 p-2.5 rounded-xl border border-neutral-100">
+                      <div className="flex flex-col text-left min-w-0">
+                        <span className="text-xs font-bold text-neutral-800 truncate">{item.product?.name || 'Unknown Product'}</span>
+                        <span className="text-[10px] text-neutral-400">Qty: {item.quantity} &bull; ₦{item.unit_price?.toLocaleString()}</span>
+                      </div>
+                      <span className={`text-[9px] uppercase font-black px-2 py-0.5 rounded-full border ${
+                        item.fulfillment_status === "delivered"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : item.fulfillment_status === "shipped"
+                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                          : "bg-amber-50 text-amber-700 border-amber-200"
+                      }`}>
+                        {item.fulfillment_status?.replace('_', ' ') || 'not shipped'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Interactive Dispatcher Controls */}
             <div className="border-t border-neutral-100 pt-4 mt-2">
               <div className="flex flex-wrap items-center justify-between gap-4">

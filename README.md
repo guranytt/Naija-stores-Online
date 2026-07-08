@@ -18,3 +18,10 @@ View your app in AI Studio: https://ai.studio/apps/64a9565d-023f-46b3-b2d4-76c58
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Deployment on Cloudflare
+
+This project is optimized for deployment on Cloudflare:
+- **Frontend**: The static web assets are compiled using `vite build` and deployed directly to **Cloudflare Pages**.
+- **Backend / Workers**: Backend automation (such as email dispatching and third-party webhooks) is fully hosted on **Cloudflare Workers**, routing traffic securely to Clerk and Supabase.
+

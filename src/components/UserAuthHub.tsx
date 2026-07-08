@@ -4,6 +4,7 @@ import { supabase, saveSupabaseRecord, ensureUUID } from "../supabase";
 import { sendResendEmail } from "../emailService";
 import { sanitizeString, sanitizeFields } from "../sanitize";
 import GracefulErrorScreen from "./GracefulErrorScreen";
+import { getOptimizedImageUrl } from "../utils/imageTransforms";
 
 interface UserAuthHubProps {
   currentEmail: string;
@@ -634,7 +635,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
           /* IF GUEST: SHOW REGISTRATION / LOGIN FORMS */
           <div className="space-y-6">
             <div className="text-center space-y-2">
-              <img src="https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png" className="h-16 w-auto mx-auto drop-shadow-sm mb-4" alt="Naija Stores Logo" />
+              <img src={getOptimizedImageUrl("https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png", { width: 300, quality: "auto" })} className="h-16 w-auto mx-auto drop-shadow-sm mb-4" alt="Naija Stores Logo" />
               <h2 className="text-2xl font-black text-neutral-905 text-neutral-900 tracking-tight">
                 {authMode === "login" && "Log In"}
                 {authMode === "register" && "Sign Up"}

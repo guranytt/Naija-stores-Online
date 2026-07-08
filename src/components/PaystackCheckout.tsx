@@ -107,7 +107,7 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
 
   // Fetch configuration on load to show correct environment badge early and avoid async popup blocking
   useEffect(() => {
-    // Check client-side environment variables first for Vercel deployments
+    // Check client-side environment variables first
     const clientSideKey = import.meta.env.VITE_PAYSTACK_LIVE_PUBLIC_KEY || import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
     if (clientSideKey) {
       setPaystackEnv("live");
@@ -263,10 +263,17 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
               reference: referenceCode,
               ref: referenceCode,
               metadata: {
+                customer_id: String(userId || ""),
+                cart_items: simplifiedCart,
+                shipping_address: {
+                  address: String(deliveryAddress || ""),
+                  city: city,
+                  state: stateLoc,
+                  country: country,
+                  postalCode: postalCode
+                },
                 custom_fields: [
                   { display_name: "User ID", variable_name: "userId", value: String(userId || "") },
-                  { display_name: "Cart Data", variable_name: "cart", value: JSON.stringify(simplifiedCart) },
-                  { display_name: "Delivery Address", variable_name: "deliveryAddress", value: String(deliveryAddress || "") },
                   { display_name: "Phone Number", variable_name: "phoneNumber", value: String(checkoutPhone || "") }
                 ]
               },
@@ -302,10 +309,17 @@ export default function PaystackCheckout({ isOpen, onClose, onSuccess, amount, e
           reference: referenceCode,
           ref: referenceCode,
           metadata: {
+            customer_id: String(userId || ""),
+            cart_items: simplifiedCart,
+            shipping_address: {
+              address: String(deliveryAddress || ""),
+              city: city,
+              state: stateLoc,
+              country: country,
+              postalCode: postalCode
+            },
             custom_fields: [
               { display_name: "User ID", variable_name: "userId", value: String(userId || "") },
-              { display_name: "Cart Data", variable_name: "cart", value: JSON.stringify(simplifiedCart) },
-              { display_name: "Delivery Address", variable_name: "deliveryAddress", value: String(deliveryAddress || "") },
               { display_name: "Phone Number", variable_name: "phoneNumber", value: String(checkoutPhone || "") }
             ]
           },

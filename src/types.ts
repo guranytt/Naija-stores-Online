@@ -138,6 +138,21 @@ export interface Order {
   productIds?: string[];
   receiptPrompted?: boolean;
   receiptConfirmed?: boolean;
+  order_items?: OrderItem[];
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  vendor_id: string;
+  quantity: number;
+  unit_price: number;
+  commission_rate_snapshot: number;
+  commission_amount: number;
+  fulfillment_status: 'not_shipped' | 'shipped' | 'delivered';
+  created_at?: string;
+  product?: Product;
 }
 
 export interface AdminTeamMember {

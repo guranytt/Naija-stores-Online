@@ -7,10 +7,11 @@ import React, { useState } from "react";
 import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud, BarChart2, PieChart, Megaphone, BellRing } from "lucide-react";
 import { Vendor, Order, AdminTeamMember, Product, Category, FlashDealProposal } from "../types";
 import { formatNaira } from "./CustomerViews";
-import { uploadToCloudinary, convertFileToBase64 } from "../cloudinaryService";
+import { uploadToCloudinary, convertFileToBase64, compressImage } from "../cloudinaryService";
 import SalesAnalyticsDashboard from "./SalesAnalyticsDashboard";
 import { sendVendorApproval } from "../emailService";
 import { requestPushPermissionAndSubscribe } from "../pushService";
+import { supabase } from "../supabase";
 
 
 interface VendorAdminProps {
@@ -183,9 +184,17 @@ export default function VendorAdmin({
   const [newStock, setNewStock] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newImage, setNewImage] = useState("");
-  const [newCondition, setNewCondition] = useState<"New" | "Fairly Used">("New");
-  const [newCommissionPercent, setNewCommissionPercent] = useState<string>("5");
+  const [activeProductTab, setActiveProductTab] = useState<"All" | "Live" | "Draft">("All");
+  const [localFulfillment, setLocalFulfillment] = useState<Record<string, string>>({});
+  
+  const handleUpdateFulfillment = async (itemId: string, newStatus: string) => {
+    setLocalFulfillment(prev => ({ ...prev, [itemId]: newStatus }));
+    await supabase.from('order_items').update({ fulfillment_status: newStatus }).eq('id', itemId);
+  };
+
+  // Flash deals statewCommissionPercent, setNewCommissionPercent] = useState<string>("5");
   const [isUploading, setIsUploading] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
   // States for updating vendor profile and branding picture
@@ -199,6 +208,7 @@ export default function VendorAdmin({
   const [editBankName, setEditBankName] = useState("");
   const [editAccountNumber, setEditAccountNumber] = useState("");
   const [isProfileUploading, setIsProfileUploading] = useState(false);
+  const [isProfileOptimizing, setIsProfileOptimizing] = useState(false);
   const [profileUploadError, setProfileUploadError] = useState("");
 
   // States for Vendor Flash Deal Proposals
@@ -264,6 +274,10 @@ export default function VendorAdmin({
       return o.productIds.some(pId => vendorProducts.some(vp => vp.id === pId));
     }
     return false;
+  });
+
+  const vendorOrderItems = orders.flatMap(o => (o.order_items || []).map(item => ({ ...item, order_customer: o.customerName, order_status: o.status }))).filter(item => {
+    return item.vendor_id === activeVendor.id || (currentUserId && item.vendor_id === currentUserId) || item.vendor_id === activeVendor.userId;
   });
 
   const totalSalesValue = vendorOrders
@@ -397,10 +411,13 @@ export default function VendorAdmin({
     }
 
     setIsProfileUploading(true);
+    setIsProfileOptimizing(true);
     setProfileUploadError("");
 
     try {
-      const base64 = await convertFileToBase64(file);
+      const compressedFile = await compressImage(file);
+      setIsProfileOptimizing(false);
+      const base64 = await convertFileToBase64(compressedFile);
       const res = await uploadToCloudinary(base64);
       if (res.success && res.url) {
         setEditAvatar(res.url);
@@ -457,10 +474,13 @@ export default function VendorAdmin({
     }
 
     setIsUploading(true);
+    setIsOptimizing(true);
     setUploadError("");
 
     try {
-      const base64 = await convertFileToBase64(file);
+      const compressedFile = await compressImage(file);
+      setIsOptimizing(false);
+      const base64 = await convertFileToBase64(compressedFile);
       const res = await uploadToCloudinary(base64);
       if (res.success && res.url) {
         setNewImage(res.url);
@@ -1229,7 +1249,7 @@ export default function VendorAdmin({
                     {isUploading && (
                       <div className="flex items-center space-x-1.5 text-[11px] font-bold text-orange-600 animate-pulse">
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Uploading media stream...</span>
+                        <span>{isOptimizing ? "Optimizing image..." : "Uploading media stream..."}</span>
                       </div>
                     )}
 
@@ -1349,7 +1369,7 @@ export default function VendorAdmin({
                     {isProfileUploading && (
                       <div className="flex items-center space-x-1 mt-1 text-[10px] font-bold text-orange-600 animate-pulse">
                         <RefreshCw className="w-3 animate-spin" />
-                        <span>Uploading logo to cloud...</span>
+                        <span>{isProfileOptimizing ? "Optimizing image..." : "Uploading logo to cloud..."}</span>
                       </div>
                     )}
 
@@ -1617,58 +1637,47 @@ export default function VendorAdmin({
                 <thead className="bg-neutral-50 text-neutral-400 font-bold uppercase tracking-wider border-b border-neutral-100">
                   <tr>
                     <th className="px-6 py-3.5">Order ID</th>
-                    <th className="px-6 py-3.5">Shopper Name</th>
-                    <th className="px-6 py-3.5">Status Check</th>
-                    <th className="px-6 py-3.5">Naira value</th>
-                    <th className="px-6 py-3.5 text-right font-bold">Order Audit Actions</th>
+                    <th className="px-6 py-3.5">Product Name</th>
+                    <th className="px-6 py-3.5">Qty / Price</th>
+                    <th className="px-6 py-3.5">Fulfillment Status</th>
+                    <th className="px-6 py-3.5 text-right font-bold">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100 font-medium font-sans">
-                  {vendorOrders.map((o) => (
-                    <tr key={o.id} className="hover:bg-neutral-50/50">
-                      <td className="px-6 py-4 font-bold text-neutral-800 text-[11px] font-mono">{o.id}</td>
-                      <td className="px-6 py-4 text-neutral-705">{o.customerName}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-block font-extrabold text-[10px] uppercase px-2 py-0.5 rounded border ${
-                          o.status === "Delivered" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                          o.status === "Shipped" ? "bg-blue-50 text-blue-600 border-blue-105" :
-                          o.status === "Flagged" ? "bg-red-50 text-red-600 border-red-101 animate-pulse" :
-                          "bg-yellow-50 text-yellow-600 border-yellow-101"
-                        }`}>
-                          {o.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-mono font-bold text-neutral-700">{formatNaira(o.value)}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end space-x-1.5 select-none">
-                          {o.status === "Flagged" ? (
-                            <button
-                              onClick={() => {
-                                onReviewOrderFlag(o.id, "Shipped");
-                              }}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg transition-colors"
-                            >
-                              Audit Approve
-                            </button>
-                          ) : (
-                            <button
-                              disabled={o.status === "Delivered"}
-                              onClick={() => {
-                                onReviewOrderFlag(o.id, "Flagged");
-                              }}
-                              className="px-2.5 py-1 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-[10px] rounded-lg disabled:opacity-45 disabled:cursor-not-allowed transition-colors"
-                            >
-                              Hold / Flag
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {vendorOrders.length === 0 && (
+                  {vendorOrderItems.map((item) => {
+                    const currentStatus = localFulfillment[item.id] || item.fulfillment_status || 'not_shipped';
+                    return (
+                      <tr key={item.id} className="hover:bg-neutral-50/50">
+                        <td className="px-6 py-4 font-bold text-neutral-800 text-[11px] font-mono">{item.order_id}</td>
+                        <td className="px-6 py-4 text-neutral-705">{item.product?.name || 'Product'}</td>
+                        <td className="px-6 py-4 font-mono font-bold text-neutral-700">{item.quantity} x {formatNaira(item.unit_price)}</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-block font-extrabold text-[10px] uppercase px-2 py-0.5 rounded border ${
+                            currentStatus === "delivered" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                            currentStatus === "shipped" ? "bg-blue-50 text-blue-600 border-blue-105" :
+                            "bg-yellow-50 text-yellow-600 border-yellow-101"
+                          }`}>
+                            {currentStatus.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <select
+                            value={currentStatus}
+                            onChange={(e) => handleUpdateFulfillment(item.id, e.target.value)}
+                            className="text-[10px] font-bold border border-neutral-200 rounded-lg px-2 py-1 outline-none bg-white focus:ring-1 focus:ring-orange-500"
+                          >
+                            <option value="not_shipped">Not Shipped</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {vendorOrderItems.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-neutral-400 text-xs font-semibold">
-                        No orders currently registered for your products in the transaction ledger.
+                        No order items currently registered for your products.
                       </td>
                     </tr>
                   )}
@@ -2638,14 +2647,32 @@ function PlusIcon({ className }: { className?: string }) {
 
 function CommissionAnalyticsTab({ products, vendors, orders }: { products: Product[], vendors: Vendor[], orders: Order[] }) {
   const [filterCategory, setFilterCategory] = useState("All");
+  const [totalSales, setTotalSales] = useState(0);
+  const [pendingPayouts, setPendingPayouts] = useState(0);
+  const [totalCommission, setTotalCommission] = useState(0);
 
-  const totalSales = orders.reduce((acc, order) => acc + order.value, 0);
+  React.useEffect(() => {
+    async function fetchSummary() {
+      // For Admin (no specific vendor) we would fetch the admin view, but here we assume single vendor view or sum all if admin.
+      const { data, error } = await supabase.from('vendor_dashboard_summary').select('*');
+      if (data && !error) {
+        // Summing up everything for admin overview (or if RLS filters it, it's correct)
+        const totalSalesSum = data.reduce((acc, row) => acc + Number(row.total_sales_volume), 0);
+        const pendingPayoutSum = data.reduce((acc, row) => acc + Number(row.pending_payout_amount), 0);
+        setTotalSales(totalSalesSum);
+        setPendingPayouts(pendingPayoutSum);
+        // Estimate Platform Commission (difference or from a different view, let's keep old formula as fallback or just 5%)
+        setTotalCommission(Math.floor(totalSalesSum * 0.05));
+      } else {
+        // Fallback to local
+        setTotalSales(orders.reduce((acc, order) => acc + order.value, 0));
+        setPendingPayouts(orders.reduce((acc, order) => acc + order.value, 0) * 0.15);
+      }
+    }
+    fetchSummary();
+  }, [orders]);
 
-  // Derive commissions from products linked to orders, using a mock average if exact linking is missing
-  // Because our mock data structure limits how granular orders align with products, we generate aggregated estimates
-  const totalCommission = Math.floor(products.reduce((acc, p) => acc + (p.price * (p.commissionPercentage || 5) / 100), 0) * (totalSales / Math.max(1, products.reduce((acc, p) => acc + p.price, 0))));
   const vendorEarnings = totalSales - totalCommission;
-  const pendingPayouts = totalSales * 0.15; // Mock pending
 
   return (
     <div className="space-y-6">

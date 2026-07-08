@@ -599,11 +599,8 @@ export default function App() {
     }
   }, [dbProducts, dbVendors, dbCategories, dbOrders]);
 
-  // Set up real-time orders sync subscription
+  // Set up real-time orders sync subscription for both Shoppers and Vendors
   useEffect(() => {
-    if (!vendorAuthenticated) return;
-    
-
     const channel = supabase
       .channel("public-orders-changes")
       .on(
@@ -614,13 +611,17 @@ export default function App() {
           table: "orders"
         },
         async (payload) => {
-
           setOrders(prevOrders => {
             const updatedOrders = [...prevOrders];
             if (payload.eventType === "INSERT") {
               // Ensure we don't duplicate if already present
               if (!updatedOrders.some(o => o.id === payload.new.id)) {
                 updatedOrders.unshift(payload.new as any);
+                // If it's a shopper waiting for their order, navigate to map
+                if (payload.new.customer_id === currentUserId) {
+                  triggerToast("Server confirmed your order securely!", "success");
+                  setCurrentScreen("map");
+                }
               }
             } else if (payload.eventType === "UPDATE") {
               const idx = updatedOrders.findIndex(o => o.id === payload.new.id);
@@ -640,7 +641,7 @@ export default function App() {
     return () => {
       channel.unsubscribe();
     };
-  }, [vendorAuthenticated]);
+  }, [currentUserId]);
 
   const handleRateVendor = (vendorId: string, starRating: number) => {
     setVendors(prevVendors => {
@@ -856,130 +857,12 @@ export default function App() {
 
   // Paystack verification success
   const handlePaymentSuccess = (method: string, serverOrder?: Order) => {
-    // Generate simulated order fallback if server did not hand back records (e.g. offline fallback modes)
-    const orderValue = cart.reduce((acc, curr) => acc + curr.product.price * curr.quantity, 0);
+    // Rely on Realtime Subscription for updates. No local order creation.
     
-    // Pick destination based on Lagos/Abuja/PH etc
-    const destinationStates = ["Abuja", "Lagos", "Port Harcourt", "Kano", "Enugu"];
-    const randomDest = destinationStates[Math.floor(Math.random() * destinationStates.length)];
-    const startState = randomDest === "Lagos" ? "Kano" : "Lagos";
-
-    const localOrder: Order = {
-      id: "NS-" + Math.floor(Math.random() * 9000 + 1000),
-      user_id: currentUserId || undefined,
-      customerName: userEmail.split("@")[0].toUpperCase() || "Shopper",
-      status: "Processing",
-      date: new Date().toISOString().split("T")[0],
-      value: orderValue,
-      itemsCount: cart.reduce((acc, curr) => acc + curr.quantity, 0),
-      trackingId: "TRACK-" + Math.floor(Math.random() * 90000 + 10000),
-      routeFrom: startState,
-      routeTo: randomDest,
-      deliveryProgress: 0,
-      currentCity: startState,
-      productIds: cart.map((item) => item.product.id)
-    };
-
-    const newOrder: Order = serverOrder || localOrder;
-
-    const emailItems = cart.map((item) => ({
-      name: item.product.title,
-      qty: item.quantity,
-      price: item.product.price
-    }));
-
-    setOrders((prev) => {
-      // Prevent duplicate appending if real-time subscription has already updated state
-      if (prev.some((o) => o.id === newOrder.id)) return prev;
-      return [newOrder, ...prev];
-    });
-
-    // Track using PostHog
-    trackPaymentCompleted(
-      newOrder.trackingId || "PAY-" + Date.now(),
-      checkoutAmount || newOrder.value,
-      method || "Paystack Inline"
-    );
-
-    trackOrderCompleted(
-      newOrder.id,
-      newOrder.value,
-      newOrder.itemsCount
-    );
-
+    // Clear cart immediately or wait for realtime. Since we are subscribing to realtime 
+    // to navigate to success page, we clear the cart here and let the realtime channel handle the order.
     setCart([]); // Clear cart
-    
-    // Persist new order in Supabase table only if it was not already created securely on backend
-    if (!serverOrder) {
-      saveSupabaseRecord("orders", newOrder);
-    }
-    
-    triggerToast("Security Code 200: Transaction reconciled. Shipments logged successfully!");
-
-    // Automatically trigger Resend payment confirmation emails if this was a local fallback
-    if (autoSendEmails && !serverOrder) {
-      // 1. Payment confirmation
-      sendResendEmail({
-        to: userEmail,
-        type: "payment_confirmation",
-        data: {
-          orderId: newOrder.id,
-          customerName: newOrder.customerName,
-          amount: newOrder.value,
-          actionUrl: window.location.origin
-        }
-      }).then((res) => {
-        if (res.success) {
-          triggerToast(`Receipt Dispatch success for order ${newOrder.id}!`, "success");
-        }
-        updateMailLogs();
-      });
-
-      // 2. Order Confirmation
-      sendResendEmail({
-        to: userEmail,
-        type: "order_confirmation", 
-        data: {
-          orderId: newOrder.id,
-          customerName: newOrder.customerName,
-          amount: newOrder.value,
-          items: emailItems,
-          shippingAddress: newOrder.routeTo,
-          paymentMethod: method || "Paystack"
-        }
-      }).then(() => updateMailLogs());
-
-      // 3. Admin Notification
-      sendResendEmail({
-        to: "admin@naijaonlinestores.com.ng",
-        type: "admin_new_order",
-        data: {
-          orderId: newOrder.id,
-          amount: newOrder.value
-        }
-      }).then(() => updateMailLogs());
-
-      // 4. Vendor Notifications
-      const vendorOrders = new Map<string, any[]>();
-      cart.forEach(item => {
-        const vName = item.product.vendorName;
-        if (!vendorOrders.has(vName)) vendorOrders.set(vName, []);
-        vendorOrders.get(vName)?.push(item);
-      });
-
-      vendorOrders.forEach((vItems, vName) => {
-        const itemsStr = vItems.map(i => `<li>${i.quantity}x ${i.product.title}</li>`).join("");
-        sendResendEmail({
-          to: `vendor_${vName.replace(/\\s+/g, "").toLowerCase()}@naijaonlinestores.com.ng`, // Mocked vendor email
-          type: "vendor_new_order",
-          data: {
-            vendorName: vName,
-            orderId: newOrder.id,
-            itemsHtml: itemsStr
-          }
-        }).then(() => updateMailLogs());
-      });
-    }
+    triggerToast("Payment processing, waiting for confirmation...");
     
     // Automatically redirect to the interactive map dashboard so they can track it live
     setCurrentScreen("map");
