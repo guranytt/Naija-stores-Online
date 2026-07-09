@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from "react";
 import useSWR, { mutate } from "swr";
-import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import Navbar from "./components/Navbar";
 import CustomerViews from "./components/CustomerViews";
 import MapTracking from "./components/MapTracking";
@@ -19,8 +19,8 @@ import PolicyOverlay from "./components/PolicyOverlay";
 import { initPostHog, trackAddToCart, trackCheckoutStarted, trackPaymentCompleted, trackOrderCompleted } from "./lib/posthog";
 import { Product, CartItem, Order, Vendor, Category, FlashDealProposal } from "./types";
 import { formatNaira } from "./components/CustomerViews";
-import { Info, Settings2, Sparkles, X, Mail, ShieldAlert, Database, CheckCircle, AlertCircle, Copy, FileText, Store, Bug } from "lucide-react";
-import { supabase, getSupabaseData, saveSupabaseRecord, PROVISION_SQL_SCRIPT, ensureUUID } from "./supabase";
+import { Info, CheckCircle, Store } from "lucide-react";
+import { supabase, getSupabaseData, saveSupabaseRecord, ensureUUID } from "./supabase";
 import { sendResendEmail, fetchEmailLogs, MailLogEntry } from "./emailService";
 
 // Standard browser cookie helper functions
@@ -59,12 +59,10 @@ export default function App() {
   const [selectedProductId, setSelectedProductId] = useState<string>("p1");
   const [initialCategory, setInitialCategory] = useState<string>("all");
   const [searchFilter, setSearchFilter] = useState<string>("");
-  const shouldReduceMotion = useReducedMotion();
   const [userEmail, setUserEmail] = useState<string>("adminnaijastoresonline@gmail.com");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
-  const [settingsDrawerOpen, setSettingsDrawerOpen] = useState<boolean>(false);
 
   // Resend Automation states
   const [mailLogs, setMailLogs] = useState<MailLogEntry[]>([]);
@@ -458,24 +456,7 @@ export default function App() {
     }
   };
 
-  // Supabase Sync States
-  const [dbSyncStatus, setDbSyncStatus] = useState<{
-    connected: boolean;
-    syncedTables: string[];
-    vendorsSynced: boolean;
-    productsSynced: boolean;
-    ordersSynced: boolean;
-    loading: boolean;
-    error?: string;
-  }>({
-    connected: false,
-    syncedTables: [],
-    vendorsSynced: false,
-    productsSynced: false,
-    ordersSynced: false,
-    loading: true
-  });
-  const [copiedSql, setCopiedSql] = useState<boolean>(false);
+
 
   // Synchronize Supabase authentication state changes and roles
   useEffect(() => {
@@ -588,16 +569,7 @@ export default function App() {
     if (dbOrders) setOrders(dbOrders);
   }, [dbOrders]);
 
-  useEffect(() => {
-    if (dbProducts || dbVendors || dbCategories || dbOrders) {
-      setDbSyncStatus(prev => ({
-        ...prev,
-        connected: true,
-        loading: false,
-        error: undefined
-      }));
-    }
-  }, [dbProducts, dbVendors, dbCategories, dbOrders]);
+
 
   // Set up real-time orders sync subscription for both Shoppers and Vendors
   useEffect(() => {
@@ -1166,265 +1138,7 @@ export default function App() {
         onSuccess={handlePaymentSuccess}
       />
 
-      {/* Floating Settings Button */}
-      <div className="fixed bottom-6 left-6 z-40">
-        <button
-          onClick={() => setSettingsDrawerOpen(true)}
-          className="p-3 bg-white hover:bg-neutral-50 border border-neutral-200 rounded-full shadow-lg transition-all hover:scale-110 active:scale-95 group cursor-pointer"
-          title="Open Simulation Settings"
-        >
-          <Settings2 className="w-5 h-5 text-neutral-605 text-neutral-600 group-hover:rotate-45 transition-transform duration-300" />
-        </button>
-      </div>
 
-      {/* Stylized custom Settings drawer/overlay */}
-      <AnimatePresence>
-        {settingsDrawerOpen && (
-          <div className="fixed inset-0 z-100 flex justify-end">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-neutral-900/40 backdrop-blur-xs"
-              onClick={() => setSettingsDrawerOpen(false)}
-            />
-            <motion.div
-              initial={shouldReduceMotion ? { opacity: 0 } : { x: "100%" }}
-              animate={shouldReduceMotion ? { opacity: 1 } : { x: 0 }}
-              exit={shouldReduceMotion ? { opacity: 0 } : { x: "100%" }}
-              transition={{ type: "spring", damping: 26, stiffness: 220 }}
-              className="relative w-80 sm:w-96 bg-white shadow-premium p-6 flex flex-col justify-between border-l border-neutral-200 h-full font-sans text-neutral-800 text-left overflow-y-auto"
-            >
-              <div className="space-y-6">
-                <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
-                  <div className="flex items-center space-x-2">
-                    <Settings2 className="w-5 h-5 text-orange-500" />
-                    <span className="font-extrabold text-neutral-900 leading-none">Simulation Settings</span>
-                  </div>
-                  <button onClick={() => setSettingsDrawerOpen(false)} className="p-1 rounded-full hover:bg-neutral-100">
-                    <X className="w-4 h-4 text-neutral-400" />
-                  </button>
-                </div>
-
-              {/* Settings content block */}
-              <div className="space-y-4 text-xs">
-                {/* Supabase Status Panel */}
-                <div className="p-4 bg-orange-50/70 border border-orange-100 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold text-orange-950 flex items-center space-x-1.5">
-                      <Database className="w-4 h-4 text-orange-500" />
-                      <span>Supabase Live Sync</span>
-                    </p>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
-                      dbSyncStatus.connected 
-                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200" 
-                        : "bg-amber-100 text-amber-800 border border-amber-200"
-                    }`}>
-                      {dbSyncStatus.connected ? "Connected" : "Simulated"}
-                    </span>
-                  </div>
-
-                  <p className="text-neutral-600 text-[11px] leading-relaxed">
-                    {dbSyncStatus.connected 
-                      ? "Real-time read/write states are synchronized to your live Supabase cloud database instance successfully."
-                      : "Operating in client-side high-fidelity fallback because tables aren't yet provisioned in the remote database."}
-                  </p>
-
-                  <div className="space-y-1.5 pt-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Database Schema Status</p>
-                    <div className="grid grid-cols-3 gap-1.5 text-center">
-                      <div className={`p-1.5 rounded-lg border text-[9px] font-bold ${
-                        dbSyncStatus.vendorsSynced 
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
-                          : "bg-neutral-50 text-neutral-400 border-neutral-200"
-                      }`}>
-                        vendors
-                      </div>
-                      <div className={`p-1.5 rounded-lg border text-[9px] font-bold ${
-                        dbSyncStatus.productsSynced 
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
-                          : "bg-neutral-50 text-neutral-400 border-neutral-200"
-                      }`}>
-                        products
-                      </div>
-                      <div className={`p-1.5 rounded-lg border text-[9px] font-bold ${
-                        dbSyncStatus.ordersSynced 
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
-                          : "bg-neutral-50 text-neutral-400 border-neutral-200"
-                      }`}>
-                        orders
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SQL Schema provisioner help block */}
-                  <div className="pt-2">
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(PROVISION_SQL_SCRIPT);
-                        setCopiedSql(true);
-                        triggerToast("Supabase SQL queries copied to clipboard!");
-                        setTimeout(() => setCopiedSql(false), 2000);
-                      }}
-                      className="w-full py-2 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 font-bold rounded-xl flex items-center justify-center space-x-1.5 transition-colors shadow-2xs"
-                    >
-                      <Copy className="w-3 h-3 text-neutral-500" />
-                      <span>{copiedSql ? "Queries Copied!" : "Copy SQL Database Script"}</span>
-                    </button>
-                    <p className="text-[9px] text-neutral-400 mt-1 pl-1 leading-normal">
-                      Paste this code into the Supabase SQL Editor to spawn tables automatically!
-                    </p>
-                  </div>
-                </div>
-
-                {/* Resend Email Configuration Card */}
-                <div className="p-4 bg-orange-50/70 border border-orange-100 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold text-orange-950 flex items-center space-x-1.5">
-                      <Mail className="w-4 h-4 text-orange-550 text-orange-500" />
-                      <span>Resend Email Gateway</span>
-                    </p>
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9px] font-extrabold uppercase tracking-wider font-mono">
-                      Active
-                    </span>
-                  </div>
-
-                  <p className="text-neutral-600 text-[11px] leading-relaxed">
-                    Real-time transactional receipts and log files are handled securely via our fullstack Resend dispatch middleware.
-                  </p>
-
-                  <div className="flex items-center justify-between bg-white border border-neutral-150 p-2.5 rounded-xl">
-                    <span className="text-[10px] font-extrabold uppercase text-neutral-400">Trigger Actions</span>
-                    <button
-                      onClick={() => {
-                        setAutoSendEmails(!autoSendEmails);
-                        triggerToast(`Email automatic sending ${!autoSendEmails ? "enabled" : "disabled"}.`);
-                      }}
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md transition-colors ${
-                        autoSendEmails ? "bg-orange-500 text-white" : "bg-neutral-200 text-neutral-600"
-                      }`}
-                    >
-                      {autoSendEmails ? "Auto Firing" : "Manual Only"}
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setCurrentScreen("admin");
-                      setSettingsDrawerOpen(false);
-                    }}
-                    className="w-full py-2 bg-neutral-950 hover:bg-neutral-800 text-white font-extrabold rounded-xl text-center text-[10px] uppercase tracking-wider block border border-neutral-800"
-                  >
-                    Configure Mail Hub ↗
-                  </button>
-                </div>
-
-                {/* Sentry System Health & Error Tracking */}
-                <div className="p-4 bg-red-50/70 border border-red-100 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold text-red-950 flex items-center space-x-1.5">
-                      <Bug className="w-4 h-4 text-red-500" />
-                      <span>Sentry Error Suite</span>
-                    </p>
-                    <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded-full text-[9px] font-extrabold uppercase tracking-wider font-mono border border-red-200">
-                      Live
-                    </span>
-                  </div>
-
-                  <p className="text-neutral-600 text-[11px] leading-relaxed">
-                    Sentry error and session tracking is active for client browser transactions and NodeJS server telemetry.
-                  </p>
-
-                  <div className="space-y-1.5 pt-1">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Trigger Verification Errors</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => {
-                          triggerToast("Triggering client-side error... Check Sentry logs!", "info");
-                          setTimeout(() => {
-                            throw new Error("Naija Online Store Sentry Verification Error: Sentry React SDK is alive!");
-                          }, 100);
-                        }}
-                        className="p-2 bg-white hover:bg-red-50 border border-red-200 text-red-700 text-[10px] font-bold rounded-xl transition-all shadow-2xs text-center cursor-pointer"
-                      >
-                        Client Error
-                      </button>
-                      <button
-                        onClick={async () => {
-                          try {
-                            triggerToast("Calling server-side test endpoint...");
-                            const res = await fetch("/api/sentry-error-test");
-                            if (!res.ok) {
-                              triggerToast("Backend error successfully routed & caught!", "success");
-                            } else {
-                              triggerToast("Server response OK", "info");
-                            }
-                          } catch (err: any) {
-                            triggerToast("Failed to connect to backend", "info");
-                          }
-                        }}
-                        className="p-2 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold rounded-xl transition-all shadow-xs text-center cursor-pointer"
-                      >
-                        Backend Error
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
-                  <p className="font-bold text-emerald-950 flex items-center space-x-1">
-                    <Sparkles className="w-4 h-4 text-orange-400" />
-                    <span>Naija Online Stores Protocol</span>
-                  </p>
-                  <p className="text-emerald-800 leading-normal font-semibold">
-                    The platform coordinates e-commerce metrics in Nigerian Naira (₦). Customers, vendors and platform leads can swap, mock, and simulate live triggers seamlessly.
-                  </p>
-                </div>
-
-                <div className="space-y-3 pt-2">
-                  <p className="font-bold text-neutral-400 uppercase tracking-widest text-[10px]">Session Settings</p>
-                  
-                  <div className="space-y-1">
-                    <label className="font-bold text-neutral-500 uppercase tracking-widest pl-1 block">Active Shopper Alias</label>
-                    <input
-                      type="email"
-                      value={userEmail}
-                      onChange={(e) => setUserEmail(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-xl font-mono text-neutral-700 text-xs bg-white"
-                    />
-                  </div>
-
-                  <div className="space-y-1 bg-neutral-50 p-3 rounded-xl border border-neutral-100">
-                    <p className="font-bold text-neutral-700">Quick Reset Action</p>
-                    <p className="text-[10px] text-neutral-400">Revert checkout and product database modifications back to initial state.</p>
-                    <button
-                      onClick={() => {
-                        setProducts([]);
-                        setOrders([]);
-                        setVendors([]);
-                        setCart([]);
-                        setUserEmail("adminnaijastoresonline@gmail.com");
-                        triggerToast("E-commerce persistent database wiped and re-seeded.", "info");
-                        setSettingsDrawerOpen(false);
-                      }}
-                      className="mt-2 text-[10px] font-bold uppercase tracking-wider py-1.5 px-3 bg-red-650 hover:bg-red-700 bg-red-600 text-white rounded-lg block text-center"
-                    >
-                      Clear database & Seed
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer lock inside setup slider */}
-            <div className="p-3 bg-neutral-50 border border-neutral-100 rounded-xl flex items-center space-x-2 text-[10px] text-neutral-400 justify-center mt-6">
-              <ShieldAlert className="w-4 h-4" />
-              <span className="font-bold uppercase tracking-widest">NaijaStores System Admin Suite</span>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
 
       {/* Toaster element */}
       <AnimatePresence>
