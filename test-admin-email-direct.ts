@@ -1,4 +1,4 @@
-import { sendAdminNotificationEmail } from "./server/emailServices.js";
+import { sendAdminNotificationEmail } from "./emailServer/emailServices.js";
 
 async function run() {
   try {

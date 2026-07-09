@@ -27,7 +27,7 @@ import { createClient } from "@supabase/supabase-js";
 import { MOCK_CATEGORIES } from "./src/data/mockData";
 import { GoogleGenAI } from "@google/genai";
 import webpush from "web-push";
-import * as emailService from "./server/emailServices.js";
+import * as emailService from "./emailServer/emailServices.js";
 import xss from "xss";
 
 export const sanitizeInput = (obj: any): any => {
