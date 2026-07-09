@@ -99,7 +99,7 @@ serve(async (req) => {
       <p>You can track the live GPS coordinate details of your package transit routing directly on our interactive delivery map:</p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naija-stores.com/tracking?order=${order.id}" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Live Delivery Map</a>
+        <a href="https://naijaonlinestores.com.ng/tracking?order=${order.id}" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Live Delivery Map</a>
       </div>
 
       <p style="font-size: 12px; color: #666;">Note: Since this is a multi-vendor platform, items from other merchants in the same order may ship separately. We'll send you an update for each package.</p>

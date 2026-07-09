@@ -139,7 +139,7 @@ serve(async (req) => {
         </tr>
       </table>
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naija-stores.com/platform-admin" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Transaction Ledger</a>
+        <a href="https://naijaonlinestores.com.ng/platform-admin" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Transaction Ledger</a>
       </div>
       <hr style="border: 0; border-top: 1px solid #eee; margin-top: 20px;" />
       <p style="font-size: 11px; color: #999;">Automated admin settlement notification.</p>

@@ -135,9 +135,8 @@ export async function startServer() {
   app.use(helmet({ contentSecurityPolicy: false }));
   
   const allowedOrigins = [
-    "https://naija-stores.com",
-    "https://www.naijaonlinestores.com.ng",
     "https://naijaonlinestores.com.ng",
+    "https://www.naijaonlinestores.com.ng",
     /\.pages\.dev$/,
     /\.vercel\.app$/
   ];

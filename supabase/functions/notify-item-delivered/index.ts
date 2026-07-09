@@ -99,7 +99,7 @@ serve(async (req) => {
       <p>We hope you enjoy your purchase! If you have any feedback or concerns regarding this order, please let us know.</p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naija-stores.com/orders" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Leave Store Review</a>
+        <a href="https://naijaonlinestores.com.ng/tracking" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Leave Store Review</a>
       </div>
 
       <hr style="border: 0; border-top: 1px solid #eee;" />

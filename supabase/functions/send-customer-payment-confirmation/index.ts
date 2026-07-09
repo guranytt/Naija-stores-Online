@@ -172,7 +172,7 @@ serve(async (req) => {
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naija-stores.com/tracking?order=${order.id}" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Track Your Order Delivery</a>
+        <a href="https://naijaonlinestores.com.ng/tracking?order=${order.id}" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Track Your Order Delivery</a>
       </div>
 
       <hr style="border: 0; border-top: 1px solid #eee;" />

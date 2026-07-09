@@ -145,7 +145,7 @@ serve(async (req) => {
         </table>
         
         <div style="text-align: center; margin: 30px 0;">
-          <a href="https://naija-stores.com/vendor-admin" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Manage Order Shipment</a>
+          <a href="https://naijaonlinestores.com.ng/vendor-admin" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Manage Order Shipment</a>
         </div>
         
         <p style="font-size: 12px; color: #666;">Note: Please update the fulfillment status in your dashboard to 'Shipped' once you dispatch the item(s) so the customer can track their delivery.</p>

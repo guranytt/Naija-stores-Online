@@ -61,7 +61,7 @@ serve(async (req) => {
       <p>We are excited to welcome <strong>${vendor.business_name}</strong> to the Naija Stores Online network!</p>
       <p>Your shop application has been received and is currently in <strong>${vendor.verification_status.toUpperCase()}</strong> status. While our administration reviews your submission, you can log in to your dashboard to complete your store profile, customize settings, and add products.</p>
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naija-stores.com/vendor-admin" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Log In to Merchant Dashboard</a>
+        <a href="https://naijaonlinestores.com.ng/vendor-admin" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Log In to Merchant Dashboard</a>
       </div>
       <p>If you have any questions or require support setting up your listings, please do not hesitate to contact our Merchant Success Team.</p>
       <hr style="border: 0; border-top: 1px solid #eee; margin-top: 20px;" />

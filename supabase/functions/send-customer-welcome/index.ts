@@ -55,7 +55,7 @@ serve(async (req) => {
       <p>Welcome to <strong>Naija Stores Online</strong>! We are absolutely thrilled to have you join our vibrant community of shoppers and sellers.</p>
       <p>With our platform, you can explore hundreds of local and international stores, make secure payments via Paystack, and track your package delivery in real-time.</p>
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naija-stores.com" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Start Shopping Now</a>
+        <a href="https://naijaonlinestores.com.ng" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Start Shopping Now</a>
       </div>
       <p>If you have any questions, our support team is always here to help you.</p>
       <hr style="border: 0; border-top: 1px solid #eee;" />

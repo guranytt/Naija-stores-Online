@@ -102,7 +102,7 @@ serve(async (req) => {
       <p>Thank you for choosing Naija Stores Online! We strive to make your shopping experience smooth and reliable.</p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naija-stores.com" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Continue Shopping</a>
+        <a href="https://naijaonlinestores.com.ng" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Continue Shopping</a>
       </div>
 
       <p>If you have any feedback or concerns regarding your overall shopping experience, please get in touch with our Customer Care.</p>

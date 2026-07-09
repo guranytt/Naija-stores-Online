@@ -64,6 +64,13 @@ export default function VendorAdmin({
   const [adminTab, setAdminTab] = useState<"vendor" | "dashboard" | "platform" | "emails" >("vendor");
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
 
+  // Sync tab with URL paths on load
+  React.useEffect(() => {
+    if (window.location.pathname.startsWith("/platform-admin")) {
+      setAdminTab("platform");
+    }
+  }, []);
+
   // Categories Master Admin Control block states
   const [localCategories, setLocalCategories] = useState<Category[]>(categories.length ? categories : []);
 

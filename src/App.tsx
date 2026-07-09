@@ -79,7 +79,9 @@ export default function App() {
       const path = window.location.pathname;
       const seoCategories = ["electronics", "fashion", "phones", "laptops", "beauty", "home-kitchen", "sports", "gaming"];
       if (path.startsWith("/cart")) setCurrentScreen("cart");
-      else if (path.startsWith("/admin") || path.startsWith("/dashboard")) setCurrentScreen("admin");
+      else if (path.startsWith("/admin") || path.startsWith("/dashboard") || path.startsWith("/vendor-admin") || path.startsWith("/platform-admin")) {
+        setCurrentScreen("admin");
+      }
       else if (path.startsWith("/tracking")) setCurrentScreen("map");
       else if (path.startsWith("/auth")) setCurrentScreen("auth");
       else if (path.startsWith("/shop")) {
