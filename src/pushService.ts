@@ -4,6 +4,20 @@ import { supabase } from "./supabase";
 
 const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
+const getAuthToken = async (): Promise<string> => {
+  if (typeof window !== "undefined" && (window as any).Clerk) {
+    try {
+      const session = (window as any).Clerk.session;
+      if (session) {
+        return await session.getToken() || "";
+      }
+    } catch (e) {
+      console.warn("Failed to get Clerk token dynamically:", e);
+    }
+  }
+  return "";
+};
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding)
@@ -51,8 +65,7 @@ export async function requestPushPermissionAndSubscribe(vendorId: string) {
       });
     }
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token || "";
+    const token = await getAuthToken();
 
     // Send subscription to backend
     const res = await fetch("/api/push/subscribe", {

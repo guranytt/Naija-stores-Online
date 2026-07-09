@@ -21,6 +21,7 @@ import { Product, CartItem, Order, Vendor, Category, FlashDealProposal } from ".
 import { formatNaira } from "./components/CustomerViews";
 import { Info, CheckCircle, Store } from "lucide-react";
 import { supabase, getSupabaseData, saveSupabaseRecord, ensureUUID } from "./supabase";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import { sendResendEmail, fetchEmailLogs, MailLogEntry } from "./emailService";
 
 // Standard browser cookie helper functions
@@ -54,6 +55,8 @@ function setCookie(name: string, value: string, days = 7) {
 }
 
 export default function App() {
+  const { isLoaded, userId } = useAuth();
+  const { user } = useUser();
   const [currentScreen, setCurrentScreen] = useState<string>("home");
   const [vendorAuthenticated, setVendorAuthenticated] = useState<boolean>(false);
   const [selectedProductId, setSelectedProductId] = useState<string>("p1");
@@ -458,65 +461,44 @@ export default function App() {
 
 
 
-  // Synchronize Supabase authentication state changes and roles
+  // Synchronize Clerk authentication state changes and roles
   useEffect(() => {
-    // Check current session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.warn("[SUPABASE GETSESSION] Error from getSession:", error);
-        if (error.message?.includes("Refresh Token")) {
-          supabase.auth.signOut().catch(() => {});
-          // Clear local storage aggressively to prevent infinite loops of refresh
-          const keysToRemove = [];
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.includes("supabase")) {
-              keysToRemove.push(key);
+    if (!isLoaded) return;
+
+    if (userId && user) {
+      const uEmail = user.primaryEmailAddress?.emailAddress || "shopper@example.com";
+      setUserEmail(uEmail);
+      setCurrentUserId(userId);
+
+      // Fetch the role from the public users table in Supabase
+      supabase
+        .from("users")
+        .select("role")
+        .eq("clerk_id", userId)
+        .single()
+        .then(({ data, error }) => {
+          if (!error && data) {
+            const role = data.role;
+            if (role === "vendor" || role === "admin" || uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com" || uEmail.toLowerCase() === "mcgigimeshai@gmail.com") {
+              setVendorAuthenticated(true);
+            } else {
+              setVendorAuthenticated(false);
+            }
+          } else {
+            // Fallback check based on email
+            if (uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com" || uEmail.toLowerCase() === "mcgigimeshai@gmail.com") {
+              setVendorAuthenticated(true);
+            } else {
+              setVendorAuthenticated(false);
             }
           }
-          keysToRemove.forEach(k => localStorage.removeItem(k));
-        }
-      }
-      if (session?.user) {
-        const uEmail = session.user.email || "shopper@example.com";
-        setUserEmail(uEmail);
-        setCurrentUserId(session.user.id);
-        const role = session.user.user_metadata?.role || "customer";
-        if (role === "vendor" || role === "admin" || uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com") {
-          setVendorAuthenticated(true);
-        } else {
-          setVendorAuthenticated(false);
-        }
-      } else {
-        setCurrentUserId(null);
-      }
-    }).catch(err => {
-      console.warn("[SUPABASE GETSESSION] Failed to restore session on initialization:", err);
-      if (err?.message?.includes("Invalid Refresh Token") || err?.message?.includes("Refresh Token Not Found")) {
-        supabase.auth.signOut().catch(() => {});
-      }
-    });
-
-    // Listen for auth level events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const uEmail = session.user.email || "shopper@example.com";
-        setUserEmail(uEmail);
-        setCurrentUserId(session.user.id);
-        const role = session.user.user_metadata?.role || "customer";
-        if (role === "vendor" || role === "admin" || uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com") {
-          setVendorAuthenticated(true);
-        } else {
-          setVendorAuthenticated(false);
-        }
-      } else {
-        setVendorAuthenticated(false);
-        setCurrentUserId(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+        });
+    } else {
+      setUserEmail("adminnaijastoresonline@gmail.com");
+      setCurrentUserId(null);
+      setVendorAuthenticated(false);
+    }
+  }, [isLoaded, userId, user]);
 
   // Implement SWR for smart caching and paginated data fetching
   const { data: dbCategories } = useSWR(

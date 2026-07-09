@@ -1,6 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 import { getOptimizedImageUrl } from "./utils/imageTransforms";
 
+const getAuthToken = async (): Promise<string> => {
+  if (typeof window !== "undefined" && (window as any).Clerk) {
+    try {
+      const session = (window as any).Clerk.session;
+      if (session) {
+        return await session.getToken() || "";
+      }
+    } catch (e) {
+      console.warn("Failed to get Clerk token dynamically:", e);
+    }
+  }
+  return "";
+};
+
 // @ts-ignore
 const envSupabaseUrl = typeof process !== 'undefined' && process.env && (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) ? (process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) : undefined;
 // @ts-ignore
@@ -368,8 +382,7 @@ export async function saveSupabaseBatchRecords(tableName: string, records: any[]
   if (records.length === 0) return true;
   if (tableName === "categories") {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token || "";
+      const token = await getAuthToken();
       const payloads = records.map(record => {
         const catId = ensureUUID(record.id);
         return {
@@ -487,8 +500,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
               };
 
               try {
-                const { data: sessionData } = await supabase.auth.getSession();
-                const token = sessionData.session?.access_token || "";
+                const token = await getAuthToken();
                 
                 const catRes = await fetch("/api/category/upsert", {
                   method: "POST",
@@ -682,8 +694,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
           business_description: record.description || record.business_description
         };
 
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token || "";
+        const token = await getAuthToken();
 
         const response = await fetch("/api/vendor/upsert", {
           method: "POST",
@@ -704,8 +715,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       }
     } else if (tableName === "products") {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token || "";
+        const token = await getAuthToken();
 
         const response = await fetch("/api/product/upsert", {
           method: "POST",
@@ -726,8 +736,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       }
     } else if (tableName === "categories") {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token || "";
+        const token = await getAuthToken();
 
         const response = await fetch("/api/category/upsert", {
           method: "POST",

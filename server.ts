@@ -210,14 +210,15 @@ export async function startServer() {
     if (eventType === 'user.created' || eventType === 'user.updated') {
       const email = email_addresses?.[0]?.email_address || "";
       const name = `${first_name || ''} ${last_name || ''}`.trim() || email.split('@')[0];
+      const role = evt.data.public_metadata?.role || evt.data.unsafe_metadata?.role || "customer";
       
       const { error } = await supabaseAdmin.from('users').upsert({
-        id,
+        clerk_id: id,
         email,
-        name,
-        avatar_url: image_url || "",
+        full_name: name,
+        role: role,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'id' });
+      }, { onConflict: 'clerk_id' });
 
       if (error) {
         console.error("[CLERK WEBHOOK ERROR] Supabase Upsert Failed", error);
@@ -253,14 +254,14 @@ export async function startServer() {
         return res.status(401).json({ error: "Unauthorized access or invalid token" });
       }
       
-      const { data, error } = await supabaseAdmin.from('users').select('id, role').eq('clerk_id', clerkId).single();
+      const { data, error } = await supabaseAdmin.from('users').select('id, role, email').eq('clerk_id', clerkId).single();
       if (error || !data) {
          // Gracefully handle if webhook hasn't synced yet
          return res.status(401).json({ error: "User profile not yet synced" });
       }
       
       // Attach user to req object for downstream routes to use (backwards compatibility)
-      (req as any).user = { id: data.id, role: data.role, clerk_id: clerkId };
+      (req as any).user = { id: data.id, role: data.role, email: data.email, clerk_id: clerkId };
       next();
     }
   ];
