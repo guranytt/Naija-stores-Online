@@ -64,6 +64,9 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
     const email = clerkUser.primaryEmailAddress?.emailAddress || "";
     const emailPrefix = email ? email.split("@")[0].toUpperCase() : "SHOEPPER";
     
+    // Default role based on context if not explicitly set
+    const defaultRole = vendorOnly ? "vendor" : "customer";
+    
     try {
       const { data, error } = await supabase.from("users").select("full_name, role").eq("clerk_id", clerkId).single();
       if (!error && data) {
@@ -76,7 +79,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
         }
         setProfile({
           fullName: data.full_name || meta.fullName || emailPrefix,
-          role: data.role || meta.role || "customer",
+          role: data.role || meta.role || defaultRole,
           location: vendorData?.physical_location || meta.location || "Lagos Mainland, Lagos",
           shopName: vendorData?.business_name || meta.shopName || "",
           phone: vendorData?.phone || meta.phone || "",
@@ -91,7 +94,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
 
     setProfile({
       fullName: meta.fullName || emailPrefix,
-      role: meta.role || "customer",
+      role: meta.role || defaultRole,
       location: meta.location || "Lagos Mainland, Lagos",
       shopName: meta.shopName || "",
       phone: meta.phone || "",
@@ -214,6 +217,23 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
 
         {/* IF USER LOGGED IN: SHOW HUB */}
         {userId && user ? (
+          vendorOnly && profile.role === "customer" ? (
+             <div className="space-y-6 flex flex-col items-center text-center animate-fade-in py-6">
+               <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
+               <h3 className="text-xl font-black text-neutral-900">Access Denied</h3>
+               <p className="text-sm text-neutral-500">
+                 You are logged in as a Customer. One session cannot host both a customer and a vendor account.
+               </p>
+               <p className="text-xs text-neutral-400 font-medium">
+                 To access the Vendor Admin portal, please sign out of your customer account, then log in or sign up with your merchant account.
+               </p>
+               <div className="pt-4 w-full">
+                 <button onClick={handleSignOut} className="w-full py-3 bg-neutral-900 text-white rounded-xl font-bold text-xs hover:bg-neutral-800 shadow-md flex items-center justify-center transition-all cursor-pointer">
+                   <LogOut className="w-4 h-4 mr-2" /> Sign Out & Switch Account
+                 </button>
+               </div>
+             </div>
+          ) : (
           <div className="space-y-8 animate-fade-in">
             <div className="p-6 bg-slate-50/70 border border-neutral-100 rounded-2xl flex items-center space-x-4">
               <div className="w-14 h-14 bg-neutral-50 rounded-2xl flex items-center justify-center relative shadow-inner">
@@ -259,19 +279,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">System Role</label>
-                  <select
-                    value={profile.role}
-                    onChange={(e) => setProfile(prev => ({ ...prev, role: e.target.value }))}
-                    className="w-full px-4 py-2.5 text-xs font-bold border border-neutral-200 bg-white rounded-xl outline-none"
-                  >
-                    <option value="customer">Customer</option>
-                    <option value="vendor">Merchant / Vendor</option>
-                  </select>
-                </div>
-
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">State Region</label>
                   <select
@@ -346,6 +354,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
               </button>
             </div>
           </div>
+          )
         ) : (
           /* IF GUEST: SHOW REGISTRATION / LOGIN FORMS */
           <div className="space-y-6 flex flex-col items-center">
