@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail } from "../shared/utils.ts";
+import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail, buildEmailTemplate } from "../shared/utils.ts";
 
 serve(async (req) => {
   const { isValid, payload, errorResponse } = await verifyWebhook(req);
@@ -47,20 +47,16 @@ serve(async (req) => {
   }
 
   // Send the email
-  const subject = 'Confirm Your Email - Naija Stores Online';
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <h2 style="color: #ea580c;">Welcome to Naija Stores Online!</h2>
-      <p>Hello ${user.full_name || 'Valued Customer'},</p>
-      <p>Thank you for signing up. Please confirm your email address by clicking the link below to activate your account:</p>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="https://clerk.naijaonlinestores.com.ng" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Confirm Email Address</a>
-      </div>
-      <p style="font-size: 12px; color: #666;">If you didn't create an account, you can safely ignore this email.</p>
-      <hr style="border: 0; border-top: 1px solid #eee;" />
-      <p style="font-size: 11px; color: #999;">Naija Stores Online &bull; Nigeria's Premier Multi-Vendor Platform</p>
+  const subject = 'Confirm Your Email - Naija Online Stores';
+  const html = buildEmailTemplate(subject, `
+    <h2>Welcome to Naija Online Stores!</h2>
+    <p>Hello <strong>${user.full_name || 'Valued Customer'}</strong>,</p>
+    <p>Thank you for signing up. Please confirm your email address by clicking the button below to activate your account and start shopping:</p>
+    <div style="text-align: center;">
+      <a href="https://clerk.naijaonlinestores.com.ng" class="btn">Confirm Email Address</a>
     </div>
-  `;
+    <p style="font-size: 12px; color: #64748b; margin-top: 30px;">If you didn't create an account, you can safely ignore this email.</p>
+  `);
 
   const { success, error: sendError } = await sendEmail(user.email, subject, html);
 

@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail } from "../shared/utils.ts";
+import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail, buildEmailTemplate } from "../shared/utils.ts";
 
 serve(async (req) => {
   const { isValid, payload, errorResponse } = await verifyWebhook(req);
@@ -98,13 +97,13 @@ serve(async (req) => {
     for (const item of items) {
       itemsHtml += `
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">
-            <span style="font-weight: bold; color: #333;">${item.products?.name || 'Product'}</span><br/>
-            <span style="font-size: 11px; color: #666;">Sold by: ${item.vendors?.business_name || 'Store'}</span>
+          <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9;">
+            <span style="font-weight: bold; color: #1e293b;">${item.products?.name || 'Product'}</span><br/>
+            <span style="font-size: 11px; color: #64748b;">Sold by: ${item.vendors?.business_name || 'Store'}</span>
           </td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₦${item.unit_price.toLocaleString()}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₦${(item.quantity * item.unit_price).toLocaleString()}</td>
+          <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; text-align: center;">${item.quantity}</td>
+          <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; text-align: right;">₦${item.unit_price.toLocaleString()}</td>
+          <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; text-align: right; font-weight: bold;">₦${(item.quantity * item.unit_price).toLocaleString()}</td>
         </tr>
       `;
     }
@@ -132,27 +131,36 @@ serve(async (req) => {
   }
 
   const subject = `Payment Confirmed - Order #${order.order_number}`;
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #ea580c; margin: 0;">Payment Confirmed!</h2>
-        <p style="color: #666; margin: 5px 0 0 0;">Thank you for shopping with Naija Stores Online</p>
-      </div>
-      
-      <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-        <p style="margin: 0 0 5px 0;"><strong>Order Number:</strong> #${order.order_number}</p>
-        <p style="margin: 0 0 5px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-        <p style="margin: 0;"><strong>Shipping To:</strong> ${shippingName} (${shippingAddressString})</p>
-      </div>
+  const html = buildEmailTemplate(subject, `
+    <h2>Payment Confirmed! 🎉</h2>
+    <p>Thank you for shopping with Naija Online Stores. We've processed your payment and notified the merchants to dispatch your packages.</p>
+    
+    <div class="details-card">
+      <table class="details-table">
+        <tr>
+          <td style="font-weight: bold; width: 30%; border: none; padding: 4px 0;">Order Number:</td>
+          <td style="border: none; padding: 4px 0;">#${order.order_number}</td>
+        </tr>
+        <tr>
+          <td style="font-weight: bold; border: none; padding: 4px 0;">Date:</td>
+          <td style="border: none; padding: 4px 0;">${new Date().toLocaleDateString()}</td>
+        </tr>
+        <tr>
+          <td style="font-weight: bold; border: none; padding: 4px 0; vertical-align: top;">Shipping To:</td>
+          <td style="border: none; padding: 4px 0;"><strong>${shippingName}</strong><br/>${shippingAddressString}</td>
+        </tr>
+      </table>
+    </div>
 
-      <h3 style="border-bottom: 1px solid #eee; padding-bottom: 5px;">Order Summary</h3>
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+    <h3>Order Summary</h3>
+    <div class="details-card" style="padding: 15px;">
+      <table class="details-table">
         <thead>
-          <tr style="background-color: #f9fafb;">
-            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #eee; font-size: 12px;">Item</th>
-            <th style="padding: 8px; text-align: center; border-bottom: 2px solid #eee; font-size: 12px; width: 10%;">Qty</th>
-            <th style="padding: 8px; text-align: right; border-bottom: 2px solid #eee; font-size: 12px; width: 20%;">Price</th>
-            <th style="padding: 8px; text-align: right; border-bottom: 2px solid #eee; font-size: 12px; width: 20%;">Total</th>
+          <tr>
+            <th style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Item</th>
+            <th style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; text-align: center;">Qty</th>
+            <th style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; text-align: right;">Price</th>
+            <th style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; text-align: right;">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -160,25 +168,22 @@ serve(async (req) => {
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="3" style="padding: 10px 8px; text-align: right; font-weight: bold;">Grand Total:</td>
-            <td style="padding: 10px 8px; text-align: right; font-weight: bold; color: #ea580c; font-size: 16px;">₦${order.subtotal.toLocaleString()}</td>
+            <td colspan="3" style="padding: 15px 0 0 0; text-align: right; font-weight: bold; border: none;">Grand Total:</td>
+            <td style="padding: 15px 0 0 0; text-align: right; font-weight: bold; color: #ea580c; font-size: 16px; border: none;">₦${order.subtotal.toLocaleString()}</td>
           </tr>
         </tfoot>
       </table>
-
-      <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; padding: 12px; border-radius: 5px; font-size: 12px; margin-bottom: 20px;">
-        <strong>💡 Real-time Transit Tracking:</strong><br/>
-        You can track your package shipment status from the merchant dashboard. You will receive email notifications as soon as each merchant dispatches your items!
-      </div>
-
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naijaonlinestores.com.ng/tracking?order=${order.id}" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Track Your Order Delivery</a>
-      </div>
-
-      <hr style="border: 0; border-top: 1px solid #eee;" />
-      <p style="font-size: 11px; color: #999; text-align: center;">Naija Stores Online &bull; customer service care team</p>
     </div>
-  `;
+
+    <div class="alert-banner">
+      <strong>💡 Real-time Transit Tracking:</strong><br/>
+      You can track your package shipment status from the merchant dashboard. You will receive email notifications as soon as each merchant dispatches your items!
+    </div>
+
+    <div style="text-align: center;">
+      <a href="https://naijaonlinestores.com.ng/tracking?order=${order.id}" class="btn">Track Your Order Delivery</a>
+    </div>
+  `);
 
   const { success, error: sendError } = await sendEmail(customer.email, subject, html);
 

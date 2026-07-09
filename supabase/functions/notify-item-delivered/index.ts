@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail } from "../shared/utils.ts";
+import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail, buildEmailTemplate } from "../shared/utils.ts";
 
 serve(async (req) => {
   const { isValid, payload, errorResponse } = await verifyWebhook(req);
@@ -84,28 +83,34 @@ serve(async (req) => {
 
   // Send the email
   const subject = `Package Delivered! - Your item from ${item.vendors?.business_name || 'Merchant'} has arrived`;
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <h2 style="color: #10b981; text-align: center;">Delivery Confirmed! ✅</h2>
-      <p>Hello ${customer.full_name || 'Valued Customer'},</p>
-      <p>Your item from order <strong>#${order.order_number}</strong> has been successfully delivered to your shipping address.</p>
-      
-      <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #10b981;">
-        <p style="margin: 0 0 5px 0;"><strong>Store:</strong> ${item.vendors?.business_name || 'Store Merchant'}</p>
-        <p style="margin: 0 0 5px 0;"><strong>Item:</strong> ${item.products?.name || 'Product'}</p>
-        <p style="margin: 0;"><strong>Quantity:</strong> ${item.quantity}</p>
-      </div>
-
-      <p>We hope you enjoy your purchase! If you have any feedback or concerns regarding this order, please let us know.</p>
-      
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naijaonlinestores.com.ng/tracking" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Leave Store Review</a>
-      </div>
-
-      <hr style="border: 0; border-top: 1px solid #eee;" />
-      <p style="font-size: 11px; color: #999; text-align: center;">Naija Stores Online &bull; customer service team</p>
+  const html = buildEmailTemplate(subject, `
+    <h2>Delivery Confirmed! ✅</h2>
+    <p>Hello ${customer.full_name || 'Valued Customer'},</p>
+    <p>Your item from order <strong>#${order.order_number}</strong> has been successfully delivered to your shipping address.</p>
+    
+    <div class="details-card" style="border-left: 4px solid #10b981;">
+      <table class="details-table">
+        <tr>
+          <td style="font-weight: bold; width: 30%; border: none; padding: 4px 0;">Store:</td>
+          <td style="border: none; padding: 4px 0;">${item.vendors?.business_name || 'Store Merchant'}</td>
+        </tr>
+        <tr>
+          <td style="font-weight: bold; border: none; padding: 4px 0;">Item:</td>
+          <td style="border: none; padding: 4px 0;">${item.products?.name || 'Product'}</td>
+        </tr>
+        <tr>
+          <td style="font-weight: bold; border: none; padding: 4px 0;">Quantity:</td>
+          <td style="border: none; padding: 4px 0;">${item.quantity}</td>
+        </tr>
+      </table>
     </div>
-  `;
+
+    <p>We hope you enjoy your purchase! If you have any feedback or concerns regarding this order, please let us know.</p>
+    
+    <div style="text-align: center;">
+      <a href="https://naijaonlinestores.com.ng/tracking" class="btn btn-green">Leave Store Review</a>
+    </div>
+  `);
 
   const { success, error: sendError } = await sendEmail(customer.email, subject, html);
 

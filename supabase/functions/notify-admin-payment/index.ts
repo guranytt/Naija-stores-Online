@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail } from "../shared/utils.ts";
+import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail, buildEmailTemplate } from "../shared/utils.ts";
 
 serve(async (req) => {
   const { isValid, payload, errorResponse } = await verifyWebhook(req);
@@ -108,43 +107,43 @@ serve(async (req) => {
   const adminEmails = admins.map(a => a.email);
   
   const subject = `[Sale Alert] Order #${order.order_number} Processed`;
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <h2 style="color: #10b981;">Transaction Settled Successfully</h2>
-      <p>A new payment has been processed and logged on Paystack:</p>
-      <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+  const html = buildEmailTemplate(subject, `
+    <h2>Transaction Settled Successfully</h2>
+    <p>A new payment has been processed and logged on Paystack:</p>
+    
+    <div class="details-card">
+      <table class="details-table">
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; width: 40%;">Order Number:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">#${order.order_number}</td>
+          <td style="font-weight: bold; width: 40%; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Order Number:</td>
+          <td style="border-bottom: 1px solid #f1f5f9; padding: 10px 0;">#${order.order_number}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Paystack Ref:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; font-family: monospace;">${payment.paystack_reference}</td>
+          <td style="font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Paystack Ref:</td>
+          <td style="border-bottom: 1px solid #f1f5f9; padding: 10px 0; font-size: 11px; font-family: monospace;">${payment.paystack_reference}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Amount Paid:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; color: #10b981;">₦${payment.amount.toLocaleString()}</td>
+          <td style="font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Amount Paid:</td>
+          <td style="font-weight: bold; color: #10b981; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">₦${payment.amount.toLocaleString()}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Vendors Cut:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">₦${(payment.amount - commissionTotal).toLocaleString()}</td>
+          <td style="font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Vendors Cut:</td>
+          <td style="border-bottom: 1px solid #f1f5f9; padding: 10px 0;">₦${(payment.amount - commissionTotal).toLocaleString()}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Platform Commission:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; color: #ea580c;">₦${commissionTotal.toLocaleString()}</td>
+          <td style="font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Platform Commission:</td>
+          <td style="font-weight: bold; color: #ea580c; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">₦${commissionTotal.toLocaleString()}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; valign: top;">Merchants Involved:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${vendorsInvolved.join(', ') || 'Unknown'}</td>
+          <td style="font-weight: bold; padding: 10px 0;">Merchants Involved:</td>
+          <td style="padding: 10px 0;">${vendorsInvolved.join(', ') || 'Unknown'}</td>
         </tr>
       </table>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naijaonlinestores.com.ng/platform-admin" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Transaction Ledger</a>
-      </div>
-      <hr style="border: 0; border-top: 1px solid #eee; margin-top: 20px;" />
-      <p style="font-size: 11px; color: #999;">Automated admin settlement notification.</p>
     </div>
-  `;
+
+    <div style="text-align: center;">
+      <a href="https://naijaonlinestores.com.ng/platform-admin" class="btn btn-green">View Transaction Ledger</a>
+    </div>
+  `);
 
   // Send email to all admin emails
   let sendErrors: string[] = [];

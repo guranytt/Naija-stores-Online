@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail } from "../shared/utils.ts";
+import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail, buildEmailTemplate } from "../shared/utils.ts";
 
 serve(async (req) => {
   const { isValid, payload, errorResponse } = await verifyWebhook(req);
@@ -84,29 +83,36 @@ serve(async (req) => {
 
   // Send the email
   const subject = `Your item from ${item.vendors?.business_name || 'Merchant'} has shipped! 🚚`;
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <h2 style="color: #ea580c; text-align: center;">Item Dispatched! 📦</h2>
-      <p>Hello ${customer.full_name || 'Valued Customer'},</p>
-      <p>Good news! An item from your order <strong>#${order.order_number}</strong> has been shipped by the merchant.</p>
-      
-      <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <p style="margin: 0 0 5px 0;"><strong>Shipped By:</strong> ${item.vendors?.business_name || 'Store Merchant'}</p>
-        <p style="margin: 0 0 5px 0;"><strong>Item:</strong> ${item.products?.name || 'Product'}</p>
-        <p style="margin: 0;"><strong>Quantity:</strong> ${item.quantity}</p>
-      </div>
-
-      <p>You can track the live GPS coordinate details of your package transit routing directly on our interactive delivery map:</p>
-      
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naijaonlinestores.com.ng/tracking?order=${order.id}" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Live Delivery Map</a>
-      </div>
-
-      <p style="font-size: 12px; color: #666;">Note: Since this is a multi-vendor platform, items from other merchants in the same order may ship separately. We'll send you an update for each package.</p>
-      <hr style="border: 0; border-top: 1px solid #eee;" />
-      <p style="font-size: 11px; color: #999; text-align: center;">Naija Stores Online &bull; logistics tracking</p>
+  const html = buildEmailTemplate(subject, `
+    <h2>Item Dispatched! 📦</h2>
+    <p>Hello ${customer.full_name || 'Valued Customer'},</p>
+    <p>Good news! An item from your order <strong>#${order.order_number}</strong> has been shipped by the merchant.</p>
+    
+    <div class="details-card">
+      <table class="details-table">
+        <tr>
+          <td style="font-weight: bold; width: 30%; border: none; padding: 4px 0;">Shipped By:</td>
+          <td style="border: none; padding: 4px 0;">${item.vendors?.business_name || 'Store Merchant'}</td>
+        </tr>
+        <tr>
+          <td style="font-weight: bold; border: none; padding: 4px 0;">Item:</td>
+          <td style="border: none; padding: 4px 0;">${item.products?.name || 'Product'}</td>
+        </tr>
+        <tr>
+          <td style="font-weight: bold; border: none; padding: 4px 0;">Quantity:</td>
+          <td style="border: none; padding: 4px 0;">${item.quantity}</td>
+        </tr>
+      </table>
     </div>
-  `;
+
+    <p>You can track the live GPS coordinate details of your package transit routing directly on our interactive delivery map:</p>
+    
+    <div style="text-align: center;">
+      <a href="https://naijaonlinestores.com.ng/tracking?order=${order.id}" class="btn">View Live Delivery Map</a>
+    </div>
+
+    <p style="font-size: 12px; color: #64748b; margin-top: 20px;">Note: Since this is a multi-vendor platform, items from other merchants in the same order may ship separately. We'll send you an update for each package.</p>
+  `);
 
   const { success, error: sendError } = await sendEmail(customer.email, subject, html);
 

@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail } from "../shared/utils.ts";
+import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail, buildEmailTemplate } from "../shared/utils.ts";
 
 serve(async (req) => {
   const { isValid, payload, errorResponse } = await verifyWebhook(req);
@@ -108,29 +108,29 @@ serve(async (req) => {
       vendorTotal += lineTotal;
       itemsListHtml += `
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.products?.name || 'Product'}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₦${item.unit_price.toLocaleString()}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₦${lineTotal.toLocaleString()}</td>
+          <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9;">${item.products?.name || 'Product'}</td>
+          <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; text-align: center;">${item.quantity}</td>
+          <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; text-align: right;">₦${item.unit_price.toLocaleString()}</td>
+          <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; text-align: right; font-weight: bold;">₦${lineTotal.toLocaleString()}</td>
         </tr>
       `;
     }
 
     // Send the email
     const subject = `New Sale Confirmed! - ₦${vendorTotal.toLocaleString()}`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #ea580c;">Congratulations on your Sale! 🎉</h2>
-        <p>Hello ${vendor.business_name},</p>
-        <p>We are pleased to inform you that a customer has successfully placed an order for your products. Please review the details below and prepare them for shipment:</p>
-        
-        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+    const html = buildEmailTemplate(subject, `
+      <h2>Congratulations on your Sale! 🎉</h2>
+      <p>Hello ${vendor.business_name},</p>
+      <p>We are pleased to inform you that a customer has successfully placed an order for your products. Please review the details below and prepare them for shipment:</p>
+      
+      <div class="details-card">
+        <table class="details-table">
           <thead>
-            <tr style="background-color: #f9fafb;">
-              <th style="padding: 8px; text-align: left; border-bottom: 2px solid #eee;">Item</th>
-              <th style="padding: 8px; text-align: center; border-bottom: 2px solid #eee;">Qty</th>
-              <th style="padding: 8px; text-align: right; border-bottom: 2px solid #eee;">Unit Price</th>
-              <th style="padding: 8px; text-align: right; border-bottom: 2px solid #eee;">Total</th>
+            <tr>
+              <th style="border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Item</th>
+              <th style="border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; text-align: center;">Qty</th>
+              <th style="border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; text-align: right;">Unit Price</th>
+              <th style="border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; text-align: right;">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -138,21 +138,19 @@ serve(async (req) => {
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="3" style="padding: 10px 8px; text-align: right; font-weight: bold;">Total Earnings:</td>
-              <td style="padding: 10px 8px; text-align: right; font-weight: bold; color: #ea580c; font-size: 16px;">₦${vendorTotal.toLocaleString()}</td>
+              <td colspan="3" style="padding: 15px 0 0 0; text-align: right; font-weight: bold; border: none;">Total Earnings:</td>
+              <td style="padding: 15px 0 0 0; text-align: right; font-weight: bold; color: #ea580c; font-size: 16px; border: none;">₦${vendorTotal.toLocaleString()}</td>
             </tr>
           </tfoot>
         </table>
-        
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="https://naijaonlinestores.com.ng/vendor-admin" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Manage Order Shipment</a>
-        </div>
-        
-        <p style="font-size: 12px; color: #666;">Note: Please update the fulfillment status in your dashboard to 'Shipped' once you dispatch the item(s) so the customer can track their delivery.</p>
-        <hr style="border: 0; border-top: 1px solid #eee; margin-top: 20px;" />
-        <p style="font-size: 11px; color: #999;">Naija Stores Online &bull; Merchant Portal Alerts</p>
       </div>
-    `;
+      
+      <div style="text-align: center;">
+        <a href="https://naijaonlinestores.com.ng/vendor-admin" class="btn">Manage Order Shipment</a>
+      </div>
+      
+      <p style="font-size: 12px; color: #64748b; margin-top: 20px;">Note: Please update the fulfillment status in your dashboard to 'Shipped' once you dispatch the item(s) so the customer can track their delivery.</p>
+    `);
 
     const { success, error: sendError } = await sendEmail(vendorUser.email, subject, html);
 

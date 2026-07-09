@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail } from "../shared/utils.ts";
+import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail, buildEmailTemplate } from "../shared/utils.ts";
 
 serve(async (req) => {
   const { isValid, payload, errorResponse } = await verifyWebhook(req);
@@ -60,48 +59,48 @@ serve(async (req) => {
     ? `*`.repeat(Math.max(0, bankNum.length - 4)) + bankNum.substring(Math.max(0, bankNum.length - 4))
     : 'Not Configured';
 
-  const subject = '[New Vendor Application] Naija Stores Online';
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <h2 style="color: #ea580c;">New Merchant Registration Request</h2>
-      <p>A new vendor has applied to sell on the platform and is awaiting administrative verification:</p>
-      <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+  const subject = '[New Vendor Application] Naija Online Stores';
+  const html = buildEmailTemplate(subject, `
+    <h2>New Merchant Registration Request</h2>
+    <p>A new vendor has applied to sell on the platform and is awaiting administrative verification:</p>
+    
+    <div class="details-card">
+      <table class="details-table">
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; width: 45%;">Business Name:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${vendor.business_name}</td>
+          <td style="font-weight: bold; width: 45%; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Business Name:</td>
+          <td style="border-bottom: 1px solid #f1f5f9; padding: 10px 0;">${vendor.business_name}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Business Address:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${vendor.business_address || 'N/A'}</td>
+          <td style="font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Business Address:</td>
+          <td style="border-bottom: 1px solid #f1f5f9; padding: 10px 0;">${vendor.business_address || 'N/A'}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Bank Account Name:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${vendor.bank_account_name || 'Not Configured'}</td>
+          <td style="font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Bank Account Name:</td>
+          <td style="border-bottom: 1px solid #f1f5f9; padding: 10px 0;">${vendor.bank_account_name || 'Not Configured'}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Bank Account Number (Masked):</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${maskedBankNum}</td>
+          <td style="font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Bank Account (Masked):</td>
+          <td style="border-bottom: 1px solid #f1f5f9; padding: 10px 0;">${maskedBankNum}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Bank Code:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${vendor.bank_code || 'N/A'}</td>
+          <td style="font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Bank Code:</td>
+          <td style="border-bottom: 1px solid #f1f5f9; padding: 10px 0;">${vendor.bank_code || 'N/A'}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Initial Verification Status:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; color: #ea580c; font-weight: bold;">${vendor.verification_status.toUpperCase()}</td>
+          <td style="font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Verification Status:</td>
+          <td style="color: #ea580c; font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">${vendor.verification_status.toUpperCase()}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Created At:</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${new Date(vendor.created_at).toLocaleString()}</td>
+          <td style="font-weight: bold; padding: 10px 0;">Created At:</td>
+          <td style="padding: 10px 0;">${new Date(vendor.created_at).toLocaleString()}</td>
         </tr>
       </table>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naijaonlinestores.com.ng/platform-admin" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Approve / Reject Vendor</a>
-      </div>
-      <hr style="border: 0; border-top: 1px solid #eee; margin-top: 20px;" />
-      <p style="font-size: 11px; color: #999;">This is an automated administrative notification.</p>
     </div>
-  `;
+    
+    <div style="text-align: center;">
+      <a href="https://naijaonlinestores.com.ng/platform-admin" class="btn">Approve / Reject Vendor</a>
+    </div>
+  `);
 
   // Send email to all admin emails
   let sendErrors: string[] = [];

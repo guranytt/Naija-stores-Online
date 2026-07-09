@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail } from "../shared/utils.ts";
+import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail, buildEmailTemplate } from "../shared/utils.ts";
 
 serve(async (req) => {
   const { isValid, payload, errorResponse } = await verifyWebhook(req);
@@ -47,21 +47,16 @@ serve(async (req) => {
   }
 
   // Send the Welcome email
-  const subject = 'Welcome to Naija Stores Online! 🛍️';
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <h2 style="color: #ea580c; text-align: center;">Welcome, ${user.full_name || 'Valued Customer'}! 🛍️</h2>
-      <p>Hello,</p>
-      <p>Welcome to <strong>Naija Stores Online</strong>! We are absolutely thrilled to have you join our vibrant community of shoppers and sellers.</p>
-      <p>With our platform, you can explore hundreds of local and international stores, make secure payments via Paystack, and track your package delivery in real-time.</p>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naijaonlinestores.com.ng" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Start Shopping Now</a>
-      </div>
-      <p>If you have any questions, our support team is always here to help you.</p>
-      <hr style="border: 0; border-top: 1px solid #eee;" />
-      <p style="font-size: 11px; color: #999;">Naija Stores Online &bull; Nigeria's Premier Multi-Vendor Platform</p>
+  const subject = 'Welcome to Naija Online Stores! 🛍️';
+  const html = buildEmailTemplate(subject, `
+    <h2>Welcome, ${user.full_name || 'Valued Customer'}! 🛍️</h2>
+    <p>We are absolutely thrilled to have you join our vibrant community of shoppers and sellers.</p>
+    <p>With our platform, you can explore hundreds of local and international stores, make secure payments via Paystack, and track your package delivery in real-time.</p>
+    <div style="text-align: center;">
+      <a href="https://naijaonlinestores.com.ng" class="btn">Start Shopping Now</a>
     </div>
-  `;
+    <p style="margin-top: 20px;">If you have any questions, our support team is always here to help you.</p>
+  `);
 
   const { success, error: sendError } = await sendEmail(user.email, subject, html);
 

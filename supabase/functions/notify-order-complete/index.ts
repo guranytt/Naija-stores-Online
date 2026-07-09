@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail } from "../shared/utils.ts";
+import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail, buildEmailTemplate } from "../shared/utils.ts";
 
 serve(async (req) => {
   const { isValid, payload, errorResponse } = await verifyWebhook(req);
@@ -93,23 +92,16 @@ serve(async (req) => {
 
   // Send the final "order complete" email
   const subject = `Your order #${order.order_number} is complete! 🎉`;
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <h2 style="color: #10b981; text-align: center;">All Packages Delivered! 📦✨</h2>
-      <p>Hello ${customer.full_name || 'Valued Customer'},</p>
-      <p>Great news! We have successfully delivered all packages associated with your order <strong>#${order.order_number}</strong>.</p>
-      
-      <p>Thank you for choosing Naija Stores Online! We strive to make your shopping experience smooth and reliable.</p>
-      
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="https://naijaonlinestores.com.ng" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Continue Shopping</a>
-      </div>
-
-      <p>If you have any feedback or concerns regarding your overall shopping experience, please get in touch with our Customer Care.</p>
-      <hr style="border: 0; border-top: 1px solid #eee;" />
-      <p style="font-size: 11px; color: #999; text-align: center;">Naija Stores Online &bull; Nigeria's Premier Multi-Vendor Platform</p>
+  const html = buildEmailTemplate(subject, `
+    <h2>All Packages Delivered! 📦✨</h2>
+    <p>Hello ${customer.full_name || 'Valued Customer'},</p>
+    <p>Great news! We have successfully delivered all packages associated with your order <strong>#${order.order_number}</strong>.</p>
+    <p>Thank you for choosing Naija Online Stores! We strive to make your shopping experience smooth and reliable.</p>
+    <div style="text-align: center;">
+      <a href="https://naijaonlinestores.com.ng" class="btn btn-green">Continue Shopping</a>
     </div>
-  `;
+    <p style="margin-top: 20px;">If you have any feedback or concerns regarding your overall shopping experience, please get in touch with our Customer Care.</p>
+  `);
 
   const { success, error: sendError } = await sendEmail(customer.email, subject, html);
 
