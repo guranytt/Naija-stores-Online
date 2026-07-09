@@ -152,7 +152,7 @@ export async function sendEmail(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Naija Stores Online <noreply@clerk.naijaonlinestores.com.ng>',
+        from: 'Naija Online Stores <noreply@clerk.naijaonlinestores.com.ng>',
         to: [to],
         subject: subject,
         html: html,

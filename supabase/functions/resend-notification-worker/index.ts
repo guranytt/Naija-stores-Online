@@ -67,7 +67,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Naija-Stores-Online <noreply@yourdomain.com>",
+        from: "Naija Online Stores <noreply@clerk.naijaonlinestores.com.ng>",
         to: [user.email],
         subject: subject,
         html: html,
