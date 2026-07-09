@@ -373,11 +373,21 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
                 <SignIn 
                   routing="hash"
                   signUpUrl="#register"
+                  appearance={{
+                    elements: {
+                      footerAction: { display: "none" }
+                    }
+                  }}
                 />
               ) : (
                 <SignUp 
                   routing="hash"
                   signInUrl="#login"
+                  appearance={{
+                    elements: {
+                      footerAction: { display: "none" }
+                    }
+                  }}
                 />
               )}
             </div>
