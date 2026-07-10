@@ -38,6 +38,7 @@ interface VendorAdminProps {
   onProposeFlashDeal?: (proposal: FlashDealProposal) => void;
   onApproveFlashDeal?: (id: string) => void;
   onRejectFlashDeal?: (id: string) => void;
+  isAdmin?: boolean;
 }
 
 export default function VendorAdmin({ 
@@ -59,7 +60,8 @@ export default function VendorAdmin({
   flashDeals = [],
   onProposeFlashDeal = () => {},
   onApproveFlashDeal = () => {},
-  onRejectFlashDeal = () => {}
+  onRejectFlashDeal = () => {},
+  isAdmin = false
 }: VendorAdminProps) {
   const [adminTab, setAdminTab] = useState<"vendor" | "dashboard" | "platform" | "emails" >("vendor");
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
@@ -253,7 +255,7 @@ export default function VendorAdmin({
       phone: ""
     } as Vendor);
 
-  const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com";
+  const isMasterAdmin = isAdmin || userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com" || userEmail?.toLowerCase() === "mcgigimeshai@gmail.com";
 
   // Keep adminTab state synced if standard vendor tries to access platform tabs
   React.useEffect(() => {
@@ -2662,7 +2664,7 @@ function CommissionAnalyticsTab({ products, vendors, orders }: { products: Produ
   React.useEffect(() => {
     async function fetchSummary() {
       // For Admin (no specific vendor) we would fetch the admin view, but here we assume single vendor view or sum all if admin.
-      const { data, error } = await supabase.from('vendor_dashboard_summary').select('*');
+      const { data, error } = await supabase.from('vendor_dashboard_summary').select('total_sales_volume, pending_payout_amount');
       if (data && !error) {
         // Summing up everything for admin overview (or if RLS filters it, it's correct)
         const totalSalesSum = data.reduce((acc, row) => acc + Number(row.total_sales_volume), 0);

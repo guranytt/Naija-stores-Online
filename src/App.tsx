@@ -61,6 +61,7 @@ export default function App() {
   const { user } = useUser();
   const [currentScreen, setCurrentScreen] = useState<string>("home");
   const [vendorAuthenticated, setVendorAuthenticated] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [selectedProductId, setSelectedProductId] = useState<string>("p1");
   const [initialCategory, setInitialCategory] = useState<string>("all");
   const [searchFilter, setSearchFilter] = useState<string>("");
@@ -483,6 +484,7 @@ export default function App() {
         .then(({ data, error }) => {
           if (!error && data) {
             const role = data.role;
+            setIsAdmin(role === "admin");
             if (role === "vendor" || role === "admin" || uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com" || uEmail.toLowerCase() === "mcgigimeshai@gmail.com") {
               setVendorAuthenticated(true);
             } else {
@@ -490,7 +492,9 @@ export default function App() {
             }
           } else {
             // Fallback check based on email
-            if (uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com" || uEmail.toLowerCase() === "mcgigimeshai@gmail.com") {
+            const fallbackAdmin = uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com" || uEmail.toLowerCase() === "mcgigimeshai@gmail.com";
+            setIsAdmin(fallbackAdmin);
+            if (fallbackAdmin) {
               setVendorAuthenticated(true);
             } else {
               setVendorAuthenticated(false);
@@ -501,6 +505,7 @@ export default function App() {
       setUserEmail("adminnaijastoresonline@gmail.com");
       setCurrentUserId(null);
       setVendorAuthenticated(false);
+      setIsAdmin(false);
     }
   }, [isLoaded, userId, user]);
 
@@ -566,7 +571,8 @@ export default function App() {
         {
           event: "*",
           schema: "public",
-          table: "orders"
+          table: "orders",
+          ...((!isAdmin && !isVendor && currentUserId) ? { filter: `customer_id=eq.${currentUserId}` } : {})
         },
         async (payload) => {
           setOrders(prevOrders => {
@@ -1048,6 +1054,7 @@ export default function App() {
                 transition={{ duration: 0.3, ease: "easeOut" }}
               >
                 <VendorAdmin
+                  isAdmin={isAdmin}
                   orders={orders}
                   products={products}
                   vendors={vendors}

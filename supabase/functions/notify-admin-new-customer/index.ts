@@ -60,7 +60,7 @@ serve(async (req) => {
 
   const adminEmails = admins.map(a => a.email);
   
-  const subject = '[New Customer Signup] Naija Stores Online';
+  const subject = '[New Customer Signup] Naija Online Stores';
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
       <h2 style="color: #3b82f6;">Alert: New Customer Registered</h2>

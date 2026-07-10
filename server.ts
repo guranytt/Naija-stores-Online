@@ -776,12 +776,8 @@ Return valid JSON only matching this schema exactly:
               
             if (vendorData && vendorData.email) {
               const itemsHtml = items.map(i => `<li>${i.product?.name || i.name} (x${i.quantity || 1})</li>`).join("");
-              await emailService.sendVendorNewOrderInfo(
-                vendorData.email,
-                vendorData.business_name || "Vendor",
-                orderId,
-                `<ul>${itemsHtml}</ul><br/><p><strong>Buyer:</strong> ${customerName}</p><p><strong>Delivery:</strong> ${deliveryAddress || "Address verified by Paystack Gateway"}</p>`
-              ).catch(e => console.error(`Error sending vendor email to ${vendorData.email}:`, e));
+              // Vendor notification is handled by Edge Functions (notify-vendors-of-sale)
+              // await emailService.sendVendorNewOrderInfo(...)
             }
           } catch (e) {
             console.error(`Failed to send email to vendor ${vId}`, e);
@@ -789,12 +785,13 @@ Return valid JSON only matching this schema exactly:
         }
       }
 
+      // Email notifications handled by Supabase Edge Functions
       // Send payment confirmation email and order confirmation email (fire-and-forget)
       // Do NOT await these — they must not block the verify response.
-      emailService.sendPaymentSuccessful(email, customerName, orderId, orderValue)
-        .catch(err => console.error("Error sending payment email (async):", err));
-      emailService.sendOrderConfirmation(email, customerName, orderId, cart, orderValue, meta)
-        .catch(err => console.error("Error sending order confirmation email (async):", err));
+      // emailService.sendPaymentSuccessful(email, customerName, orderId, orderValue)
+      //  .catch(err => console.error("Error sending payment email (async):", err));
+      // emailService.sendOrderConfirmation(email, customerName, orderId, cart, orderValue, meta)
+      //  .catch(err => console.error("Error sending order confirmation email (async):", err));
 
       console.log("[SERVER] Database insertion succeeded! Returning record:", data?.[0] || finalPayload);
       return {
@@ -1610,8 +1607,8 @@ function ensureUUID(idValue: any): string {
       const name = record.raw_user_meta_data?.full_name || record.full_name || "New Customer";
       const role = record.raw_user_meta_data?.role || "user";
       
-      console.log(`[SUPABASE WEBHOOK SUCCESS] New user registered. Triggering Admin Notification for: ${email}`);
-      await emailService.sendAdminNotificationEmail(email, role, name).catch(err => console.error("Error sending admin notification:", err));
+      console.log(`[SUPABASE WEBHOOK SUCCESS] New user registered. Admin Notification is now handled by Edge Function.`);
+      // await emailService.sendAdminNotificationEmail(email, role, name).catch(err => console.error("Error sending admin notification:", err));
     }
 
     if (type === "UPDATE" && (table === "users" || table === "auth.users")) {
@@ -1620,13 +1617,13 @@ function ensureUUID(idValue: any): string {
         const name = record.raw_user_meta_data?.full_name || record.full_name || "New Customer";
         const role = record.raw_user_meta_data?.role || "user";
         
-        console.log(`[SUPABASE WEBHOOK SUCCESS] User confirmed email. Triggering Welcome Email to: ${email}`);
+        console.log(`[SUPABASE WEBHOOK SUCCESS] User confirmed email. Welcome Email is now handled by Edge Function.`);
         
-        if (role === "vendor") {
-          await emailService.sendVendorWelcomeEmail(email, name).catch(err => console.error("Error sending vendor welcome email:", err));
-        } else {
-          await emailService.sendWelcomeEmail(email, name).catch(err => console.error("Error sending user welcome email:", err));
-        }
+        // if (role === "vendor") {
+        //   await emailService.sendVendorWelcomeEmail(email, name).catch(err => console.error("Error sending vendor welcome email:", err));
+        // } else {
+        //   await emailService.sendWelcomeEmail(email, name).catch(err => console.error("Error sending user welcome email:", err));
+        // }
       }
     }
 

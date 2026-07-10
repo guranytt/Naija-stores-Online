@@ -1,3 +1,4 @@
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { verifyWebhook, getSupabase, checkIdempotencyAndQueue, markNotificationSent, markNotificationFailed, sendEmail, buildEmailTemplate } from "../shared/utils.ts";
 
 serve(async (req) => {
