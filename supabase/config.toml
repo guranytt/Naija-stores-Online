@@ -1,0 +1,43 @@
+project_id = "ufndgfhttpbapctkfqab"
+
+[functions.notify-admin-new-customer]
+verify_jwt = false
+
+[functions.notify-admin-new-vendor]
+verify_jwt = false
+
+[functions.notify-item-delivered]
+verify_jwt = false
+
+[functions.notify-item-shipped]
+verify_jwt = false
+
+[functions.notify-order-complete]
+verify_jwt = false
+
+[functions.notify-vendors-of-sale]
+verify_jwt = false
+
+[functions.paystack-webhook]
+verify_jwt = false
+
+[functions.resend-notification-worker]
+verify_jwt = false
+
+[functions.send-customer-confirmation]
+verify_jwt = false
+
+[functions.send-customer-payment-confirmation]
+verify_jwt = false
+
+[functions.send-customer-welcome]
+verify_jwt = false
+
+[functions.send-vendor-confirmation]
+verify_jwt = false
+
+[functions.send-vendor-welcome]
+verify_jwt = false
+
+[functions.clerk-webhook]
+verify_jwt = false

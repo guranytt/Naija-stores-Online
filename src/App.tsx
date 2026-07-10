@@ -16,6 +16,8 @@ import UserAuthHub from "./components/UserAuthHub";
 import PaystackCheckout from "./components/PaystackCheckout";
 import CookiePopup from "./components/CookiePopup";
 import PolicyOverlay from "./components/PolicyOverlay";
+import DeliveryReportsDashboard from "./components/DeliveryReportsDashboard";
+import RequireVendor from "./components/RequireVendor";
 import { initPostHog, trackAddToCart, trackCheckoutStarted, trackPaymentCompleted, trackOrderCompleted } from "./lib/posthog";
 import { Product, CartItem, Order, Vendor, Category, FlashDealProposal } from "./types";
 import { formatNaira } from "./components/CustomerViews";
@@ -1035,60 +1037,43 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* Admin Platform / Merchant Screens - Authentication */}
-          {currentScreen === "admin" && !vendorAuthenticated && (
-            <motion.div
-              key="vendor-auth-view"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
-              <UserAuthHub
-               currentEmail={userEmail}
-               onNavigate={(screen) => setCurrentScreen(screen)}
-               onNavigateHome={() => setCurrentScreen("home")}
-               onUpdateEmail={(email) => setUserEmail(email)}
-               vendorOnly={true}
-              />
-            </motion.div>
-          )}
-
           {/* Admin Platform / Merchant Screens - Dashboard */}
-          {currentScreen === "admin" && vendorAuthenticated && (
-            <motion.div
-              key="vendor-admin-view"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
-              <VendorAdmin
-                orders={orders}
-                products={products}
-                vendors={vendors}
-                currentUserId={currentUserId}
-                onUpdateVendor={handleUpdateVendor}
-                onReviewOrderFlag={handleReviewOrderFlag}
-                onAddNewProduct={handleAddNewProduct}
-                categories={categories}
-                onUpdateCategories={handleUpdateCategories}
-                
-                // Email Automation Props
-                mailLogs={mailLogs}
-                onSendTestEmail={handleSendTestEmail}
-                onPreviewEmail={handlePreviewEmail}
-                autoSendEmails={autoSendEmails}
-                onToggleAutoSend={() => setAutoSendEmails(!autoSendEmails)}
-                onRefreshMailLogs={updateMailLogs}
-                userEmail={userEmail}
+          {currentScreen === "admin" && (
+            <RequireVendor>
+              <motion.div
+                key="vendor-admin-view"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                <VendorAdmin
+                  orders={orders}
+                  products={products}
+                  vendors={vendors}
+                  currentUserId={currentUserId}
+                  onUpdateVendor={handleUpdateVendor}
+                  onReviewOrderFlag={handleReviewOrderFlag}
+                  onAddNewProduct={handleAddNewProduct}
+                  categories={categories}
+                  onUpdateCategories={handleUpdateCategories}
+                  
+                  // Email Automation Props
+                  mailLogs={mailLogs}
+                  onSendTestEmail={handleSendTestEmail}
+                  onPreviewEmail={handlePreviewEmail}
+                  autoSendEmails={autoSendEmails}
+                  onToggleAutoSend={() => setAutoSendEmails(!autoSendEmails)}
+                  onRefreshMailLogs={updateMailLogs}
+                  userEmail={userEmail}
 
-                flashDeals={flashDeals}
-                onProposeFlashDeal={handleProposeFlashDeal}
-                onApproveFlashDeal={handleApproveFlashDeal}
-                onRejectFlashDeal={handleRejectFlashDeal}
-              />
-            </motion.div>
+                  flashDeals={flashDeals}
+                  onProposeFlashDeal={handleProposeFlashDeal}
+                  onApproveFlashDeal={handleApproveFlashDeal}
+                  onRejectFlashDeal={handleRejectFlashDeal}
+                />
+              </motion.div>
+            </RequireVendor>
           )}
 
           {/* Shopper Account Verification Form */}

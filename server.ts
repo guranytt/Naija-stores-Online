@@ -265,6 +265,35 @@ export async function startServer() {
     }
   ];
 
+  const requireAdmin = [
+    ...requireAuth,
+    (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      if ((req as any).user?.role !== 'admin') {
+        return res.status(403).json({ error: "Forbidden: Admin access required" });
+      }
+      next();
+    }
+  ];
+
+  const requireVendor = [
+    ...requireAuth,
+    async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const user = (req as any).user;
+      if (user?.role !== 'vendor' && user?.role !== 'admin') {
+        return res.status(403).json({ error: "Forbidden: Vendor access required" });
+      }
+      if (user.role === 'vendor') {
+        const { data, error } = await supabaseAdmin.from('vendors').select('id').eq('user_id', user.id).single();
+        if (!error && data) {
+           (req as any).vendorId = data.id;
+        } else {
+           (req as any).vendorId = null;
+        }
+      }
+      next();
+    }
+  ];
+
   // In-memory cache to track daily AI usage limits per vendor
   const aiUsageTracker = new Map<string, { count: number, date: string }>();
   const MAX_AI_GENERATIONS_PER_DAY = 20;
@@ -940,7 +969,7 @@ Return valid JSON only matching this schema exactly:
   });
 
   // Direct Vendor Upsert endpoint to securely bypass RLS constraints
-  app.post("/api/vendor/upsert", express.json(), requireAuth, async (req, res) => {
+  app.post("/api/vendor/upsert", express.json(), requireVendor, async (req, res) => {
     try {
       const payload = req.body;
       const authUserId = (req as any).user?.id;
@@ -1062,9 +1091,9 @@ Return valid JSON only matching this schema exactly:
       // Dynamically probe the table columns to support backward compatibility with incomplete schemas
       let dbColumns: string[] = [
         'id', 'user_id', 'business_name', 'owner_name', 'business_description', 
-        'logo_url', 'approval_status', 'phone', 'email', 'created_at',
-        'bank_name', 'account_number', 'cac_number', 'whatsapp_number', 
-        'physical_location', 'is_verified'
+        'logo_url', 'verification_status', 'phone', 'email', 'created_at',
+        'bank_account_name', 'bank_account_number', 'bank_code', 'whatsapp_number', 
+        'business_address'
       ];
 
       // Do NOT JSON stringify metadata into business_description! 
@@ -1072,9 +1101,9 @@ Return valid JSON only matching this schema exactly:
       const finalPayload: any = {};
       
       const coreKeys = [
-        'id', 'user_id', 'business_name', 'owner_name', 'logo_url', 'approval_status', 
-        'phone', 'email', 'created_at', 'business_description', 'bank_name', 
-        'account_number', 'cac_number', 'whatsapp_number', 'physical_location', 'is_verified'
+        'id', 'user_id', 'business_name', 'owner_name', 'logo_url', 'verification_status', 
+        'phone', 'email', 'created_at', 'business_description', 'bank_account_name', 
+        'bank_account_number', 'bank_code', 'whatsapp_number', 'business_address'
       ];
 
       coreKeys.forEach((key) => {
@@ -1093,23 +1122,23 @@ Return valid JSON only matching this schema exactly:
       if (payload.description && dbColumns.includes('business_description') && !finalPayload.business_description) {
         finalPayload.business_description = payload.description;
       }
-      if (payload.bankName && dbColumns.includes('bank_name') && !finalPayload.bank_name) {
-        finalPayload.bank_name = payload.bankName;
+      if (payload.bankName && dbColumns.includes('bank_account_name') && !finalPayload.bank_account_name) {
+        finalPayload.bank_account_name = payload.bankName;
       }
-      if (payload.accountNumber && dbColumns.includes('account_number') && !finalPayload.account_number) {
-        finalPayload.account_number = payload.accountNumber;
+      if (payload.accountNumber && dbColumns.includes('bank_account_number') && !finalPayload.bank_account_number) {
+        finalPayload.bank_account_number = payload.accountNumber;
       }
-      if (payload.cacNumber && dbColumns.includes('cac_number') && !finalPayload.cac_number) {
-        finalPayload.cac_number = payload.cacNumber;
+      if (payload.bankCode && dbColumns.includes('bank_code') && !finalPayload.bank_code) {
+        finalPayload.bank_code = payload.bankCode;
       }
       if (payload.whatsappNumber && dbColumns.includes('whatsapp_number') && !finalPayload.whatsapp_number) {
         finalPayload.whatsapp_number = payload.whatsappNumber;
       }
-      if ((payload.location || payload.physicalLocation) && dbColumns.includes('physical_location') && !finalPayload.physical_location) {
-        finalPayload.physical_location = payload.location || payload.physicalLocation;
+      if ((payload.location || payload.physicalLocation || payload.physical_location) && dbColumns.includes('business_address') && !finalPayload.business_address) {
+        finalPayload.business_address = payload.location || payload.physicalLocation || payload.physical_location;
       }
-      if (payload.isVerified !== undefined && dbColumns.includes('is_verified') && finalPayload.is_verified === undefined) {
-        finalPayload.is_verified = payload.isVerified;
+      if (payload.isVerified !== undefined && dbColumns.includes('verification_status') && finalPayload.verification_status === undefined) {
+        finalPayload.verification_status = payload.isVerified ? 'verified' : 'pending';
       }
 
       const { data, error } = await supabaseAdmin.from("vendors").upsert(finalPayload).select("id");
@@ -1429,7 +1458,7 @@ function ensureUUID(idValue: any): string {
     }
   });
 
-  app.post("/api/category/upsert", express.json(), requireAuth, async (req, res) => {
+  app.post("/api/category/upsert", express.json(), requireAdmin, async (req, res) => {
     try {
       if (!supabaseAdmin) {
         return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
@@ -1566,8 +1595,8 @@ function ensureUUID(idValue: any): string {
     }
   };
 
-  app.delete("/api/admin/vendors/:id", requireAuth, handleScrubVendor);
-  app.post("/api/admin/vendors/:id/delete", requireAuth, handleScrubVendor);
+  app.delete("/api/admin/vendors/:id", requireAdmin, handleScrubVendor);
+  app.post("/api/admin/vendors/:id/delete", requireAdmin, handleScrubVendor);
 
   // Supabase Auth Webhook endpoint to capture new user signups and trigger Welcome Emails
   app.post("/api/webhook/supabase-auth", async (req, res) => {

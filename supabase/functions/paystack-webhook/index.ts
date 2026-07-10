@@ -35,13 +35,13 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
-    // 1. Insert Payment
+    // 1. Insert Payment as 'pending'
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .insert({
         paystack_reference: paystackReference,
         amount: data.amount / 100,
-        status: 'success',
+        status: 'pending',
         raw_payload: data
       })
       .select('id')
@@ -54,6 +54,8 @@ serve(async (req) => {
       }
       throw new Error(`Failed to insert payment: ${paymentError.message}`);
     }
+
+
 
     // 2. Create Order
     const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -71,8 +73,7 @@ serve(async (req) => {
 
     if (orderError) throw new Error(`Failed to insert order: ${orderError.message}`);
 
-    // 3. Link Payment
-    await supabase.from('payments').update({ order_id: order.id }).eq('id', payment.id);
+
 
     // 4. Create Order Items & Ledger
     for (const item of cartItems) {
@@ -115,6 +116,16 @@ serve(async (req) => {
       }
     }
 
+
+    // 5. Link Payment and mark as success (Triggers email notification)
+    const { error: paymentUpdateError } = await supabase
+      .from('payments')
+      .update({ order_id: order.id, status: 'success' })
+      .eq('id', payment.id);
+
+    if (paymentUpdateError) {
+      throw new Error(`Failed to link order and update payment status: ${paymentUpdateError.message}`);
+    }
     return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
   } catch (error) {
     console.error("Paystack webhook error:", error);

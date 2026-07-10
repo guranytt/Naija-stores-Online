@@ -10,8 +10,8 @@ export interface WebhookPayload<T = any> {
 
 export async function verifyWebhook(request: Request): Promise<{ isValid: boolean; payload?: WebhookPayload; errorResponse?: Response }> {
   const authHeader = request.headers.get('Authorization');
-  const webhookSecret = Deno.env.get('WEBHOOK_SECRET');
-  const expectedToken = `Bearer ${webhookSecret}`;
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const expectedToken = `Bearer ${serviceRoleKey}`;
 
   if (!authHeader || authHeader !== expectedToken) {
     console.error('Webhook verification failed: Invalid or missing Authorization token.');

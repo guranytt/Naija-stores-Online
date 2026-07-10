@@ -140,9 +140,9 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
         }
       } catch (e: any) {
         console.warn("/api/products fetch failed, falling back to direct Supabase query.", e);
-        const baseCols = "id, name, slug, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at, description";
+        const baseCols = "id, name, slug, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at, description, image_urls";
         const offset = (page - 1) * limit;
-        queryResult = await supabase.from("products").select(`${baseCols}, product_images(image_url), categories(id, name, slug)`).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
+        queryResult = await supabase.from("products").select(`${baseCols}, categories(id, name, slug)`).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
         if (queryResult.error) {
            queryResult = await supabase.from("products").select(baseCols).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
         }
@@ -158,14 +158,14 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
         }
       } catch (e: any) {
         console.warn("/api/vendors fetch failed, falling back to direct Supabase query.", e);
-        queryResult = await supabase.from("vendors").select("id, user_id, business_name, owner_name, business_description, logo_url, approval_status, whatsapp_number, physical_location, is_verified, created_at").order('created_at', { ascending: false }).limit(100);
+        queryResult = await supabase.from("vendors").select("id, user_id, business_name, owner_name, business_description, logo_url, verification_status, whatsapp_number, phone, business_address, created_at").order('created_at', { ascending: false }).limit(100);
       }
     } else if (tableName === "orders") {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       queryResult = await supabase
         .from("orders")
-        .select("id, user_id, total_amount, order_status, payment_status, shipping_address, created_at, order_items(*, products(name))")
+        .select("id, customer_id, subtotal, shipping_address, created_at, payments(status), order_items(*, products(name))")
         .gte("created_at", thirtyDaysAgo.toISOString())
         .limit(100);
     } else {

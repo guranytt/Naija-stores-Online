@@ -73,14 +73,14 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
         let vendorData: any = null;
         if (data.role === "vendor") {
           try {
-            const { data: vData } = await supabase.from("vendors").select("business_name, physical_location, phone").eq("email", email).single();
+            const { data: vData } = await supabase.from("vendors").select("business_name, business_address, phone").eq("email", email).single();
             if (vData) vendorData = vData;
           } catch(e) {}
         }
         setProfile({
           fullName: data.full_name || meta.fullName || emailPrefix,
           role: data.role || meta.role || defaultRole,
-          location: vendorData?.physical_location || meta.location || "Lagos Mainland, Lagos",
+          location: vendorData?.business_address || meta.location || "Lagos Mainland, Lagos",
           shopName: vendorData?.business_name || meta.shopName || "",
           phone: vendorData?.phone || meta.phone || "",
           deliveryAddress: meta.deliveryAddress || ""
@@ -126,19 +126,17 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
           location: sanitizedProfile.location,
           shopName: sanitizedProfile.shopName,
           phone: sanitizedProfile.phone,
-          deliveryAddress: sanitizedProfile.deliveryAddress,
-          role: profile.role
+          deliveryAddress: sanitizedProfile.deliveryAddress
         }
       });
 
-      // Sync local users table in Supabase
-      const { error: userError } = await supabase.from("users").upsert({
-        clerk_id: userId,
+      // Update local users table in Supabase (insert is handled by Clerk Webhook)
+      const { error: userError } = await supabase.from("users").update({
         full_name: sanitizedProfile.fullName,
         email: user.primaryEmailAddress?.emailAddress,
         role: profile.role as any,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'clerk_id' });
+      }).eq('clerk_id', userId);
 
       if (userError) throw userError;
 
@@ -147,7 +145,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
       const dbUserId = userData?.id;
 
       if (profile.role === "vendor" && dbUserId) {
-        const { error: vendorError } = await supabase.from("vendors").upsert({
+        const vendorPayload = {
           id: dbUserId,
           user_id: dbUserId,
           business_name: sanitizedProfile.shopName || `${sanitizedProfile.fullName}'s Store`,
@@ -156,10 +154,17 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
           physical_location: profile.location,
           email: user.primaryEmailAddress?.emailAddress,
           whatsapp_number: sanitizedProfile.phone,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
-
-        if (vendorError) throw vendorError;
+        };
+        
+        const res = await fetch("/api/vendor/upsert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(vendorPayload)
+        });
+        
+        if (!res.ok) {
+          throw new Error("Failed to update vendor profile via API");
+        }
       }
 
       setFeedback({ type: "success", msg: "Profile saved successfully!" });
