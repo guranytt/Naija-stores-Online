@@ -68,7 +68,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
     const defaultRole = vendorOnly ? "vendor" : "customer";
     
     try {
-      const { data, error } = await supabase.from("users").select("full_name, role").eq("clerk_id", clerkId).single();
+      const { data, error } = await supabase.from("users").select("full_name, role, location, delivery_address").eq("clerk_id", clerkId).single();
       if (!error && data) {
         let vendorData: any = null;
         if (data.role === "vendor") {
@@ -80,10 +80,10 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
         setProfile({
           fullName: data.full_name || meta.fullName || emailPrefix,
           role: data.role || meta.role || defaultRole,
-          location: vendorData?.business_address || meta.location || "Lagos Mainland, Lagos",
+          location: data.location || vendorData?.business_address || meta.location || "Lagos Mainland, Lagos",
           shopName: vendorData?.business_name || meta.shopName || "",
           phone: vendorData?.phone || meta.phone || "",
-          deliveryAddress: meta.deliveryAddress || ""
+          deliveryAddress: data.delivery_address || meta.deliveryAddress || ""
         });
         onUpdateEmail(email);
         return;
@@ -134,7 +134,9 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
       const { error: userError } = await supabase.from("users").update({
         full_name: sanitizedProfile.fullName,
         email: user.primaryEmailAddress?.emailAddress,
-        role: profile.role as any,
+        phone: sanitizedProfile.phone,
+        location: sanitizedProfile.location,
+        delivery_address: sanitizedProfile.deliveryAddress,
         updated_at: new Date().toISOString()
       }).eq('clerk_id', userId);
 
