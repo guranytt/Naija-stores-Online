@@ -255,12 +255,15 @@ export default function VendorAdmin({
       phone: ""
     } as Vendor);
 
-  const isMasterAdmin = isAdmin || userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com" || userEmail?.toLowerCase() === "mcgigimeshai@gmail.com";
+  const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com";
 
   // Keep adminTab state synced if standard vendor tries to access platform tabs
   React.useEffect(() => {
     if (!isMasterAdmin && ["platform", "commissions", "ads", "emails"].includes(adminTab)) {
       setAdminTab("vendor");
+    } else if (isMasterAdmin && adminTab === "vendor") {
+      // Auto-redirect master admin to master console on load
+      setAdminTab("platform");
     }
   }, [adminTab, isMasterAdmin]);
 
@@ -466,12 +469,12 @@ export default function VendorAdmin({
   };
   const averageVendorRating = vendorsList.length > 0 ? (vendorsList.reduce((acc, curr) => acc + curr.rating, 0) / vendorsList.length) : 0;
 
-  // Raw mock stats for platform view
+  // Compute stats for platform view
   const platformStats = {
     totalGMV: orders.reduce((acc, curr) => acc + (curr.value || 0), 0),
-    activeUsers: 0,
+    activeUsers: new Set(orders.map(o => o.user_id || o.emailAddress || o.customerName)).size,
     activeVendors: vendorsList.length,
-    pendingVerifications: 0
+    pendingVerifications: vendorsList.filter(v => v.isVerified === false).length
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

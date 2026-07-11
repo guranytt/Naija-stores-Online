@@ -486,15 +486,15 @@ export default function App() {
           if (!error && data) {
             setSupabaseUserId(data.id);
             const role = data.role;
-            setIsAdmin(role === "admin");
-            if (role === "vendor" || role === "admin" || uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com" || uEmail.toLowerCase() === "mcgigimeshai@gmail.com") {
+            const isMasterAdmin = uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com";
+            setIsAdmin(isMasterAdmin);
+            if (role === "vendor" || isMasterAdmin) {
               setVendorAuthenticated(true);
             } else {
               setVendorAuthenticated(false);
             }
           } else {
-            // Fallback check based on email
-            const fallbackAdmin = uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com" || uEmail.toLowerCase() === "mcgigimeshai@gmail.com";
+            const fallbackAdmin = uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com";
             setIsAdmin(fallbackAdmin);
             if (fallbackAdmin) {
               setVendorAuthenticated(true);
