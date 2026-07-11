@@ -205,26 +205,45 @@ export async function startServer() {
 
     const { id, email_addresses, first_name, last_name, image_url } = evt.data;
     const eventType = evt.type;
-
     if (eventType === 'user.created' || eventType === 'user.updated') {
       const email = email_addresses?.[0]?.email_address || "";
       const name = `${first_name || ''} ${last_name || ''}`.trim() || email.split('@')[0];
-      const role = evt.data.public_metadata?.role || evt.data.unsafe_metadata?.role || "customer";
+      const metadata = { ...evt.data.unsafe_metadata, ...evt.data.public_metadata };
       
-      const { error } = await supabaseAdmin.from('users').upsert({
+      const phone = evt.data.phone_numbers?.[0]?.phone_number || metadata.phone || null;
+      const location = metadata.location || null;
+      const delivery_address = metadata.deliveryAddress || metadata.delivery_address || null;
+      let role = metadata.role;
+
+      // Query database to preserve fields if they are missing from Clerk metadata
+      const { data: existingUser } = await supabaseAdmin
+        .from('users')
+        .select('role, phone, location, delivery_address')
+        .eq('clerk_id', id)
+        .maybeSingle();
+
+      if (!role) {
+        role = existingUser?.role || "customer";
+      }
+      
+      const upsertPayload: any = {
         clerk_id: id,
         email,
         full_name: name,
         role: role,
+        phone: phone || existingUser?.phone || null,
+        location: location || existingUser?.location || null,
+        delivery_address: delivery_address || existingUser?.delivery_address || null,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'clerk_id' });
+      };
+
+      const { error } = await supabaseAdmin.from('users').upsert(upsertPayload, { onConflict: 'clerk_id' });
 
       if (error) {
         console.error("[CLERK WEBHOOK ERROR] Supabase Upsert Failed", error);
         return res.status(500).json({ error: error.message });
       }
     }
-
     if (eventType === 'user.deleted') {
       const { error } = await supabaseAdmin.from('users').delete().eq('id', id);
       if (error) console.error("[CLERK WEBHOOK ERROR] Delete Failed", error);
