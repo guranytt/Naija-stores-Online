@@ -33,18 +33,18 @@ interface SalesAnalyticsDashboardProps {
 }
 
 const BASELINE_DATA = [
-  { month: "Jan", "Naija Fashion": 320000, "Naija Tech Hub": 480000, "Beauty & Wellness": 180000, "Local Groceries": 120000, "Home Crafts": 90000 },
-  { month: "Feb", "Naija Fashion": 450000, "Naija Tech Hub": 590000, "Beauty & Wellness": 220000, "Local Groceries": 140000, "Home Crafts": 110000 },
-  { month: "Mar", "Naija Fashion": 680000, "Naija Tech Hub": 730000, "Beauty & Wellness": 290000, "Local Groceries": 190000, "Home Crafts": 150000 },
-  { month: "Apr", "Naija Fashion": 550000, "Naija Tech Hub": 680000, "Beauty & Wellness": 250000, "Local Groceries": 170000, "Home Crafts": 130000 },
-  { month: "May", "Naija Fashion": 890000, "Naija Tech Hub": 910000, "Beauty & Wellness": 380000, "Local Groceries": 280000, "Home Crafts": 220000 },
-  { month: "Jun", "Naija Fashion": 1250000, "Naija Tech Hub": 1480000, "Beauty & Wellness": 490000, "Local Groceries": 360000, "Home Crafts": 310000 },
-  { month: "Jul", "Naija Fashion": 950000, "Naija Tech Hub": 1100000, "Beauty & Wellness": 410000, "Local Groceries": 320000, "Home Crafts": 280000 },
-  { month: "Aug", "Naija Fashion": 880000, "Naija Tech Hub": 1050000, "Beauty & Wellness": 390000, "Local Groceries": 290000, "Home Crafts": 260000 },
-  { month: "Sep", "Naija Fashion": 1020000, "Naija Tech Hub": 1220000, "Beauty & Wellness": 430000, "Local Groceries": 340000, "Home Crafts": 290000 },
-  { month: "Oct", "Naija Fashion": 1150000, "Naija Tech Hub": 1350000, "Beauty & Wellness": 480000, "Local Groceries": 390000, "Home Crafts": 330000 },
-  { month: "Nov", "Naija Fashion": 1350000, "Naija Tech Hub": 1600000, "Beauty & Wellness": 550000, "Local Groceries": 450000, "Home Crafts": 380500 },
-  { month: "Dec", "Naija Fashion": 1850000, "Naija Tech Hub": 2100000, "Beauty & Wellness": 720000, "Local Groceries": 610000, "Home Crafts": 520000 }
+  { month: "Jan", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 },
+  { month: "Feb", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 },
+  { month: "Mar", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 },
+  { month: "Apr", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 },
+  { month: "May", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 },
+  { month: "Jun", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 },
+  { month: "Jul", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 },
+  { month: "Aug", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 },
+  { month: "Sep", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 },
+  { month: "Oct", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 },
+  { month: "Nov", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 },
+  { month: "Dec", "Naija Fashion": 0, "Naija Tech Hub": 0, "Beauty & Wellness": 0, "Local Groceries": 0, "Home Crafts": 0 }
 ];
 
 const CATEGORIES_META = [
@@ -168,7 +168,7 @@ export default function SalesAnalyticsDashboard({ orders }: SalesAnalyticsDashbo
     
     // Growth rates comparison (last vs second last month)
     const len = compiledData.length;
-    let growthRate = 12.5; // Default Baseline Trend
+    let growthRate = 0; // Default Baseline Trend
     if (len >= 2) {
       const lastMonthSum = activeCategories.reduce((acc, cat) => acc + (compiledData[len - 1] as any)[cat], 0);
       const prevMonthSum = activeCategories.reduce((acc, cat) => acc + (compiledData[len - 2] as any)[cat], 0);
