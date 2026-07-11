@@ -65,7 +65,7 @@ export default function App() {
   const [selectedProductId, setSelectedProductId] = useState<string>("p1");
   const [initialCategory, setInitialCategory] = useState<string>("all");
   const [searchFilter, setSearchFilter] = useState<string>("");
-  const [userEmail, setUserEmail] = useState<string>("adminnaijastoresonline@gmail.com");
+  const [userEmail, setUserEmail] = useState<string>("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
@@ -504,7 +504,7 @@ export default function App() {
           }
         });
     } else {
-      setUserEmail("adminnaijastoresonline@gmail.com");
+      setUserEmail("");
       setCurrentUserId(null);
       setSupabaseUserId(null);
       setVendorAuthenticated(false);

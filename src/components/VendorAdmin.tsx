@@ -257,15 +257,18 @@ export default function VendorAdmin({
 
   const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com";
 
+  const [hasRedirectedMaster, setHasRedirectedMaster] = useState(false);
+
   // Keep adminTab state synced if standard vendor tries to access platform tabs
   React.useEffect(() => {
     if (!isMasterAdmin && ["platform", "commissions", "ads", "emails"].includes(adminTab)) {
       setAdminTab("vendor");
-    } else if (isMasterAdmin && adminTab === "vendor") {
+    } else if (isMasterAdmin && adminTab === "vendor" && !hasRedirectedMaster) {
       // Auto-redirect master admin to master console on load
       setAdminTab("platform");
+      setHasRedirectedMaster(true);
     }
-  }, [adminTab, isMasterAdmin]);
+  }, [adminTab, isMasterAdmin, hasRedirectedMaster]);
 
   // Filter products and orders dynamically for real, active vendor statistics.
   // Match by vendorId OR user_id so products remain visible regardless of ID drift (Issues 1 & 2).
