@@ -67,6 +67,7 @@ export default function App() {
   const [searchFilter, setSearchFilter] = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("adminnaijastoresonline@gmail.com");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
 
@@ -475,14 +476,15 @@ export default function App() {
       setUserEmail(uEmail);
       setCurrentUserId(userId);
 
-      // Fetch the role from the public users table in Supabase
+      // Fetch the role and id from the public users table in Supabase
       supabase
         .from("users")
-        .select("role")
+        .select("id, role")
         .eq("clerk_id", userId)
         .single()
         .then(({ data, error }) => {
           if (!error && data) {
+            setSupabaseUserId(data.id);
             const role = data.role;
             setIsAdmin(role === "admin");
             if (role === "vendor" || role === "admin" || uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com" || uEmail.toLowerCase() === "mcgigimeshai@gmail.com") {
@@ -504,6 +506,7 @@ export default function App() {
     } else {
       setUserEmail("adminnaijastoresonline@gmail.com");
       setCurrentUserId(null);
+      setSupabaseUserId(null);
       setVendorAuthenticated(false);
       setIsAdmin(false);
     }
@@ -572,7 +575,7 @@ export default function App() {
           event: "*",
           schema: "public",
           table: "orders",
-          ...((!isAdmin && !isVendor && currentUserId) ? { filter: `customer_id=eq.${currentUserId}` } : {})
+          ...((!isAdmin && !vendorAuthenticated && supabaseUserId) ? { filter: `customer_id=eq.${supabaseUserId}` } : {})
         },
         async (payload) => {
           setOrders(prevOrders => {
@@ -582,7 +585,7 @@ export default function App() {
               if (!updatedOrders.some(o => o.id === payload.new.id)) {
                 updatedOrders.unshift(payload.new as any);
                 // If it's a shopper waiting for their order, navigate to map
-                if (payload.new.customer_id === currentUserId) {
+                if (payload.new.customer_id === supabaseUserId) {
                   triggerToast("Server confirmed your order securely!", "success");
                   setCurrentScreen("map");
                 }
@@ -605,7 +608,7 @@ export default function App() {
     return () => {
       channel.unsubscribe();
     };
-  }, [currentUserId]);
+  }, [supabaseUserId, isAdmin, vendorAuthenticated]);
 
   const handleRateVendor = (vendorId: string, starRating: number) => {
     setVendors(prevVendors => {
