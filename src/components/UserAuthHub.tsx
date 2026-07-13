@@ -36,21 +36,41 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
   const [isLoading, setIsLoading] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const [isVendor, setIsVendor] = useState(vendorOnly);
 
-  // Sync hash changes to toggle authMode
+  // Sync hash changes to toggle authMode and vendor context
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash;
-      if (hash === "#register") {
+      if (hash === "#register-vendor") {
         setAuthMode("register");
+        setIsVendor(true);
+      } else if (hash === "#login-vendor") {
+        setAuthMode("login");
+        setIsVendor(true);
+      } else if (hash === "#register") {
+        setAuthMode("register");
+        setIsVendor(false);
       } else if (hash === "#login") {
         setAuthMode("login");
+        setIsVendor(false);
       }
     };
     window.addEventListener("hashchange", handleHash);
     handleHash();
     return () => window.removeEventListener("hashchange", handleHash);
-  }, []);
+  }, [vendorOnly]);
+
+  // Auto-redirect to vendor admin panel if logged in as a vendor
+  useEffect(() => {
+    if (userId && isVendor && profile.role === "vendor") {
+      if (onNavigate) {
+        onNavigate("admin");
+      } else {
+        window.location.replace("/admin");
+      }
+    }
+  }, [userId, isVendor, profile.role, onNavigate]);
 
   // Load profile from Clerk and Supabase
   useEffect(() => {
@@ -65,7 +85,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
     const emailPrefix = email ? email.split("@")[0].toUpperCase() : "SHOEPPER";
     
     // Default role based on context if not explicitly set
-    const defaultRole = vendorOnly ? "vendor" : "customer";
+    const defaultRole = isVendor ? "vendor" : "customer";
     
     try {
       const { data, error } = await supabase.from("users").select("full_name, role, location, delivery_address").eq("clerk_id", clerkId).single();
@@ -224,7 +244,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
 
         {/* IF USER LOGGED IN: SHOW HUB */}
         {userId && user ? (
-          vendorOnly && profile.role === "customer" ? (
+          isVendor && profile.role === "customer" ? (
              <div className="space-y-6 flex flex-col items-center text-center animate-fade-in py-6">
                <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
                <h3 className="text-xl font-black text-neutral-900">Access Denied</h3>
@@ -368,7 +388,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
             <div className="text-center space-y-2 w-full">
               <img src={getOptimizedImageUrl("https://res.cloudinary.com/dqpjjfsya/image/upload/v1780680415/IMG_20260605_180310_438_ztopwj.png", { width: 300, quality: "auto" })} className="h-16 w-auto mx-auto drop-shadow-sm mb-4" alt="Naija Stores Logo" />
               <h2 className="text-2xl font-black text-neutral-900 tracking-tight">
-                {authMode === "login" ? (vendorOnly ? "Vendor Log In" : "Welcome Back") : (vendorOnly ? "Create Vendor Account" : "Create Account")}
+                {authMode === "login" ? (isVendor ? "Vendor Log In" : "Welcome Back") : (isVendor ? "Create Vendor Account" : "Create Account")}
               </h2>
               <p className="text-xs text-neutral-400">
                 {authMode === "login" ? "Sign in using Clerk Secure Gateways" : "Register a new secure account"}
@@ -379,7 +399,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
               {authMode === "login" ? (
                 <SignIn 
                   routing="hash"
-                  signUpUrl="#register"
+                  signUpUrl={isVendor ? "#register-vendor" : "#register"}
                   appearance={{
                     elements: {
                       footerAction: { display: "none" }
@@ -389,7 +409,8 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
               ) : (
                 <SignUp 
                   routing="hash"
-                  signInUrl="#login"
+                  signInUrl={isVendor ? "#login-vendor" : "#login"}
+                  unsafeMetadata={{ role: isVendor ? "vendor" : "customer" }}
                   appearance={{
                     elements: {
                       footerAction: { display: "none" }
@@ -407,7 +428,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
                     onClick={() => {
                       setFeedback(null);
                       setAuthMode("register");
-                      window.location.hash = "register";
+                      window.location.hash = isVendor ? "register-vendor" : "register";
                     }}
                     className="ml-1.5 font-bold hover:underline text-orange-650 text-orange-600 transition-colors cursor-pointer"
                   >
@@ -421,7 +442,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
                     onClick={() => {
                       setFeedback(null);
                       setAuthMode("login");
-                      window.location.hash = "login";
+                      window.location.hash = isVendor ? "login-vendor" : "login";
                     }}
                     className="ml-1.5 font-bold hover:underline text-orange-650 text-orange-600 transition-colors cursor-pointer"
                   >

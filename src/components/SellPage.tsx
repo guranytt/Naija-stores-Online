@@ -15,7 +15,7 @@ export default function SellPage({ onNavigate }: { onNavigate: (screen: string) 
           Join thousands of verified vendors and wholesalers across Nigeria. Reach millions of customers, boost your sales, and grow your business securely.
         </p>
         <button 
-          onClick={() => { onNavigate("auth"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+          onClick={() => { window.location.hash = "register-vendor"; onNavigate("auth"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
           className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-xl font-extrabold text-sm uppercase tracking-wider shadow-lg hover:shadow-xl transition-all"
         >
           Register as a Vendor Today
@@ -62,7 +62,7 @@ export default function SellPage({ onNavigate }: { onNavigate: (screen: string) 
           Sign up now to get your products listed on Nigeria's fastest-growing e-commerce platform. It only takes a few minutes to set up your shop.
         </p>
         <button 
-          onClick={() => { onNavigate("auth"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+          onClick={() => { window.location.hash = "login-vendor"; onNavigate("auth"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
           className="bg-white text-neutral-900 px-8 py-4 rounded-xl font-extrabold text-sm uppercase tracking-wider hover:bg-orange-500 hover:text-white transition-colors relative z-10 shadow-lg"
         >
           Go to Vendor Portal

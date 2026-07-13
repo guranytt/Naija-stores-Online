@@ -798,6 +798,7 @@ export default function App() {
     
     if (!currentUserId) {
       triggerToast("Please log in or sign up to proceed to checkout.", "info");
+      window.location.hash = "login";
       setCurrentScreen("auth");
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;

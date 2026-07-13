@@ -52,7 +52,7 @@ export default function RequireVendor({ children }: { children: React.ReactNode 
 
   if (!isAuthorized) {
     if (!userId) {
-      window.location.replace("/auth#login");
+      window.location.replace("/auth#register-vendor");
     } else {
       window.location.replace("/");
     }
