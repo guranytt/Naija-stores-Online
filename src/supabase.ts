@@ -414,9 +414,12 @@ export async function saveSupabaseBatchRecords(tableName: string, records: any[]
         const result = await response.json();
         if (result.success) return true;
       }
+      // Log details on failure for debugging
+      const errBody = await response.text().catch(() => "");
+      console.error(`[Category Sync] API returned ${response.status}: ${errBody}`);
       return false;
     } catch (err: any) {
-      console.warn(`Supabase batch upsert failed for ${tableName}. Error:`, err.message);
+      console.error(`[Category Sync] Exception during batch upsert:`, err.message);
       return false;
     }
   }

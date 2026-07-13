@@ -461,10 +461,18 @@ export default function App() {
       localStorage.setItem("NAIJA_CATEGORIES_STATE", JSON.stringify(newCats));
       saveSupabaseBatchRecords("categories", newCats)
         .then((success) => {
-          if (success) mutate("categories");
-          else console.warn("Category batch sync was rejected by the server.");
+          if (success) {
+            mutate("categories");
+            triggerToast("Categories updated and synced to database!", "success");
+          } else {
+            console.warn("Category batch sync was rejected by the server.");
+            triggerToast("⚠️ Category sync failed — changes are local only. Check admin permissions.", "info");
+          }
         })
-        .catch(err => console.warn("Failed to batch sync categories:", err));
+        .catch(err => {
+          console.warn("Failed to batch sync categories:", err);
+          triggerToast("⚠️ Category sync error — changes are local only.", "info");
+        });
     } catch (e) {
       console.error(e);
     }
@@ -521,7 +529,7 @@ export default function App() {
   const { data: dbCategories } = useSWR(
     "categories",
     () => getSupabaseData<Category>("categories", [], 1, 100).then(res => res.data),
-    { revalidateOnFocus: false, dedupingInterval: 300000 }
+    { revalidateOnFocus: true, dedupingInterval: 30000 }
   );
 
   const { data: dbVendors } = useSWR(
@@ -614,6 +622,28 @@ export default function App() {
       channel.unsubscribe();
     };
   }, [supabaseUserId, isAdmin, vendorAuthenticated]);
+
+  // Set up real-time categories sync so all users see admin changes immediately
+  useEffect(() => {
+    const catChannel = supabase
+      .channel("public-categories-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "categories"
+        },
+        () => {
+          // Re-fetch categories from server when any change happens
+          mutate("categories");
+        }
+      ).subscribe();
+
+    return () => {
+      catChannel.unsubscribe();
+    };
+  }, []);
 
   const handleRateVendor = (vendorId: string, starRating: number) => {
     setVendors(prevVendors => {

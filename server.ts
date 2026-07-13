@@ -320,10 +320,15 @@ export async function startServer() {
     }
   ];
 
+  const MASTER_ADMIN_EMAILS = ["adminnaijastoresonline@gmail.com", "mcgigimeshai@gmail.com"];
+  
   const requireAdmin = [
     ...requireAuth,
     (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      if ((req as any).user?.role !== 'admin') {
+      const user = (req as any).user;
+      const isRoleAdmin = user?.role === 'admin';
+      const isEmailAdmin = user?.email && MASTER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+      if (!isRoleAdmin && !isEmailAdmin) {
         return res.status(403).json({ error: "Forbidden: Admin access required" });
       }
       next();
