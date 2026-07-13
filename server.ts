@@ -256,6 +256,29 @@ export async function startServer() {
         console.error("[CLERK WEBHOOK ERROR] Supabase Upsert Failed", error);
         return res.status(500).json({ error: error.message });
       }
+
+      // Auto-provision a vendors record for new vendor signups
+      if (role === 'vendor') {
+        const { data: newUser } = await supabaseAdmin.from('users').select('id').eq('clerk_id', id).single();
+        if (newUser) {
+          const vendorPayload = {
+            id: newUser.id,
+            user_id: newUser.id,
+            business_name: `${name}'s Store`,
+            owner_name: name,
+            email,
+            phone: phone || null,
+            whatsapp_number: phone || null,
+            business_address: delivery_address || location || "Address provided via profile",
+          };
+          const { error: vendorError } = await supabaseAdmin.from('vendors').upsert(vendorPayload, { onConflict: 'id' });
+          if (vendorError) {
+            console.error("[CLERK WEBHOOK ERROR] Supabase Vendor Auto-provision Failed", vendorError);
+          } else {
+            console.log(`[CLERK WEBHOOK] Auto-provisioned vendor record for ${email}`);
+          }
+        }
+      }
     }
     if (eventType === 'user.deleted') {
       const { error } = await supabaseAdmin.from('users').delete().eq('id', id);

@@ -180,6 +180,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
         
         const res = await fetch("/api/vendor/upsert", {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(vendorPayload)
         });

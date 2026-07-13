@@ -402,6 +402,7 @@ export async function saveSupabaseBatchRecords(tableName: string, records: any[]
       });
       const response = await fetch("/api/category/upsert", {
         method: "POST",
+        credentials: "include",
         headers: { 
           "Content-Type": "application/json",
           "x-mock-user-id": "mock-user",
@@ -505,6 +506,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
                 
                 const catRes = await fetch("/api/category/upsert", {
                   method: "POST",
+                  credentials: "include",
                   headers: { 
                     "Content-Type": "application/json",
                     "x-mock-user-id": "mock-user",
@@ -699,6 +701,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
 
         const response = await fetch("/api/vendor/upsert", {
           method: "POST",
+          credentials: "include",
           headers: { 
             "Content-Type": "application/json",
             "x-mock-user-id": "mock-user",
@@ -720,6 +723,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
 
         const response = await fetch("/api/product/upsert", {
           method: "POST",
+          credentials: "include",
           headers: { 
             "Content-Type": "application/json",
             "x-mock-user-id": "mock-user",
@@ -741,6 +745,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
 
         const response = await fetch("/api/category/upsert", {
           method: "POST",
+          credentials: "include",
           headers: { 
             "Content-Type": "application/json",
             "x-mock-user-id": "mock-user",

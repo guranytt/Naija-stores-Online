@@ -459,9 +459,11 @@ export default function App() {
     setCategories(newCats);
     try {
       localStorage.setItem("NAIJA_CATEGORIES_STATE", JSON.stringify(newCats));
-      // Batch sync to Supabase so vendors can see the newly created categories without wiping others
       saveSupabaseBatchRecords("categories", newCats)
-        .then(() => mutate("categories"))
+        .then((success) => {
+          if (success) mutate("categories");
+          else console.warn("Category batch sync was rejected by the server.");
+        })
         .catch(err => console.warn("Failed to batch sync categories:", err));
     } catch (e) {
       console.error(e);
