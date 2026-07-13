@@ -31,9 +31,10 @@ const SUPABASE_ANON_KEY = viteSupabaseKey || envSupabaseKey;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    persistSession: true,
-    detectSessionInUrl: true,
+    persistSession: false,
+    detectSessionInUrl: false,
   },
+  accessToken: getAuthToken,
   global: {
     fetch: async (url, options) => {
       try {

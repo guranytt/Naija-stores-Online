@@ -70,6 +70,11 @@ export default function App() {
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const [checkoutAmount, setCheckoutAmount] = useState<number>(0);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
+  const [vendorAuthRedirect, setVendorAuthRedirect] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (currentScreen !== 'auth') setVendorAuthRedirect(false);
+  }, [currentScreen]);
 
   // Resend Automation states
   const [mailLogs, setMailLogs] = useState<MailLogEntry[]>([]);
@@ -454,12 +459,10 @@ export default function App() {
     setCategories(newCats);
     try {
       localStorage.setItem("NAIJA_CATEGORIES_STATE", JSON.stringify(newCats));
-      // Sync to Supabase so vendors can see the newly created categories
-      newCats.forEach(cat => {
-        saveSupabaseRecord("categories", cat).catch(err => 
-          console.warn("Failed to sync category to Supabase:", err)
-        );
-      });
+      // Batch sync to Supabase so vendors can see the newly created categories without wiping others
+      saveSupabaseBatchRecords("categories", newCats)
+        .then(() => mutate("categories"))
+        .catch(err => console.warn("Failed to batch sync categories:", err));
     } catch (e) {
       console.error(e);
     }
@@ -1049,7 +1052,10 @@ export default function App() {
 
           {/* Admin Platform / Merchant Screens - Dashboard */}
           {currentScreen === "admin" && (
-            <RequireVendor onNavigate={(screen) => setCurrentScreen(screen)}>
+            <RequireVendor onNavigate={(screen) => {
+              if (screen === 'auth') setVendorAuthRedirect(true);
+              setCurrentScreen(screen);
+            }}>
               <motion.div
                 key="vendor-admin-view"
                 initial={{ opacity: 0, y: 15 }}
@@ -1099,7 +1105,9 @@ export default function App() {
               <UserAuthHub
                 currentEmail={userEmail}
                 onNavigateHome={() => setCurrentScreen("home")}
+                onNavigate={(screen) => setCurrentScreen(screen)}
                 onUpdateEmail={(email) => setUserEmail(email)}
+                vendorOnly={vendorAuthRedirect}
               />
             </motion.div>
           )}

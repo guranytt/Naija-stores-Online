@@ -34,7 +34,7 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authMode, setAuthMode] = useState<"login" | "register">(vendorOnly ? "register" : "login");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [isVendor, setIsVendor] = useState(vendorOnly);
 

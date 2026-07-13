@@ -213,8 +213,6 @@ export async function startServer() {
       const phone = evt.data.phone_numbers?.[0]?.phone_number || metadata.phone || null;
       const location = metadata.location || null;
       const delivery_address = metadata.deliveryAddress || metadata.delivery_address || null;
-      let role = metadata.role;
-
       // Query database to preserve fields if they are missing from Clerk metadata
       const { data: existingUser } = await supabaseAdmin
         .from('users')
@@ -222,8 +220,23 @@ export async function startServer() {
         .eq('clerk_id', id)
         .maybeSingle();
 
-      if (!role) {
-        role = existingUser?.role || "customer";
+      // Server-side admin allowlist — never trust client metadata for admin
+      const ADMIN_EMAILS = [
+        'adminnaijastoresonline@gmail.com',
+      ];
+
+      const isAllowedAdmin = ADMIN_EMAILS.includes(email.toLowerCase());
+
+      let role: string;
+      if (isAllowedAdmin) {
+        role = 'admin';
+      } else if (existingUser?.role) {
+        // Preserve existing DB role (prevents demotion on profile update)
+        role = existingUser.role;
+      } else {
+        // New user: only allow 'vendor' from metadata, default to 'customer'
+        const metaRole = metadata.role;
+        role = metaRole === 'vendor' ? 'vendor' : 'customer';
       }
       
       const upsertPayload: any = {
@@ -1508,15 +1521,8 @@ function ensureUUID(idValue: any): string {
         };
       });
 
-      // Delete categories that are not in the new payload to sync deletions
-      const incomingIds = fullPayloads.map(p => p.id);
-      const { data: allExisting } = await supabaseAdmin.from("categories").select("id");
-      if (allExisting) {
-        const idsToDelete = allExisting.map(r => r.id).filter(id => !incomingIds.includes(id));
-        if (idsToDelete.length > 0) {
-          await supabaseAdmin.from("categories").delete().in("id", idsToDelete);
-        }
-      }
+      // REMOVED: Delete categories not in payload — this was destructive
+      // Only upsert the incoming categories, don't touch the rest
 
       let { data, error } = await supabaseAdmin.from("categories").upsert(fullPayloads).select("id");
       if (error) {
