@@ -1049,7 +1049,7 @@ export default function App() {
 
           {/* Admin Platform / Merchant Screens - Dashboard */}
           {currentScreen === "admin" && (
-            <RequireVendor>
+            <RequireVendor onNavigate={(screen) => setCurrentScreen(screen)}>
               <motion.div
                 key="vendor-admin-view"
                 initial={{ opacity: 0, y: 15 }}
