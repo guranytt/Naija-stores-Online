@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { supabase } from '../supabase';
 
-export default function RequireVendor({ children }: { children: React.ReactNode }) {
+export default function RequireVendor({ children, onNavigate }: { children: React.ReactNode, onNavigate?: (screen: string) => void }) {
   const { isLoaded: authLoaded, userId } = useAuth();
   const { isLoaded: userLoaded, user } = useUser();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
@@ -51,10 +51,11 @@ export default function RequireVendor({ children }: { children: React.ReactNode 
   }
 
   if (!isAuthorized) {
-    if (!userId) {
-      window.location.replace("/auth#register-vendor");
+    window.location.hash = "register-vendor";
+    if (onNavigate) {
+      onNavigate("auth");
     } else {
-      window.location.replace("/");
+      window.location.replace("/auth#register-vendor");
     }
     return null;
   }
