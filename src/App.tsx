@@ -22,7 +22,7 @@ import { initPostHog, trackAddToCart, trackCheckoutStarted, trackPaymentComplete
 import { Product, CartItem, Order, Vendor, Category, FlashDealProposal } from "./types";
 import { formatNaira } from "./components/CustomerViews";
 import { Info, CheckCircle, Store } from "lucide-react";
-import { supabase, getSupabaseData, saveSupabaseRecord, ensureUUID } from "./supabase";
+import { supabase, getSupabaseData, saveSupabaseRecord, ensureUUID, saveSupabaseBatchRecords } from "./supabase";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { sendResendEmail, fetchEmailLogs, MailLogEntry } from "./emailService";
 
