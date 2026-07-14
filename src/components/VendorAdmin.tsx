@@ -92,6 +92,9 @@ export default function VendorAdmin({
   const [newCatName, setNewCatName] = useState("");
   const [newCatDesc, setNewCatDesc] = useState("");
   const [newCatIcon, setNewCatIcon] = useState("Package");
+  const [newCatStatus, setNewCatStatus] = useState("active");
+  const [newCatSortOrder, setNewCatSortOrder] = useState<number>(0);
+  const [newCatCommission, setNewCatCommission] = useState<number>(5.0);
   
   const [selectedParentId, setSelectedParentId] = useState("");
   const [newSubcatName, setNewSubcatName] = useState("");
@@ -113,7 +116,10 @@ export default function VendorAdmin({
       image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600",
       iconName: newCatIcon,
       itemCount: 0,
-      subcategories: []
+      subcategories: [],
+      status: newCatStatus as "active" | "pending" | "rejected",
+      sortOrder: newCatSortOrder,
+      defaultCommissionPercentage: newCatCommission
     };
 
     const updated = [...localCategories, newCat];
@@ -122,6 +128,9 @@ export default function VendorAdmin({
     setNewCatName("");
     setNewCatDesc("");
     setNewCatIcon("Package");
+    setNewCatStatus("active");
+    setNewCatSortOrder(0);
+    setNewCatCommission(5.0);
   };
 
   const handleAddSubcategory = (e: React.FormEvent) => {
@@ -1882,6 +1891,43 @@ export default function VendorAdmin({
                       <option value="Sliders">Sliders</option>
                       <option value="Megaphone">Megaphone</option>
                     </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-450 block">Status</label>
+                    <select
+                      value={newCatStatus}
+                      onChange={(e) => setNewCatStatus(e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 bg-white rounded-lg text-xs outline-none focus:ring-1.5 focus:ring-neutral-900 font-bold"
+                    >
+                      <option value="active">Active</option>
+                      <option value="pending">Pending</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-neutral-450 block">Sort Order</label>
+                      <input
+                        type="number"
+                        value={newCatSortOrder}
+                        onChange={(e) => setNewCatSortOrder(Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-xs bg-white outline-none focus:ring-1.5 focus:ring-neutral-900 font-semibold"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-neutral-450 block">Base Comm. (%)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={newCatCommission}
+                        onChange={(e) => setNewCatCommission(Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-xs bg-white outline-none focus:ring-1.5 focus:ring-neutral-900 font-semibold"
+                        placeholder="5.0"
+                      />
+                    </div>
                   </div>
 
                   <button
