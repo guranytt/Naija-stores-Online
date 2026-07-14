@@ -339,7 +339,8 @@ export async function startServer() {
     ...requireAuth,
     async (req: express.Request, res: express.Response, next: express.NextFunction) => {
       const user = (req as any).user;
-      if (user?.role !== 'vendor' && user?.role !== 'admin') {
+      const isEmailAdmin = user?.email && MASTER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+      if (user?.role !== 'vendor' && user?.role !== 'admin' && !isEmailAdmin) {
         return res.status(403).json({ error: "Forbidden: Vendor access required" });
       }
       if (user.role === 'vendor') {
@@ -1222,12 +1223,26 @@ Return valid JSON only matching this schema exactly:
     }
   });
 
-  app.post("/api/product/upsert", express.json(), requireAuth, async (req, res) => {
+  app.post("/api/product/upsert", express.json(), requireVendor, async (req, res) => {
     try {
       if (!supabaseAdmin) {
         return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
       }
       const payload = req.body;
+      const user = (req as any).user;
+      const callerVendorId = (req as any).vendorId;
+      const isCallerAdmin = user?.role === 'admin' || (user?.email && MASTER_ADMIN_EMAILS.includes(user.email.toLowerCase()));
+
+      // Ownership check: vendors can only upsert products under their own vendor_id
+      if (!isCallerAdmin && payload.vendor_id && callerVendorId && payload.vendor_id !== callerVendorId) {
+        return res.status(403).json({ error: "Forbidden: You can only manage your own products." });
+      }
+
+      // If vendor, enforce their vendor_id on the payload
+      if (!isCallerAdmin && callerVendorId) {
+        payload.vendor_id = callerVendorId;
+      }
+
       const { error } = await supabaseAdmin.from("products").upsert(payload);
       if (error) {
         console.error("[SERVER] Error upserting product:", error);

@@ -405,7 +405,6 @@ export async function saveSupabaseBatchRecords(tableName: string, records: any[]
         credentials: "include",
         headers: { 
           "Content-Type": "application/json",
-          "x-mock-user-id": "mock-user",
           ...(token ? { "Authorization": `Bearer ${token}` } : {})
         },
         body: JSON.stringify(payloads)
@@ -493,7 +492,9 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
               resolvedCategoryId = catData[0].id;
               categoryResolverCache[record.category] = resolvedCategoryId;
             } else {
-              // Category does not exist yet, let's auto-create it so it carries into Supabase!
+              // Category does not exist in the database.
+              // Non-admin users cannot auto-create categories — fail loudly instead of
+              // fabricating a UUID that would violate the foreign-key constraint on products.category_id
               const catSlug = record.category.toLowerCase().trim().replace(/[^a-z0-9]/g, "-");
               const generatedId = ensureUUID(catSlug);
               
@@ -512,7 +513,6 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
                   credentials: "include",
                   headers: { 
                     "Content-Type": "application/json",
-                    "x-mock-user-id": "mock-user",
                     ...(token ? { "Authorization": `Bearer ${token}` } : {})
                   },
                   body: JSON.stringify(catPayload)
@@ -524,19 +524,29 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
                      resolvedCategoryId = result.data[0].id;
                      categoryResolverCache[record.category] = resolvedCategoryId;
                   } else {
-                     resolvedCategoryId = generatedId;
-                     categoryResolverCache[record.category] = resolvedCategoryId;
+                     // API returned 200 but not success — category was not created
+                     console.error(`[Product Save] Category "${record.category}" could not be created. API response:`, result);
+                     throw new Error(`Category "${record.category}" does not exist and could not be created. Please select an existing category.`);
                   }
                 } else {
-                  resolvedCategoryId = generatedId;
-                  categoryResolverCache[record.category] = resolvedCategoryId;
+                  const errText = await catRes.text().catch(() => "");
+                  console.error(`[Product Save] Category auto-create failed with status ${catRes.status}: ${errText}`);
+                  throw new Error(`Category "${record.category}" does not exist. Only admins can create new categories. Please select an existing category.`);
                 }
-              } catch (err) {
-                 resolvedCategoryId = generatedId;
-                 categoryResolverCache[record.category] = resolvedCategoryId;
+              } catch (err: any) {
+                // If this is our own thrown error, re-throw it
+                if (err.message && err.message.includes("does not exist")) {
+                  throw err;
+                }
+                console.error(`[Product Save] Exception during category auto-create:`, err.message);
+                throw new Error(`Category "${record.category}" could not be resolved. Please select an existing category.`);
               }
             }
-          } catch (e) {
+          } catch (e: any) {
+            // Re-throw category resolution errors so the caller gets proper feedback
+            if (e.message && (e.message.includes("does not exist") || e.message.includes("could not be"))) {
+              throw e;
+            }
             console.warn("Failed to auto-resolve category id for:", record.category, e);
           }
         }
@@ -707,7 +717,6 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
           credentials: "include",
           headers: { 
             "Content-Type": "application/json",
-            "x-mock-user-id": "mock-user",
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           },
           body: JSON.stringify(apiPayload)
@@ -729,7 +738,6 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
           credentials: "include",
           headers: { 
             "Content-Type": "application/json",
-            "x-mock-user-id": "mock-user",
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           },
           body: JSON.stringify(payload)
@@ -751,7 +759,6 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
           credentials: "include",
           headers: { 
             "Content-Type": "application/json",
-            "x-mock-user-id": "mock-user",
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           },
           body: JSON.stringify(payload)
@@ -773,7 +780,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
     }
     return true;
   } catch (err: any) {
-    console.warn(`Supabase: Error in saveSupabaseRecord for ${tableName}:`, err);
+    console.error(`[saveSupabaseRecord] Error for ${tableName}:`, err.message || err);
     return false;
   }
 }

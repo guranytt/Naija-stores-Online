@@ -942,16 +942,27 @@ export default function App() {
     );
   };
 
-  // Creator for newly published merchant items
-  const handleAddNewProduct = (prod: Product) => {
-    setProducts([prod, ...products]);
+  const handleAddNewProduct = async (prod: Product) => {
+    // Optimistically add to UI immediately
+    setProducts(prev => [prod, ...prev]);
     
-    // Push new product into Supabase table
-    saveSupabaseRecord("products", prod).then(() => {
-      mutate(["products", { limit: 1000 }]);
-    });
-    
-    triggerToast(`Successfully published ${prod.title} to NaijaStores Catalog.`, "success");
+    try {
+      // Actually persist to backend — await the result
+      const success = await saveSupabaseRecord("products", prod);
+      
+      if (success) {
+        mutate(["products", { limit: 1000 }]);
+        triggerToast(`Successfully published ${prod.title} to NaijaStores Catalog.`, "success");
+      } else {
+        // Remove the optimistic product since it didn't actually persist
+        setProducts(prev => prev.filter(p => p.id !== prod.id));
+        triggerToast(`⚠️ Failed to publish "${prod.title}" — the product could not be saved. Please check that the category exists and try again.`, "info");
+      }
+    } catch (err: any) {
+      // Remove the optimistic product on exception
+      setProducts(prev => prev.filter(p => p.id !== prod.id));
+      triggerToast(`⚠️ Error publishing "${prod.title}": ${err.message || "Unknown error"}. Please try again.`, "info");
+    }
   };
 
   const linkedProducts = products.filter(p => {
