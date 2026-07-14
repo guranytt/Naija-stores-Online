@@ -4,7 +4,7 @@
  */
 
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import useSWR, { mutate } from "swr";
 import { motion, AnimatePresence } from "motion/react";
 import Navbar from "./components/Navbar";
@@ -455,12 +455,16 @@ export default function App() {
     });
   };
 
+  const isSyncingCategories = useRef(false);
+
   const handleUpdateCategories = (newCats: Category[]) => {
     setCategories(newCats);
     try {
+      isSyncingCategories.current = true;
       localStorage.setItem("NAIJA_CATEGORIES_STATE", JSON.stringify(newCats));
       saveSupabaseBatchRecords("categories", newCats)
         .then((success) => {
+          isSyncingCategories.current = false;
           if (success) {
             mutate("categories");
             triggerToast("Categories updated and synced to database!", "success");
@@ -470,6 +474,7 @@ export default function App() {
           }
         })
         .catch(err => {
+          isSyncingCategories.current = false;
           console.warn("Failed to batch sync categories:", err);
           triggerToast("⚠️ Category sync error — changes are local only.", "info");
         });
@@ -561,7 +566,9 @@ export default function App() {
   );
 
   useEffect(() => {
-    if (dbCategories) setCategories(dbCategories);
+    if (dbCategories && !isSyncingCategories.current) {
+      setCategories(dbCategories);
+    }
   }, [dbCategories]);
 
   useEffect(() => {

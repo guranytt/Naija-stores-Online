@@ -389,7 +389,7 @@ export async function saveSupabaseBatchRecords(tableName: string, records: any[]
         return {
           id: catId,
           name: record.name,
-          slug: record.slug || (record.name.toLowerCase().trim().replace(/[^a-z0-9]/g, "-") + "-" + Date.now()),
+          slug: record.slug || (record.name.toLowerCase().trim().replace(/[^a-z0-9]/g, "-") + "-" + catId.substring(0, 8)),
           image_url: record.image || record.image_url || "",
           description: record.description || "",
           icon_name: record.iconName || record.icon_name || "Package",

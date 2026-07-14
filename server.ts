@@ -1503,23 +1503,25 @@ function ensureUUID(idValue: any): string {
       if (!supabaseAdmin) {
         return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
       }
-      const { data, error } = await supabaseAdmin.from("categories").select("id, name, slug, image_url, created_at").limit(100);
+      const { data, error } = await supabaseAdmin.from("categories")
+        .select("id, name, slug, image_url, description, icon_name, item_count, subcategories, status, sort_order, default_commission_percentage, created_at")
+        .limit(100);
       if (error) {
         console.error("GET /api/categories error:", error);
         return res.status(500).json({ error: error.message });
       }
       
-      const enrichedData = (data || []).map((item: any) => {
-        let meta: any = {};
-        if (item.image_url && typeof item.image_url === "string" && item.image_url.trim().startsWith("{")) {
-          try {
-            const parsed = JSON.parse(item.image_url);
-            meta = parsed;
-            item.image_url = parsed.url || "";
-          } catch (e) {}
-        }
-        return { ...item, ...meta };
-      });
+      // Ensure we provide stable fallback values for the frontend
+      const enrichedData = (data || []).map((item: any) => ({
+        ...item,
+        description: item.description || "",
+        iconName: item.icon_name || "Package", // alias for frontend compatibility
+        itemCount: item.item_count || 0,
+        subcategories: item.subcategories || [],
+        status: item.status || "active",
+        sortOrder: item.sort_order || 0,
+        defaultCommissionPercentage: item.default_commission_percentage || 5.0
+      }));
       
       // sort manually
       const sortedData = enrichedData.sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -1568,31 +1570,6 @@ function ensureUUID(idValue: any): string {
       // Only upsert the incoming categories, don't touch the rest
 
       let { data, error } = await supabaseAdmin.from("categories").upsert(fullPayloads).select("id");
-      if (error) {
-        console.warn("[SERVER] Error upserting full category payloads, falling back to legacy schema mapping:", error.message);
-        console.warn("[SERVER] Schema mismatch for categories, falling back to legacy schema.");
-        const legacyPayloads = items.map((item: any) => {
-          const meta = {
-            url: item.image_url || item.image || "",
-            description: item.description || "",
-            icon_name: item.icon_name || item.iconName || "",
-            item_count: item.item_count || item.itemCount || 0,
-            subcategories: item.subcategories || [],
-            status: item.status || "active",
-            default_commission_percentage: item.default_commission_percentage || item.defaultCommissionPercentage || 5.0,
-            sort_order: item.sort_order || item.sortOrder || 0
-          };
-          return {
-            id: existingMap.get(item.slug || item.id) || ensureUUID(item.id),
-            name: item.name,
-            slug: item.slug || item.id,
-            image_url: JSON.stringify(meta),
-          };
-        });
-        const retry = await supabaseAdmin.from("categories").upsert(legacyPayloads).select("id");
-        data = retry.data;
-        error = retry.error;
-      }
 
       if (error) {
         console.error("[SERVER] Error upserting category:", JSON.stringify(error, null, 2), "Payloads:", JSON.stringify(fullPayloads, null, 2));
