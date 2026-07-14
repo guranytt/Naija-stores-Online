@@ -737,129 +737,142 @@ Return valid JSON only matching this schema exactly:
     buyerName?: string, country?: string, state?: string, city?: string, lga?: string, postalCode?: string, deliveryNotes?: string, deliveryFee?: number
   ) {
     try {
+      if (!supabaseAdmin) {
+        throw new Error("Supabase admin client not initialized.");
+      }
+
       const orderValue = amount;
       const itemsCount = cart.reduce((acc: number, curr: any) => acc + (curr.quantity || 1), 0);
-      const productIds = cart.map((item: any) => item.product?.id || item.productId || item.id).filter(Boolean);
       const customerName = buyerName || email.split("@")[0].toUpperCase() || "Shopper";
-
       const startState = state && state.toLowerCase() !== "lagos" ? "Lagos" : "Kano";
       const actualDest = state || "Lagos";
 
       const trackingId = "TRACK-" + Math.floor(Math.random() * 90000 + 10000);
-      const orderId = reference?.startsWith("NJS-") ? reference.replace("NJS-SIM-", "NS-").slice(0, 10) : "NS-" + Math.floor(Math.random() * 9000 + 1000);
+      const orderNumber = reference?.startsWith("NJS-") ? reference.replace("NJS-SIM-", "NS-").slice(0, 10) : "NS-" + Math.floor(Math.random() * 9000 + 1000);
 
-      const meta = {
-        trackingId,
-        routeFrom: startState,
-        routeTo: actualDest,
-        deliveryProgress: 0,
-        currentCity: startState,
-        productIds,
-        customerName,
-        shipping_address: deliveryAddress || "Address verified by Paystack Gateway",
-        country, state, city, lga, postalCode, deliveryNotes, deliveryFee
-      };
-
-      // Build a single, canonical payload that writes both DB schema columns
-      // (total_amount, order_status, payment_status, shipping_address) AND
-      // the app-readable columns (value, status, date, etc.) in one place so they
-      // never drift out of sync.
-      const finalPayload: any = {
-        // --- Canonical DB columns ---
-        id: orderId,
-        user_id: userId || null,
-        total_amount: Number(orderValue),
-        order_status: "processing",
-        payment_status: "paid",
-        shipping_address: JSON.stringify(meta),
-        // --- App-readable / dashboard columns ---
-        status: "Processing",
-        value: Number(orderValue),
-        date: new Date().toISOString().split("T")[0],
-        customerName,
-        itemsCount,
-        trackingId,
-        routeFrom: startState,
-        routeTo: actualDest,
-        deliveryProgress: 0,
-        currentCity: startState,
-        productIds,
-        deliveryAddress: deliveryAddress || "Address verified by Paystack Gateway",
-        deliveryFee: deliveryFee || 0
-      };
-
-      console.log(`[SERVER DB INSERT] Inserting order id: ${orderId} value: ₦${orderValue} into 'orders' table.`, finalPayload);
-      const { data, error } = await supabaseAdmin
-        .from("orders")
-        .upsert([finalPayload])
-        .select("id");
-
-      if (error) {
-        console.error("[SERVER] Database insertion failed: " + error.message);
-        return null;
+      // 1. Resolve or Create User (customer_id)
+      let customerUuid: string | null = null;
+      if (userId) {
+        const { data: u1 } = await supabaseAdmin.from("users").select("id").eq("clerk_id", userId).single();
+        if (u1) customerUuid = u1.id;
+      }
+      
+      if (!customerUuid && email) {
+        const { data: u2 } = await supabaseAdmin.from("users").select("id").eq("email", email).single();
+        if (u2) customerUuid = u2.id;
       }
 
-      // Group cart items by vendorId
-      const vendorItems: Record<string, any[]> = {};
-      if (cart && cart.length > 0) {
-        cart.forEach((item: any) => {
-          const vId = item.product?.vendorId || item.vendorId || "v_fallback";
-          if (!vendorItems[vId]) vendorItems[vId] = [];
-          vendorItems[vId].push(item);
-        });
+      if (!customerUuid) {
+        // Create a guest user to satisfy the FK constraint
+        const guestClerkId = `guest_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        const { data: newGuest, error: guestErr } = await supabaseAdmin.from("users").insert({
+          clerk_id: guestClerkId,
+          email: email,
+          full_name: customerName,
+          role: "customer"
+        }).select("id").single();
+        
+        if (guestErr || !newGuest) {
+          throw new Error(`Failed to create guest user profile: ${guestErr?.message}`);
+        }
+        customerUuid = newGuest.id;
+      }
+
+      // 2. Create Payment Record
+      const { data: paymentRecord, error: payErr } = await supabaseAdmin.from("payments").insert({
+        paystack_reference: reference || `MANUAL-${Date.now()}`,
+        amount: orderValue,
+        status: "success",
+        raw_payload: { method: "paystack", created_by: "createOrderInDatabase" }
+      }).select("id").single();
+
+      if (payErr || !paymentRecord) {
+        throw new Error(`Failed to insert payment record: ${payErr?.message}`);
+      }
+
+      // 3. Create Order Record
+      const shippingAddressJson = {
+        address: deliveryAddress || "Address verified by Paystack",
+        country, state, city, lga, postalCode, deliveryNotes, deliveryFee,
+        trackingId, routeFrom: startState, routeTo: actualDest, deliveryProgress: 0, currentCity: startState
+      };
+
+      const { data: orderRecord, error: ordErr } = await supabaseAdmin.from("orders").insert({
+        order_number: orderNumber,
+        customer_id: customerUuid,
+        payment_id: paymentRecord.id,
+        subtotal: orderValue - (deliveryFee || 0),
+        shipping_address: shippingAddressJson,
+      }).select("id").single();
+
+      if (ordErr || !orderRecord) {
+        throw new Error(`Failed to insert order record: ${ordErr?.message}`);
+      }
+
+      // 4. Update Payment to link Order
+      await supabaseAdmin.from("payments").update({ order_id: orderRecord.id }).eq("id", paymentRecord.id);
+
+      // 5. Create Order Items
+      const validCart = cart.filter(item => {
+        const pId = item.product?.id || item.productId || item.id;
+        const vId = item.product?.vendorId || item.vendorId;
+        // UUID format check to prevent foreign key errors for 'v_fallback' or similar invalid IDs
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return pId && vId && uuidRegex.test(vId);
+      });
+
+      if (validCart.length > 0) {
+        const orderItemsData = validCart.map(item => ({
+          order_id: orderRecord.id,
+          product_id: item.product?.id || item.productId || item.id,
+          vendor_id: item.product?.vendorId || item.vendorId,
+          quantity: item.quantity || 1,
+          unit_price: item.price || item.product?.price || 0,
+          commission_rate_snapshot: 0.05,
+          commission_amount: (item.price || item.product?.price || 0) * (item.quantity || 1) * 0.05,
+          fulfillment_status: 'not_shipped'
+        }));
+
+        const { error: itemsErr } = await supabaseAdmin.from("order_items").insert(orderItemsData);
+        if (itemsErr) {
+          console.error(`[SERVER] Warning: Failed to insert some order items: ${itemsErr.message}`);
+        }
       } else {
-        vendorItems["v_fallback"] = [];
+        console.warn(`[SERVER] Warning: Cart was empty or contained no items with valid vendor/product UUIDs.`);
       }
 
-      // Notify vendors via Web Push and Email
-      for (const [vId, items] of Object.entries(vendorItems)) {
-        // Push notification
-        const subs = vendorSubscriptions[vId] || [];
-        const payloadString = JSON.stringify({
-          title: "New Payment Received!",
-          body: `Order #${orderId} contains ${items.length} item(s) from your store paid by ${customerName}.`,
-          url: "/admin"
-        });
-        subs.forEach(sub => {
-          webpush.sendNotification(sub, payloadString).catch(err => {
-            console.error("Push notification send error:", err);
-          });
-        });
+      // Notify vendors via Web Push
+      const vendorItems: Record<string, any[]> = {};
+      cart.forEach((item: any) => {
+        const vId = item.product?.vendorId || item.vendorId || "v_fallback";
+        if (!vendorItems[vId]) vendorItems[vId] = [];
+        vendorItems[vId].push(item);
+      });
 
-        // Email notification
-        if (vId !== "v_fallback") {
-          try {
-            const { data: vendorData } = await supabaseAdmin
-              .from("vendors")
-              .select("email, business_name")
-              .eq("id", vId)
-              .single();
-              
-            if (vendorData && vendorData.email) {
-              const itemsHtml = items.map(i => `<li>${i.product?.name || i.name} (x${i.quantity || 1})</li>`).join("");
-              // Vendor notification is handled by Edge Functions (notify-vendors-of-sale)
-              // await emailService.sendVendorNewOrderInfo(...)
-            }
-          } catch (e) {
-            console.error(`Failed to send email to vendor ${vId}`, e);
-          }
+      for (const [vId, items] of Object.entries(vendorItems)) {
+        const subs = vendorSubscriptions[vId] || [];
+        if (subs.length > 0) {
+          const payloadString = JSON.stringify({
+            title: "New Payment Received!",
+            body: `Order #${orderNumber} contains ${items.length} item(s) from your store paid by ${customerName}.`,
+            url: "/admin"
+          });
+          subs.forEach(sub => {
+            webpush.sendNotification(sub, payloadString).catch(err => {
+              console.error("Push notification send error:", err);
+            });
+          });
         }
       }
 
-      // Email notifications handled by Supabase Edge Functions
-      // Send payment confirmation email and order confirmation email (fire-and-forget)
-      // Do NOT await these — they must not block the verify response.
-      // emailService.sendPaymentSuccessful(email, customerName, orderId, orderValue)
-      //  .catch(err => console.error("Error sending payment email (async):", err));
-      // emailService.sendOrderConfirmation(email, customerName, orderId, cart, orderValue, meta)
-      //  .catch(err => console.error("Error sending order confirmation email (async):", err));
-
-      console.log("[SERVER] Database insertion succeeded! Returning record:", data?.[0] || finalPayload);
+      console.log(`[SERVER DB INSERT] Successfully created order ${orderRecord.id} (Number: ${orderNumber})`);
+      
+      // Return a frontend-compatible payload matching what it expects for UI rendering
       return {
-        id: orderId,
-        user_id: userId,
+        id: orderRecord.id,
+        user_id: customerUuid,
         customerName,
-        deliveryAddress: deliveryAddress || "Address verified by Paystack Gateway",
+        deliveryAddress: deliveryAddress || "Address verified by Paystack",
         status: "Processing" as const,
         date: new Date().toISOString().split("T")[0],
         value: orderValue,
@@ -869,11 +882,11 @@ Return valid JSON only matching this schema exactly:
         routeTo: actualDest,
         deliveryProgress: 0,
         currentCity: startState,
-        productIds,
         deliveryFee: deliveryFee || 0
       };
     } catch (err: any) {
       console.error("[SERVER] Order creation failed with exception:", err.message);
+      // We explicitly return null to signal failure to the caller
       return null;
     }
   }
@@ -969,6 +982,14 @@ Return valid JSON only matching this schema exactly:
 
             // Secure order creation on the server side
             const orderRecord = await createOrderInDatabase(metaEmail, receivedAmountNaira, metaCart, metaUserId, reference, finalDeliveryAddress, buyerName, country, state, city, lga, postalCode, deliveryNotes, deliveryFee);
+
+            if (!orderRecord) {
+              console.error(`[PAYSTACK VERIFY FATAL] Payment confirmed but DB insertion failed for ref ${reference}. Order lost!`);
+              return res.status(500).json({
+                success: false,
+                error: "Payment was successful but we failed to securely save your order. Please contact support immediately with your transaction reference."
+              });
+            }
 
             return res.json({
               success: true,
