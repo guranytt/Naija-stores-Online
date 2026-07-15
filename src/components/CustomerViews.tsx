@@ -156,8 +156,8 @@ export default function CustomerViews({
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
   const [brandAdIndex, setBrandAdIndex] = useState(0);
-
-
+  
+  const homepageAds = MOCK_ADS.filter(ad => ad.position === "homepage" && ad.status === "active");
   // Tracking recently viewed items
   const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => {
     try {
