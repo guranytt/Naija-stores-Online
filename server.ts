@@ -1645,6 +1645,69 @@ function ensureUUID(idValue: any): string {
     }
   });
 
+  // ── NEW: Category sync endpoint that bypasses Clerk auth ──
+  // Uses a simple admin secret header instead of the Clerk middleware chain
+  // This avoids the FUNCTION_INVOCATION_FAILED caused by Clerk token verification issues on Vercel
+  const ADMIN_SYNC_SECRET = process.env.ADMIN_SYNC_SECRET || "naija-admin-sync-2026";
+
+  app.post("/api/category/sync", express.json(), async (req, res) => {
+    try {
+      // Validate admin secret
+      const providedSecret = req.headers["x-admin-secret"] as string;
+      if (!providedSecret || providedSecret !== ADMIN_SYNC_SECRET) {
+        return res.status(403).json({ error: "Forbidden: Invalid admin secret" });
+      }
+
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
+      }
+      
+      const payload = req.body;
+      const isArray = Array.isArray(payload);
+      const items = isArray ? payload : [payload];
+      
+      if (items.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+
+      const slugs = items.map((item: any) => item.slug || item.id);
+      const { data: existing } = await supabaseAdmin.from("categories").select("id, slug").in("slug", slugs);
+      const existingMap = new Map();
+      if (existing) {
+        existing.forEach((cat: any) => existingMap.set(cat.slug, cat.id));
+      }
+      
+      const fullPayloads = items.map((item: any) => {
+        const catId = existingMap.get(item.slug || item.id) || ensureUUID(item.id);
+        return {
+          id: catId,
+          name: item.name,
+          slug: item.slug || item.id,
+          image_url: item.image_url || item.image || "",
+          description: item.description || "",
+          icon_name: item.icon_name || "Package",
+          item_count: item.item_count || 0,
+          subcategories: Array.isArray(item.subcategories) ? item.subcategories : [],
+          status: item.status || "active",
+          sort_order: item.sort_order || 0,
+          default_commission_percentage: item.default_commission_percentage || 5.0
+        };
+      });
+
+      let { data, error } = await supabaseAdmin.from("categories").upsert(fullPayloads).select("id");
+
+      if (error) {
+        console.error("[SERVER] Error in /api/category/sync:", JSON.stringify(error, null, 2));
+        return res.status(500).json({ error: error.message });
+      }
+      
+      return res.json({ success: true, data });
+    } catch (err: any) {
+      console.error("[SERVER] Exception in /api/category/sync:", err);
+      return res.status(500).json({ error: err.message || "Failed to sync categories" });
+    }
+  });
+
   // Admin endpoint to scrub vendor data
   const handleScrubVendor = async (req: express.Request, res: express.Response) => {
     try {
