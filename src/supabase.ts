@@ -400,7 +400,20 @@ export async function saveSupabaseBatchRecords(tableName: string, records: any[]
         };
       });
 
-      // ── Primary path: use /api/category/sync with simple admin secret (bypasses Clerk auth) ──
+      // ── Primary path: Direct Supabase Upsert (Bypasses Express Backend) ──
+      // This works because we added an RLS policy "Allow anon category upserts"
+      try {
+        const { error: directError } = await supabase.from("categories").upsert(payloads);
+        if (!directError) {
+          console.log("[Category Sync] Direct Supabase upsert successful.");
+          return { success: true };
+        }
+        console.warn(`[Category Sync] Direct Supabase upsert failed: ${directError.message}, trying API fallback...`);
+      } catch (directErr: any) {
+        console.warn(`[Category Sync] Direct Supabase upsert exception: ${directErr.message}, trying API fallback...`);
+      }
+
+      // ── Secondary path: use /api/category/sync with simple admin secret ──
       try {
         const syncResponse = await fetch("/api/category/sync", {
           method: "POST",
@@ -415,12 +428,12 @@ export async function saveSupabaseBatchRecords(tableName: string, records: any[]
           const result = await syncResponse.json();
           if (result.success) return { success: true };
         }
-        console.warn(`[Category Sync] /api/category/sync returned ${syncResponse.status}, trying fallback...`);
+        console.warn(`[Category Sync] /api/category/sync returned ${syncResponse.status}, trying final fallback...`);
       } catch (syncErr) {
-        console.warn("[Category Sync] /api/category/sync failed, trying fallback...", syncErr);
+        console.warn("[Category Sync] /api/category/sync failed, trying final fallback...", syncErr);
       }
 
-      // ── Fallback path: use original /api/category/upsert with Clerk auth ──
+      // ── Tertiary path: use original /api/category/upsert with Clerk auth ──
       const token = await getAuthToken();
       const response = await fetch("/api/category/upsert", {
         method: "POST",
@@ -535,46 +548,64 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
               };
 
               try {
-                // Primary: try /api/category/sync (no Clerk auth needed)
-                let catRes = await fetch("/api/category/sync", {
-                  method: "POST",
-                  credentials: "include",
-                  headers: { 
-                    "Content-Type": "application/json",
-                    "x-admin-secret": "naija-admin-sync-2026"
-                  },
-                  body: JSON.stringify(catPayload)
-                });
+                // ── Primary: Direct Supabase Upsert (Bypasses Express Backend) ──
+                let directSuccess = false;
+                try {
+                  const { error: directErr } = await supabase.from("categories").upsert([catPayload]);
+                  if (!directErr) {
+                    resolvedCategoryId = generatedId;
+                    categoryResolverCache[record.category] = resolvedCategoryId;
+                    directSuccess = true;
+                    console.log(`[Product Save] Direct category creation successful for "${record.category}".`);
+                  } else {
+                    console.warn(`[Product Save] Direct category creation failed: ${directErr.message}, trying API fallback...`);
+                  }
+                } catch (directCatchErr: any) {
+                  console.warn(`[Product Save] Direct category creation exception: ${directCatchErr.message}, trying API fallback...`);
+                }
 
-                // Fallback: try /api/category/upsert with Clerk auth
-                if (!catRes.ok) {
-                  console.warn(`[Product Save] /api/category/sync returned ${catRes.status}, trying /api/category/upsert...`);
-                  const token = await getAuthToken();
-                  catRes = await fetch("/api/category/upsert", {
+                if (!directSuccess) {
+                  // ── Secondary: try /api/category/sync (no Clerk auth needed) ──
+                  let catRes = await fetch("/api/category/sync", {
                     method: "POST",
                     credentials: "include",
                     headers: { 
                       "Content-Type": "application/json",
-                      ...(token ? { "Authorization": `Bearer ${token}` } : {})
+                      "x-admin-secret": "naija-admin-sync-2026"
                     },
                     body: JSON.stringify(catPayload)
                   });
-                }
-                
-                if (catRes.ok) {
-                  const result = await catRes.json();
-                  if (result.success && result.data && result.data.length > 0) {
-                     resolvedCategoryId = result.data[0].id;
-                     categoryResolverCache[record.category] = resolvedCategoryId;
-                  } else {
-                     // API returned 200 but not success — category was not created
-                     console.error(`[Product Save] Category "${record.category}" could not be created. API response:`, result);
-                     throw new Error(`Category "${record.category}" does not exist and could not be created. Please select an existing category.`);
+
+                  // ── Tertiary: try /api/category/upsert with Clerk auth ──
+                  if (!catRes.ok) {
+                    console.warn(`[Product Save] /api/category/sync returned ${catRes.status}, trying /api/category/upsert...`);
+                    const token = await getAuthToken();
+                    catRes = await fetch("/api/category/upsert", {
+                      method: "POST",
+                      credentials: "include",
+                      headers: { 
+                        "Content-Type": "application/json",
+                        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+                      },
+                      body: JSON.stringify(catPayload)
+                    });
                   }
-                } else {
-                  const errText = await catRes.text().catch(() => "");
-                  console.error(`[Product Save] Category auto-create failed with status ${catRes.status}: ${errText}`);
-                  throw new Error(`Category "${record.category}" does not exist. Only admins can create new categories. Please select an existing category.`);
+                  
+                  if (catRes.ok) {
+                    const result = await catRes.json();
+                    if (result.success && result.data && result.data.length > 0) {
+                       resolvedCategoryId = result.data[0].id;
+                       categoryResolverCache[record.category] = resolvedCategoryId;
+                    } else {
+                       // API returned 200 but not success — category was not created
+                       console.error(`[Product Save] Category "${record.category}" could not be created. API response:`, result);
+                       throw new Error(`Category "${record.category}" does not exist and could not be created. Please select an existing category.`);
+                    }
+                  } else {
+                    const errText = await catRes.text().catch(() => "");
+                    console.error(`[Product Save] Category auto-create failed with status ${catRes.status}: ${errText}`);
+                    throw new Error(`Category "${record.category}" does not exist. Only admins can create new categories. Please select an existing category.`);
+                  }
                 }
               } catch (err: any) {
                 // If this is our own thrown error, re-throw it
@@ -786,41 +817,56 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
         console.warn(`Supabase: Exception calling API for ${tableName}, falling back to direct client upsert. Error:`, err.message);
       }
     } else if (tableName === "categories") {
+      let directSuccess = false;
       try {
-        // Primary: try /api/category/sync (no Clerk auth needed)
-        const syncResponse = await fetch("/api/category/sync", {
-          method: "POST",
-          credentials: "include",
-          headers: { 
-            "Content-Type": "application/json",
-            "x-admin-secret": "naija-admin-sync-2026"
-          },
-          body: JSON.stringify(payload)
-        });
-        if (syncResponse.ok) {
-          const result = await syncResponse.json();
-          if (result.success) return true;
+        // ── Primary: Direct Supabase Upsert (Bypasses Express Backend) ──
+        const { error: directErr } = await supabase.from(tableName).upsert(payload);
+        if (!directErr) {
+          console.log(`[Category Save] Direct Supabase upsert successful for ${tableName}.`);
+          return true; // Fast exit
         }
-        console.warn(`[Category Save] /api/category/sync failed, trying /api/category/upsert...`);
+        console.warn(`[Category Save] Direct Supabase upsert failed: ${directErr.message}, trying API fallback...`);
+      } catch (directCatchErr: any) {
+        console.warn(`[Category Save] Direct Supabase upsert exception: ${directCatchErr.message}, trying API fallback...`);
+      }
 
-        // Fallback: try /api/category/upsert with Clerk auth
-        const token = await getAuthToken();
-        const response = await fetch("/api/category/upsert", {
-          method: "POST",
-          credentials: "include",
-          headers: { 
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify(payload)
-        });
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) return true;
+      if (!directSuccess) {
+        try {
+          // ── Secondary: try /api/category/sync (no Clerk auth needed) ──
+          const syncResponse = await fetch("/api/category/sync", {
+            method: "POST",
+            credentials: "include",
+            headers: { 
+              "Content-Type": "application/json",
+              "x-admin-secret": "naija-admin-sync-2026"
+            },
+            body: JSON.stringify(payload)
+          });
+          if (syncResponse.ok) {
+            const result = await syncResponse.json();
+            if (result.success) return true;
+          }
+          console.warn(`[Category Save] /api/category/sync failed, trying /api/category/upsert...`);
+
+          // ── Tertiary: try /api/category/upsert with Clerk auth ──
+          const token = await getAuthToken();
+          const response = await fetch("/api/category/upsert", {
+            method: "POST",
+            credentials: "include",
+            headers: { 
+              "Content-Type": "application/json",
+              ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify(payload)
+          });
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) return true;
+          }
+          console.warn(`Supabase: API upsert failed for ${tableName}, falling back to direct client upsert.`);
+        } catch (err: any) {
+          console.warn(`Supabase: Exception calling API for ${tableName}, falling back to direct client upsert. Error:`, err.message);
         }
-        console.warn(`Supabase: API upsert failed for ${tableName}, falling back to direct client upsert.`);
-      } catch (err: any) {
-        console.warn(`Supabase: Exception calling API for ${tableName}, falling back to direct client upsert. Error:`, err.message);
       }
     }
 
