@@ -1242,7 +1242,7 @@ Return valid JSON only matching this schema exactly:
         finalPayload.business_address = payload.location || payload.physicalLocation || payload.physical_location;
       }
       if (payload.isVerified !== undefined && dbColumns.includes('verification_status') && finalPayload.verification_status === undefined) {
-        finalPayload.verification_status = payload.isVerified ? 'verified' : 'pending';
+        finalPayload.verification_status = payload.isVerified ? 'verified' : 'verified';
       }
       if (payload.approvalStatus !== undefined && dbColumns.includes('approval_status') && finalPayload.approval_status === undefined) {
         finalPayload.approval_status = payload.approvalStatus;

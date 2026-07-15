@@ -656,7 +656,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       payload.business_name = record.name || record.business_name || "";
       payload.business_description = record.description || record.business_description || "";
       payload.logo_url = record.avatar || record.logo_url || "";
-      payload.verification_status = record.approvalStatus || record.approval_status || record.verification_status || "pending";
+      payload.verification_status = record.approvalStatus || record.approval_status || record.verification_status || "verified";
       payload.user_id = record.userId || record.user_id || null;
       payload.bank_account_name = record.bankName || record.bank_account_name || "";
       payload.bank_account_number = record.accountNumber || record.bank_account_number || "";
@@ -787,7 +787,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
             cac_number: record.cacNumber || record.cac_number,
             whatsapp_number: record.whatsappNumber || record.whatsapp_number,
             business_address: record.location || record.business_address || record.physical_location,
-            verification_status: record.isVerified ? "verified" : (record.verification_status || "pending"),
+            verification_status: record.isVerified ? "verified" : (record.verification_status || "verified"),
             business_description: record.description || record.business_description
           };
 
