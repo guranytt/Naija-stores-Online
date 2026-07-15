@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, ShieldCheck, HelpCircle, Sparkles, MapPin, Plus, Minus, ThumbsUp, Laptop, Shirt, Home, Eye, Settings2, ShieldAlert, Store } from "lucide-react";
-import { Product, Category, CartItem, Vendor, Advertisement, Order, FlashDealProposal } from "../types";
+import { Product, Category, CartItem, Vendor, Advertisement, Order } from "../types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_ADS, FLASH_SALE_PRODUCTS } from "../data/mockData";
 import { trackProductViewed } from "../lib/posthog";
 
@@ -104,7 +104,7 @@ interface CustomerViewsProps {
   products?: Product[];
   categories?: Category[];
   orders?: Order[];
-  flashDeals?: FlashDealProposal[];
+
   isLoggedIn?: boolean;
   vendorSlug?: string;
   onSelectVendor?: (slug: string) => void;
@@ -126,7 +126,7 @@ export default function CustomerViews({
   products = [],
   categories = [],
   orders = [],
-  flashDeals = [],
+
   isLoggedIn = false,
   initialCategory = "all",
   vendorSlug = "eko-heritage-weavers",
@@ -156,57 +156,7 @@ export default function CustomerViews({
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
   const [brandAdIndex, setBrandAdIndex] = useState(0);
-  const [flashSaleTime, setFlashSaleTime] = useState({ h: 2, m: 21, s: 6 });
-  
-  const homepageAds = MOCK_ADS.filter(ad => ad.position === "homepage" && ad.status === "active");
 
-  const activeFlashProducts = React.useMemo(() => {
-    const approvedProposals = (flashDeals || []).filter(fd => fd.status === "approved");
-    const dynamicProducts: Product[] = approvedProposals.map(fd => {
-      const originalProd = products.find(p => p.id === fd.productId);
-      return {
-        id: fd.productId, // Map to actual product ID so clicking it opens detail view correctly
-        title: fd.productName,
-        description: originalProd?.description || `Flash sale item. Price reduced off by ${formatNaira(fd.reducedAmount)}!`,
-        price: fd.priceAfter,
-        originalPrice: fd.priceBefore,
-        salePercentage: Math.round((fd.reducedAmount / fd.priceBefore) * 100),
-        image: fd.productImage || originalProd?.image || "https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&w=500&q=80",
-        rating: originalProd?.rating || 4.8,
-        reviewsCount: originalProd?.reviewsCount || 12,
-        category: originalProd?.category || "Flash Deals",
-        vendorId: fd.vendorId,
-        vendorName: fd.vendorName,
-        stock: originalProd?.stock || 45,
-        isNew: true
-      };
-    });
-
-    const combined = [...dynamicProducts, ...FLASH_SALE_PRODUCTS];
-    const unique: Product[] = [];
-    const titles = new Set();
-    combined.forEach(p => {
-      if (!titles.has(p.title)) {
-        titles.add(p.title);
-        unique.push(p);
-      }
-    });
-    return unique;
-  }, [flashDeals, products]);
-
-
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setFlashSaleTime((prev) => {
-        let { h, m, s } = prev;
-        if (s > 0) return { h, m, s: s - 1 };
-        if (m > 0) return { h, m: m - 1, s: 59 };
-        if (h > 0) return { h: h - 1, m: 59, s: 59 };
-        return { h: 2, m: 21, s: 6 }; // loop back for demo
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Tracking recently viewed items
   const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => {
@@ -842,93 +792,7 @@ export default function CustomerViews({
             </motion.div>
           </section>
 
-          {/* Flash Sales Section */}
-          <section className="space-y-4 bg-orange-50/50 p-4 rounded-2xl border border-orange-100">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between pb-3 border-b border-orange-200/60 gap-3">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <h2 className="text-xl sm:text-2xl font-black text-orange-600 tracking-tight flex items-center">
-                    <Sparkles className="w-5 h-5 mr-2 fill-orange-500" />
-                    Flash Sales
-                  </h2>
-                </div>
-                <div className="flex items-center space-x-2 mt-2">
-                  <span className="text-xs text-neutral-500 font-bold uppercase tracking-wider">Time Left:</span>
-                  <div className="flex items-center space-x-1.5 text-orange-600 font-black text-sm">
-                    <div className="bg-orange-100 px-2 py-0.5 rounded">{flashSaleTime.h.toString().padStart(2, '0')}h</div>
-                    <span>:</span>
-                    <div className="bg-orange-100 px-2 py-0.5 rounded">{flashSaleTime.m.toString().padStart(2, '0')}m</div>
-                    <span>:</span>
-                    <div className="bg-orange-100 px-2 py-0.5 rounded">{flashSaleTime.s.toString().padStart(2, '0')}s</div>
-                  </div>
-                </div>
-              </div>
-              <button className="text-sm font-bold text-orange-500 hover:text-orange-600 transition-colors uppercase tracking-widest self-start sm:self-auto flex items-center">
-                See All <ChevronRight className="w-4 h-4 ml-0.5" />
-              </button>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activeFlashProducts.map((p, idx) => {
-                const isAdded = !!justAddedProducts[p.id];
-                const stockLeft = p.stock;
-                return (
-                  <motion.div
-                    key={`fs-${p.id}`}
-                    onClick={() => {
-                      onSelectProduct(p.id);
-                      onNavigate("details");
-                    }}
-                    initial={{ opacity: 0, y: 15 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.1 }}
-                    whileHover={{ y: -4, scale: 1.01 }}
-                    className="bg-white rounded-2xl border border-orange-100 p-3 flex flex-row h-40 shadow-sm hover:shadow-md cursor-pointer transition-all relative overflow-hidden"
-                  >
-                    {/* Left: Image */}
-                    <div className="w-[35%] h-full bg-neutral-50 rounded-xl overflow-hidden relative shrink-0">
-                      {p.image ? (
-                        <img src={p.image} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="flex w-full h-full items-center justify-center text-[9px] uppercase font-bold text-neutral-300">No Img</div>
-                      )}
-                      {p.salePercentage && (
-                        <span className="absolute top-2 left-2 bg-red-600 text-white font-extrabold text-[9px] uppercase px-2 py-1 rounded shadow-sm z-10">
-                          -{p.salePercentage}%
-                        </span>
-                      )}
-                    </div>
-                    {/* Right: Info */}
-                    <div className="flex-1 pl-4 py-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="font-extrabold text-sm text-neutral-800 line-clamp-2 leading-snug">{p.title}</h3>
-                        <div className="flex items-end space-x-2 mt-1">
-                          <p className="font-black text-lg text-neutral-900 leading-none">{formatNaira(p.price)}</p>
-                          {p.originalPrice && <p className="text-[10px] text-neutral-400 line-through leading-none mb-1">{formatNaira(p.originalPrice)}</p>}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 mt-2">
-                        <div className="w-full bg-neutral-100 rounded-full h-1.5 overflow-hidden">
-                          <div className="bg-orange-500 h-full rounded-full" style={{ width: `${(stockLeft / (stockLeft + 50)) * 100}%` }} />
-                        </div>
-                        <div className="flex items-end justify-between">
-                          <span className="text-[10px] text-neutral-500 font-bold">{stockLeft} items left</span>
-                          <button 
-                            onClick={(e) => handleAddToCartWithFeedback(p, 1, p.sizes?.[0], p.colors?.[0], e)}
-                            className={`text-[10px] font-bold px-3 py-1.5 rounded transition-all ${isAdded ? "bg-emerald-600 text-white" : "bg-orange-500 hover:bg-orange-600 text-white"}`}
-                          >
-                            {isAdded ? "Added" : "Add to Cart"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </section>
 
           {/* Featured Rectangular Products (Added to Homepage) */}
           <section className="space-y-4">

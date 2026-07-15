@@ -19,7 +19,7 @@ import PolicyOverlay from "./components/PolicyOverlay";
 import DeliveryReportsDashboard from "./components/DeliveryReportsDashboard";
 import RequireVendor from "./components/RequireVendor";
 import { initPostHog, trackAddToCart, trackCheckoutStarted, trackPaymentCompleted, trackOrderCompleted } from "./lib/posthog";
-import { Product, CartItem, Order, Vendor, Category, FlashDealProposal } from "./types";
+import { Product, CartItem, Order, Vendor, Category } from "./types";
 import { formatNaira } from "./components/CustomerViews";
 import { Info, CheckCircle, Store } from "lucide-react";
 import { supabase, getSupabaseData, saveSupabaseRecord, ensureUUID, saveSupabaseBatchRecords } from "./supabase";
@@ -180,15 +180,7 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [categories, setCategories] = useState<Category[]>(() => {
-    try {
-      const saved = localStorage.getItem("NAIJA_CATEGORIES_STATE");
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return [];
-  });
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Initial PostHog runtime loading
   useEffect(() => {
@@ -422,39 +414,7 @@ export default function App() {
 
   const [activePolicy, setActivePolicy] = useState<"privacy" | "terms" | "shipping" | "refund" | null>(null);
 
-  // Durable Client State Persistence For Flash Deals
-  const [flashDeals, setFlashDeals] = useState<FlashDealProposal[]>(() => {
-    try {
-      const saved = localStorage.getItem("NAIJA_FLASH_DEALS_PROPOSALS");
-      return saved ? JSON.parse(saved) : [];
-    } catch (_) {
-      return [];
-    }
-  });
 
-  const handleProposeFlashDeal = (newProposal: FlashDealProposal) => {
-    setFlashDeals(prev => {
-      const updated = [newProposal, ...prev];
-      localStorage.setItem("NAIJA_FLASH_DEALS_PROPOSALS", JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const handleApproveFlashDeal = (id: string) => {
-    setFlashDeals(prev => {
-      const updated = prev.map(fd => fd.id === id ? { ...fd, status: "approved" as const } : fd);
-      localStorage.setItem("NAIJA_FLASH_DEALS_PROPOSALS", JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const handleRejectFlashDeal = (id: string) => {
-    setFlashDeals(prev => {
-      const updated = prev.map(fd => fd.id === id ? { ...fd, status: "rejected" as const } : fd);
-      localStorage.setItem("NAIJA_FLASH_DEALS_PROPOSALS", JSON.stringify(updated));
-      return updated;
-    });
-  };
 
   const isSyncingCategories = useRef(false);
 
@@ -462,7 +422,6 @@ export default function App() {
     setCategories(newCats);
     try {
       isSyncingCategories.current = true;
-      localStorage.setItem("NAIJA_CATEGORIES_STATE", JSON.stringify(newCats));
       saveSupabaseBatchRecords("categories", newCats)
         .then((res) => {
           isSyncingCategories.current = false;
@@ -1080,7 +1039,7 @@ export default function App() {
                 categories={categories}
                 products={linkedProducts}
                 orders={orders}
-                flashDeals={flashDeals}
+
                 isLoggedIn={!!currentUserId}
                 vendorSlug={selectedVendorSlug}
                 onSelectVendor={setSelectedVendorSlug}
@@ -1138,10 +1097,7 @@ export default function App() {
                   onRefreshMailLogs={updateMailLogs}
                   userEmail={userEmail}
 
-                  flashDeals={flashDeals}
-                  onProposeFlashDeal={handleProposeFlashDeal}
-                  onApproveFlashDeal={handleApproveFlashDeal}
-                  onRejectFlashDeal={handleRejectFlashDeal}
+
                 />
               </motion.div>
             </RequireVendor>

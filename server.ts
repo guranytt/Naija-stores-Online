@@ -276,6 +276,8 @@ export async function startServer() {
             phone: phone || null,
             whatsapp_number: phone || null,
             business_address: delivery_address || location || "Address provided via profile",
+            verification_status: 'verified',
+            is_verified: true,
           };
           const { error: vendorError } = await supabaseAdmin.from('vendors').upsert(vendorPayload, { onConflict: 'id' });
           if (vendorError) {
@@ -1732,17 +1734,20 @@ function ensureUUID(idValue: any): string {
     
     console.log(`[PAYSTACK WEBHOOK] Event received: ${req.body?.event}`);
 
-    if (secretKey && signature) {
-      // Verify signature integrity
-      const hash = crypto
-        .createHmac("sha512", secretKey)
-        .update(JSON.stringify(req.body))
-        .digest("hex");
-        
-      if (hash !== signature) {
-        console.warn("[PAYSTACK WEBHOOK] Signature verification failed. Invalid attempt rejected.");
-        return res.status(401).json({ success: false, error: "Invalid integrity signature" });
-      }
+    if (!secretKey || !signature) {
+      console.warn("[PAYSTACK WEBHOOK] Missing secret key or signature. Invalid attempt rejected.");
+      return res.status(401).json({ success: false, error: "Missing integrity signature" });
+    }
+
+    // Verify signature integrity
+    const hash = crypto
+      .createHmac("sha512", secretKey)
+      .update(JSON.stringify(req.body))
+      .digest("hex");
+      
+    if (hash !== signature) {
+      console.warn("[PAYSTACK WEBHOOK] Signature verification failed. Invalid attempt rejected.");
+      return res.status(401).json({ success: false, error: "Invalid integrity signature" });
     }
 
     const { event, data } = req.body;

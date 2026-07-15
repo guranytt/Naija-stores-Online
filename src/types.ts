@@ -166,18 +166,5 @@ export interface AdminTeamMember {
   initials: string;
 }
 
-export interface FlashDealProposal {
-  id: string;
-  productId: string;
-  productName: string;
-  productImage: string;
-  priceBefore: number;
-  reducedAmount: number; // how much is reduced off the price
-  priceAfter: number;
-  timeFrame: string; // e.g. "2026-06-10 12:00 to 18:00"
-  vendorId: string;
-  vendorName: string;
-  status: "pending" | "approved" | "rejected";
-  createdAt: string;
-}
+
 

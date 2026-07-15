@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud, BarChart2, PieChart, Megaphone, BellRing } from "lucide-react";
-import { Vendor, Order, AdminTeamMember, Product, Category, FlashDealProposal } from "../types";
+import { Vendor, Order, AdminTeamMember, Product, Category } from "../types";
 import { formatNaira } from "./CustomerViews";
 import { uploadToCloudinary, convertFileToBase64, compressImage } from "../cloudinaryService";
 import SalesAnalyticsDashboard from "./SalesAnalyticsDashboard";
@@ -35,10 +35,6 @@ interface VendorAdminProps {
   onRefreshMailLogs?: () => void;
   userEmail?: string;
 
-  flashDeals?: FlashDealProposal[];
-  onProposeFlashDeal?: (proposal: FlashDealProposal) => void;
-  onApproveFlashDeal?: (id: string) => void;
-  onRejectFlashDeal?: (id: string) => void;
   isAdmin?: boolean;
 }
 
@@ -58,10 +54,6 @@ export default function VendorAdmin({
   currentUserId = null,
   categories = [],
   onUpdateCategories,
-  flashDeals = [],
-  onProposeFlashDeal = () => {},
-  onApproveFlashDeal = () => {},
-  onRejectFlashDeal = () => {},
   isAdmin = false
 }: VendorAdminProps) {
   const [adminTab, setAdminTab] = useState<"vendor" | "dashboard" | "platform" | "emails" >("vendor");
@@ -225,12 +217,7 @@ export default function VendorAdmin({
   const [isProfileOptimizing, setIsProfileOptimizing] = useState(false);
   const [profileUploadError, setProfileUploadError] = useState("");
 
-  // States for Vendor Flash Deal Proposals
-  const [fdProductId, setFdProductId] = useState("");
-  const [fdReducedAmt, setFdReducedAmt] = useState("");
-  const [fdTimeFrame, setFdTimeFrame] = useState("6 Hours Storefront Special");
-  const [fdSuccess, setFdSuccess] = useState<string | null>(null);
-  const [fdError, setFdError] = useState<string | null>(null);
+
 
   const vendorsList = vendors && vendors.length > 0 ? vendors : [];
 
@@ -349,53 +336,7 @@ export default function VendorAdmin({
     };
   });
 
-  const handleProposeFlashSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFdError(null);
-    setFdSuccess(null);
 
-    const targetProd = products.find(p => p.id === fdProductId);
-    if (!targetProd) {
-      setFdError("Please select a valid product first!");
-      return;
-    }
-
-    const amt = parseFloat(fdReducedAmt);
-    if (isNaN(amt) || amt <= 0) {
-      setFdError("Please enter a valid amount reduced off the price!");
-      return;
-    }
-
-    if (amt >= targetProd.price) {
-      setFdError(`How much is reduced (₦${amt}) cannot be greater than or equal to product's current price (₦${targetProd.price})!`);
-      return;
-    }
-
-    const proposal: FlashDealProposal = {
-      id: "fd-" + Date.now(),
-      productId: fdProductId,
-      productName: targetProd.title,
-      productImage: targetProd.image,
-      priceBefore: targetProd.price,
-      reducedAmount: amt,
-      priceAfter: targetProd.price - amt,
-      timeFrame: fdTimeFrame,
-      vendorId: activeVendor.id,
-      vendorName: activeVendor.name,
-      status: "pending",
-      createdAt: new Date().toISOString()
-    };
-
-    onProposeFlashDeal(proposal);
-    setFdSuccess("Flash deal proposal submitted successfully for Admin review!");
-    setFdProductId("");
-    setFdReducedAmt("");
-    setFdTimeFrame("6 Hours Storefront Special");
-
-    setTimeout(() => {
-      setFdSuccess(null);
-    }, 5000);
-  };
 
   React.useEffect(() => {
     if (activeVendor) {
@@ -881,172 +822,7 @@ export default function VendorAdmin({
 
           </div>
 
-          {/* ⚡ VENDOR FLASH DEALS PROPOSAL AREA */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-7 mt-6 border-t border-neutral-200">
-            {/* Column 1: Propose Form */}
-            <div className="lg:col-span-5 bg-white border border-neutral-150 rounded-2xl p-6 shadow-xs space-y-4">
-              <div className="border-b border-neutral-100 pb-3 flex items-center justify-between">
-                <div>
-                  <h3 className="font-extrabold text-neutral-900 text-sm tracking-tight flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-orange-500 fill-orange-500 animate-pulse" />
-                    <span>⚡ Propose Flash Sale</span>
-                  </h3>
-                  <p className="text-[10px] text-neutral-450 mt-0.5">Set up custom price reduced metrics</p>
-                </div>
-                <span className="text-[9px] uppercase font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100">Requires Admin Approval</span>
-              </div>
 
-              <form onSubmit={handleProposeFlashSubmit} className="space-y-4 text-left">
-                {fdSuccess && (
-                  <p className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-1.5">
-                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span className="leading-tight">{fdSuccess}</span>
-                  </p>
-                )}
-
-                {fdError && (
-                  <p className="p-3 bg-red-50 border border-red-200 text-red-800 text-xs font-bold rounded-xl flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
-                    <span className="leading-tight">{fdError}</span>
-                  </p>
-                )}
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1 block">1. Select Custom Listing</label>
-                  <select
-                    required
-                    value={fdProductId}
-                    onChange={(e) => setFdProductId(e.target.value)}
-                    className="w-full text-xs p-3 border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-neutral-805 font-bold"
-                  >
-                    <option value="">-- Choose Store Listing --</option>
-                    {products.filter(p => !p.vendorId || p.vendorId === activeVendor.id).map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.title} ({formatNaira(p.price)})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1 block">2. How much reduced off (₦)</label>
-                    <input
-                      type="number"
-                      required
-                      placeholder="e.g. 5000"
-                      value={fdReducedAmt}
-                      onChange={(e) => setFdReducedAmt(e.target.value)}
-                      className="w-full text-xs p-3 border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-neutral-805 font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1 block">3. Time Frame Context</label>
-                    <select
-                      value={fdTimeFrame}
-                      onChange={(e) => setFdTimeFrame(e.target.value)}
-                      className="w-full text-xs p-3 border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-neutral-805 font-medium"
-                    >
-                      <option value="6 Hours (Midday Express)">6 Hours (Midday Express)</option>
-                      <option value="12 Hours (Saturday Lightning)">12 Hours (Saturday Lightning)</option>
-                      <option value="24 Hours (Full day special)">24 Hours (Full day special)</option>
-                      <option value="48 Hours Clearance Bonanza">48 Hours Clearance Bonanza</option>
-                    </select>
-                  </div>
-                </div>
-
-                {fdProductId && fdReducedAmt && (
-                  <div className="bg-neutral-50 border border-neutral-100 p-4 rounded-xl space-y-1.5 text-xs">
-                    <p className="text-[10px] uppercase font-bold text-neutral-400 tracking-widest">Pricing Calculation</p>
-                    <p className="flex justify-between font-medium">
-                      <span>Standard Catalog List Price:</span>
-                      <span className="font-bold">{formatNaira(products.find(p => p.id === fdProductId)?.price || 0)}</span>
-                    </p>
-                    <p className="flex justify-between font-medium text-orange-600">
-                      <span>Amount Reduced Off:</span>
-                      <span className="font-extrabold">- {formatNaira(parseFloat(fdReducedAmt) || 0)}</span>
-                    </p>
-                    <div className="border-t border-dotted border-neutral-200 pt-2 flex justify-between font-bold text-neutral-900 text-[13px]">
-                      <span>Effective Campaign Price:</span>
-                      <span>
-                        {formatNaira(
-                          Math.max(0, (products.find(p => p.id === fdProductId)?.price || 0) - (parseFloat(fdReducedAmt) || 0))
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-neutral-900 hover:bg-neutral-800 font-extrabold text-[11px] uppercase tracking-widest text-white rounded-xl shadow transition-all cursor-pointer flex items-center justify-center gap-1.5 group"
-                >
-                  <Send className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                  <span>Request Flash Deal Listing</span>
-                </button>
-              </form>
-            </div>
-
-            {/* Column 2: Status Hub Section */}
-            <div className="lg:col-span-7 bg-white border border-neutral-150 rounded-2xl p-6 shadow-xs flex flex-col justify-start">
-              <div className="border-b border-neutral-105 pb-3 flex items-center justify-between">
-                <div>
-                  <h3 className="font-extrabold text-neutral-900 text-sm tracking-tight flex items-center gap-2">
-                    <Sliders className="w-4 h-4 text-neutral-700" />
-                    <span>Active Flash Deals Proposal Ledger</span>
-                  </h3>
-                  <p className="text-[10px] text-neutral-450 mt-0.5">Interactive status review log of all deal proposals</p>
-                </div>
-              </div>
-
-              <div className="divide-y divide-neutral-100 max-h-[350px] overflow-y-auto mt-3 pr-2 space-y-3">
-                {flashDeals.filter(fd => fd.vendorId === activeVendor.id).length === 0 ? (
-                  <div className="py-16 text-center text-neutral-400 text-xs font-medium">
-                    No active flash deal campaigns registered. Submit one using the form on the left!
-                  </div>
-                ) : (
-                  flashDeals.filter(fd => fd.vendorId === activeVendor.id).map(fd => (
-                    <div key={fd.id} className="pt-3 flex items-start justify-between gap-3 text-left">
-                      <div className="flex gap-3">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-50 shadow-xs border border-neutral-100 flex-shrink-0">
-                          <img src={fd.productImage} alt={fd.productName} className="w-full h-full object-cover animate-fade-in" referrerPolicy="no-referrer" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-neutral-900 line-clamp-1">{fd.productName}</p>
-                          <p className="text-[10px] text-neutral-400 mt-0.5">Time Frame: <span className="font-bold text-neutral-600">{fd.timeFrame}</span></p>
-                          <div className="flex items-center gap-2 mt-1 px-1 py-0.5 text-xs text-neutral-500">
-                            <span className="line-through">{formatNaira(fd.priceBefore)}</span>
-                            <span className="text-orange-600 font-black">{formatNaira(fd.priceAfter)}</span>
-                            <span className="text-[9px] bg-red-50 text-red-600 px-1 font-extrabold rounded">₦{fd.reducedAmount} OFF</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0 text-right">
-                        {fd.status === "pending" && (
-                          <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-600 bg-amber-50 rounded border border-amber-100 select-none">
-                            Pending Review
-                          </span>
-                        )}
-                        {fd.status === "approved" && (
-                          <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 rounded border border-emerald-100 select-none">
-                            Approved & Active
-                          </span>
-                        )}
-                        {fd.status === "rejected" && (
-                          <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-red-600 bg-red-50 rounded border border-red-100 select-none">
-                            Rejected
-                          </span>
-                        )}
-                        <span className="text-[8px] font-mono text-neutral-400 uppercase tracking-widest">{new Date(fd.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
 
           {/* Add custom product modular mock popup */}
           {showAddProductModal && (
@@ -1489,67 +1265,7 @@ export default function VendorAdmin({
             </div>
           </div>
 
-          {/* ⚡ Platform Admin Flash Sale Audit Console */}
-          <div className="bg-white border border-neutral-200 rounded-2xl shadow-xs overflow-hidden text-left">
-            <div className="px-6 py-4 border-b border-neutral-100 flex justify-between items-center bg-orange-50/20 select-none animate-fade-in">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-orange-500 fill-orange-500" />
-                <p className="font-extrabold text-sm text-neutral-850 tracking-tight">Flash Sale Proposal Inbox (Awaiting Admin Audit)</p>
-              </div>
-              <span className="text-[10px] bg-orange-100 font-bold text-orange-850 border border-orange-200 px-2.5 py-1 rounded">Subject to Admin Approval</span>
-            </div>
 
-            <div className="p-6">
-              {flashDeals.filter(fd => fd.status === "pending").length === 0 ? (
-                <div className="py-6 text-center text-neutral-500 font-semibold text-xs flex flex-col items-center justify-center space-y-2">
-                  <div className="w-10 h-10 bg-emerald-50 rounded-full border border-emerald-100 flex items-center justify-center text-emerald-600">
-                    <CheckCircle className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <span>All active vendor flash sale proposal queues are fully audited and cleared.</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {flashDeals.filter(fd => fd.status === "pending").map((fd) => (
-                    <div key={fd.id} className="p-4 bg-neutral-50 rounded-2xl border border-neutral-150 flex flex-col justify-between gap-4">
-                      <div className="flex gap-3 text-left">
-                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-white border border-neutral-200 flex-shrink-0 shadow-xs">
-                          <img src={fd.productImage} alt={fd.productName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-[9px] font-bold uppercase text-orange-600 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded">
-                            {fd.vendorName}
-                          </span>
-                          <h4 className="text-xs font-black text-neutral-900 line-clamp-1 truncate">{fd.productName}</h4>
-                          <p className="text-[10px] text-neutral-500">Proposed timeframe: <span className="font-extrabold text-neutral-700">{fd.timeFrame}</span></p>
-                          <div className="flex items-center gap-2 pt-1 text-xs">
-                            <span className="line-through text-neutral-400">{formatNaira(fd.priceBefore)}</span>
-                            <span className="text-orange-600 font-black">{formatNaira(fd.priceAfter)}</span>
-                            <span className="text-[9px] bg-red-50 text-red-600 font-extrabold px-1 rounded">₦{fd.reducedAmount} OFF</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 pt-2 border-t border-neutral-200/60">
-                        <button
-                          onClick={() => onApproveFlashDeal(fd.id)}
-                          className="flex-1 py-12 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1 !py-2.5 shadow-sm"
-                        >
-                          <Check className="w-3.5 h-3.5 text-white" />
-                          <span>Approve &amp; Publish</span>
-                        </button>
-                        <button
-                          onClick={() => onRejectFlashDeal(fd.id)}
-                          className="py-2.5 px-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors cursor-pointer"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Orders log database table list with actions */}
           <div className="bg-white border border-neutral-200 rounded-2xl shadow-xs overflow-hidden">
