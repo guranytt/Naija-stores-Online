@@ -164,12 +164,10 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
         queryResult = await supabase.from("vendors").select("id, user_id, business_name, owner_name, business_description, logo_url, verification_status, whatsapp_number, phone, business_address, created_at").order('created_at', { ascending: false }).limit(100);
       }
     } else if (tableName === "orders") {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       queryResult = await supabase
         .from("orders")
         .select("id, customer_id, subtotal, shipping_address, created_at, payments!orders_payment_id_fkey(status), order_items(id, order_id, product_id, quantity, unit_price, vendor_id, fulfillment_status, products(name))")
-        .gte("created_at", thirtyDaysAgo.toISOString())
+        .gte("created_at", opts?.gte?.created_at || "2024-01-01T00:00:00Z")
         .limit(100);
     } else {
       queryResult = await supabase.from(tableName).select("id, created_at").limit(100);

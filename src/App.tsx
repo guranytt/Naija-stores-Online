@@ -550,7 +550,7 @@ export default function App() {
   );
 
   const { data: dbOrders } = useSWR(
-    ["orders", currentUserId],
+    currentUserId ? ["orders", currentUserId] : null,
     ([table]) => {
       const isDashboard = currentUserId ? true : false;
       let opts: any = { limit: 100 };
