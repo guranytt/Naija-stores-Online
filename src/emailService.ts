@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase, getAuthToken } from "./supabase";
 
 export interface SendEmailPayload {
   to: string;
@@ -23,8 +23,7 @@ export interface MailLogEntry {
  */
 export async function sendResendEmail(payload: SendEmailPayload) {
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token || "";
+    const token = await getAuthToken() || "";
     
     const templateName = payload.template_name || payload.type || "welcome";
     
@@ -65,8 +64,7 @@ export async function sendResendEmail(payload: SendEmailPayload) {
 
 export async function sendWelcomeEmail(to: string, firstName: string) {
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token || "";
+    const token = await getAuthToken() || "";
 
     const res = await fetch("/api/send-welcome-email", {
       method: "POST",
@@ -133,8 +131,7 @@ export async function sendPaymentConfirmationEmail(
   receiptLink: string
 ) {
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token || "";
+    const token = await getAuthToken() || "";
 
     const res = await fetch("/api/send-payment-confirmation", {
       method: "POST",
@@ -210,8 +207,7 @@ export async function sendVendorApproval(to: string, businessName: string) {
  */
 export async function fetchEmailLogs(): Promise<any[]> {
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token || "";
+    const token = await getAuthToken() || "";
     
     const response = await fetch("/api/resend/logs", {
       headers: {

@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { getOptimizedImageUrl } from "./utils/imageTransforms";
 
-const getAuthToken = async (): Promise<any> => {
+export const getAuthToken = async (): Promise<any> => {
   if (typeof window !== "undefined" && (window as any).Clerk) {
     try {
       const session = (window as any).Clerk.session;
@@ -167,7 +167,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
       queryResult = await supabase
         .from("orders")
         .select("id, customer_id, subtotal, shipping_address, created_at, payments!orders_payment_id_fkey(status), order_items(id, order_id, product_id, quantity, unit_price, vendor_id, fulfillment_status, products(name))")
-        .gte("created_at", opts?.gte?.created_at || "2024-01-01T00:00:00Z")
+        .gte("created_at", "2024-01-01T00:00:00Z")
         .limit(100);
     } else {
       queryResult = await supabase.from(tableName).select("id, created_at").limit(100);
