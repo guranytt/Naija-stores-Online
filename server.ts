@@ -1270,11 +1270,26 @@ Return valid JSON only matching this schema exactly:
         payload.vendor_id = callerVendorId;
       }
 
-      const { error } = await supabaseAdmin.from("products").upsert(payload);
+      // Sanitize payload to ONLY include actual database columns
+      const dbColumns = [
+        'id', 'vendor_id', 'category_id', 'name', 'description', 
+        'price', 'stock_quantity', 'image_urls', 'status', 
+        'discount_price', 'featured', 'slug'
+      ];
+      
+      const sanitizedPayload: any = {};
+      for (const col of dbColumns) {
+        if (payload[col] !== undefined) {
+          sanitizedPayload[col] = payload[col];
+        }
+      }
+
+      const { error } = await supabaseAdmin.from("products").upsert(sanitizedPayload);
       if (error) {
         console.error("[SERVER] Error upserting product:", error);
         return res.status(500).json({ error: error.message });
       }
+      // Return the full payload to the frontend so they don't lose local state
       return res.json({ success: true, data: [payload] });
     } catch (err: any) {
       console.error("[SERVER] Exception upserting product:", err);
