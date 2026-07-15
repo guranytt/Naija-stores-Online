@@ -168,7 +168,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       queryResult = await supabase
         .from("orders")
-        .select("id, customer_id, subtotal, shipping_address, created_at, payments(status), order_items(id, order_id, product_id, quantity, unit_price, vendor_id, fulfillment_status, products(name))")
+        .select("id, customer_id, subtotal, shipping_address, created_at, payments!orders_payment_id_fkey(status), order_items(id, order_id, product_id, quantity, unit_price, vendor_id, fulfillment_status, products(name))")
         .gte("created_at", thirtyDaysAgo.toISOString())
         .limit(100);
     } else {
