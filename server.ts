@@ -1197,7 +1197,7 @@ Return valid JSON only matching this schema exactly:
         'id', 'user_id', 'business_name', 'owner_name', 'business_description', 
         'logo_url', 'approval_status', 'phone', 'email', 'created_at',
         'bank_name', 'account_number', 'whatsapp_number', 
-        'physical_location', 'cac_number', 'is_verified'
+        'physical_location', 'cac_number', 'bank_code', 'is_verified'
       ];
 
       // Do NOT JSON stringify metadata into business_description! 
@@ -1207,7 +1207,7 @@ Return valid JSON only matching this schema exactly:
       const coreKeys = [
         'id', 'user_id', 'business_name', 'owner_name', 'logo_url', 'approval_status', 
         'phone', 'email', 'created_at', 'business_description', 'bank_name', 
-        'account_number', 'whatsapp_number', 'physical_location', 'cac_number', 'is_verified'
+        'account_number', 'whatsapp_number', 'physical_location', 'cac_number', 'bank_code', 'is_verified'
       ];
 
       coreKeys.forEach((key) => {
