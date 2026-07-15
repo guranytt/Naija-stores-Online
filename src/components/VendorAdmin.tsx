@@ -56,7 +56,7 @@ export default function VendorAdmin({
   onUpdateCategories,
   isAdmin = false
 }: VendorAdminProps) {
-  const [adminTab, setAdminTab] = useState<"vendor" | "dashboard" | "platform" | "emails" >("vendor");
+  const [adminTab, setAdminTab] = useState<"vendor" | "orders" | "dashboard" | "platform" | "emails" | "commissions">("vendor");
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
 
   // Sync tab with URL paths on load
@@ -213,6 +213,10 @@ export default function VendorAdmin({
   const [editWhatsapp, setEditWhatsapp] = useState("");
   const [editBankName, setEditBankName] = useState("");
   const [editAccountNumber, setEditAccountNumber] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editBusinessDescription, setEditBusinessDescription] = useState("");
+  const [editBankCode, setEditBankCode] = useState("");
   const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [isProfileOptimizing, setIsProfileOptimizing] = useState(false);
   const [profileUploadError, setProfileUploadError] = useState("");
@@ -283,7 +287,7 @@ export default function VendorAdmin({
     return false;
   });
 
-  const vendorOrderItems = orders.flatMap(o => (o.order_items || []).map(item => ({ ...item, order_customer: o.customerName, order_status: o.status }))).filter(item => {
+  const vendorOrderItems = orders.flatMap(o => (o.order_items || []).map(item => ({ ...item, order_customer: o.customerName || (o.shipping_address as any)?.customerName || 'Customer', shipping_address: o.shipping_address, order_status: o.status }))).filter(item => {
     return item.vendor_id === activeVendor.id || (currentUserId && item.vendor_id === currentUserId) || item.vendor_id === activeVendor.userId;
   });
 
@@ -348,6 +352,10 @@ export default function VendorAdmin({
       setEditWhatsapp(activeVendor.whatsappNumber || "");
       setEditBankName(activeVendor.bankName || "");
       setEditAccountNumber(activeVendor.accountNumber || "");
+      setEditEmail(activeVendor.email || "");
+      setEditPhone(activeVendor.phone || activeVendor.whatsappNumber || "");
+      setEditBusinessDescription((activeVendor as any).description || (activeVendor as any).business_description || "");
+      setEditBankCode((activeVendor as any).bankCode || (activeVendor as any).bank_code || "");
     }
   }, [
     activeVendor?.id, 
@@ -359,6 +367,12 @@ export default function VendorAdmin({
     activeVendor?.whatsappNumber, 
     activeVendor?.bankName, 
     activeVendor?.accountNumber,
+    activeVendor?.email,
+    activeVendor?.phone,
+    (activeVendor as any)?.description,
+    (activeVendor as any)?.business_description,
+    (activeVendor as any)?.bankCode,
+    (activeVendor as any)?.bank_code,
     showEditProfileModal
   ]);
 
@@ -407,10 +421,12 @@ export default function VendorAdmin({
         avatar: editAvatar,
         cacNumber: editCacNumber,
         whatsappNumber: editWhatsapp,
-        phone: editWhatsapp,
-        email: userEmail || activeVendor.email,
+        phone: editPhone || editWhatsapp,
+        email: editEmail || userEmail || activeVendor.email,
         bankName: editBankName,
-        accountNumber: editAccountNumber
+        accountNumber: editAccountNumber,
+        description: editBusinessDescription,
+        bankCode: editBankCode
       });
     }
     setShowEditProfileModal(false);
@@ -525,17 +541,30 @@ export default function VendorAdmin({
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center p-1.5 bg-neutral-100 rounded-2xl gap-2 shadow-xs select-none border border-neutral-150">
         <div className="flex flex-wrap gap-1.5 w-full xl:w-auto">
           {!isMasterAdmin && (
-            <button
-              onClick={() => setAdminTab("vendor")}
-              className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                adminTab === "vendor"
-                  ? "bg-white text-neutral-900 shadow-sm font-extrabold"
-                  : "text-neutral-500 hover:text-neutral-900"
-              }`}
-            >
-              <TrendingUp className="w-4 h-4 text-orange-500" />
-              <span>Merchant Cabin</span>
-            </button>
+            <>
+              <button
+                onClick={() => setAdminTab("vendor")}
+                className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  adminTab === "vendor"
+                    ? "bg-white text-neutral-900 shadow-sm font-extrabold"
+                    : "text-neutral-500 hover:text-neutral-900"
+                }`}
+              >
+                <TrendingUp className="w-4 h-4 text-orange-500" />
+                <span>Merchant Cabin</span>
+              </button>
+              <button
+                onClick={() => setAdminTab("orders")}
+                className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  adminTab === "orders"
+                    ? "bg-white text-neutral-900 shadow-sm font-extrabold"
+                    : "text-neutral-500 hover:text-neutral-900"
+                }`}
+              >
+                <Database className="w-4 h-4 text-blue-500" />
+                <span>Order Management</span>
+              </button>
+            </>
           )}
           
           {isMasterAdmin && (
@@ -1148,6 +1177,54 @@ export default function VendorAdmin({
                       />
                     </div>
                   </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Email Address</label>
+                      <input
+                        type="email"
+                        required
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        placeholder="vendor@example.com"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Phone Number (Calls)</label>
+                      <input
+                        type="text"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        placeholder="e.g. +23481234567"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Business Description</label>
+                      <textarea
+                        rows={2}
+                        value={editBusinessDescription}
+                        onChange={(e) => setEditBusinessDescription(e.target.value)}
+                        placeholder="Describe your store..."
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none resize-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Bank Code (Optional)</label>
+                      <input
+                        type="text"
+                        value={editBankCode}
+                        onChange={(e) => setEditBankCode(e.target.value)}
+                        placeholder="e.g. 044"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                      />
+                    </div>
+                  </div>
 
                   <div className="pt-2 flex justify-end space-x-2">
                     <button
@@ -1170,6 +1247,77 @@ export default function VendorAdmin({
             </div>
           )}
 
+        </div>
+      )}
+
+      {adminTab === "orders" && (
+        <div className="space-y-6">
+          <div className="bg-white border border-neutral-200 rounded-2xl shadow-xs overflow-hidden">
+            <div className="px-6 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/55 select-none">
+              <p className="font-extrabold text-sm text-neutral-800 tracking-tight">Order Management Hub</p>
+              <span className="text-[10px] bg-neutral-200 font-bold text-neutral-600 px-2 py-1 rounded">Live fulfillment</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left" id="order-logs-table">
+                <thead className="bg-neutral-50 text-neutral-400 font-bold uppercase tracking-wider border-b border-neutral-100">
+                  <tr>
+                    <th className="px-6 py-3.5">Order ID</th>
+                    <th className="px-6 py-3.5">Product Name</th>
+                    <th className="px-6 py-3.5">Customer / Address</th>
+                    <th className="px-6 py-3.5">Qty / Price</th>
+                    <th className="px-6 py-3.5">Fulfillment Status</th>
+                    <th className="px-6 py-3.5 text-right font-bold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100 font-medium font-sans">
+                  {vendorOrderItems.map((item) => {
+                    const currentStatus = localFulfillment[item.id] || item.fulfillment_status || 'not_shipped';
+                    const shipAddr = typeof item.shipping_address === 'string' ? { address: item.shipping_address, state: 'N/A' } : (item.shipping_address || {});
+                    return (
+                      <tr key={item.id} className="hover:bg-neutral-50/50">
+                        <td className="px-6 py-4 font-bold text-neutral-800 text-[11px] font-mono">{item.order_id}</td>
+                        <td className="px-6 py-4 text-neutral-705 max-w-[200px] truncate">{item.product?.title || 'Product'}</td>
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-neutral-800">{item.order_customer}</p>
+                          <p className="text-[10px] text-neutral-500 truncate max-w-[200px]">{shipAddr.address || 'No Address'}</p>
+                          <p className="text-[10px] text-neutral-500 font-mono">{shipAddr.state && `State: ${shipAddr.state}`}</p>
+                        </td>
+                        <td className="px-6 py-4 font-mono font-bold text-neutral-700">{item.quantity} x {formatNaira(item.unit_price)}</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-block font-extrabold text-[10px] uppercase px-2 py-0.5 rounded border ${
+                            currentStatus === "delivered" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                            currentStatus === "shipped" ? "bg-blue-50 text-blue-600 border-blue-105" :
+                            "bg-yellow-50 text-yellow-600 border-yellow-101"
+                          }`}>
+                            {currentStatus.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <select
+                            value={currentStatus}
+                            onChange={(e) => handleUpdateFulfillment(item.id, e.target.value)}
+                            className="text-[10px] font-bold border border-neutral-200 rounded-lg px-2 py-1 outline-none bg-white focus:ring-1 focus:ring-orange-500"
+                          >
+                            <option value="not_shipped">Not Shipped</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {vendorOrderItems.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-neutral-400 text-xs font-semibold">
+                        No order items currently registered for your products.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1229,66 +1377,7 @@ export default function VendorAdmin({
 
 
 
-          {/* Orders log database table list with actions */}
-          <div className="bg-white border border-neutral-200 rounded-2xl shadow-xs overflow-hidden">
-            <div className="px-6 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/55 select-none">
-              <p className="font-extrabold text-sm text-neutral-800 tracking-tight">Recent Direct Order Dispatches</p>
-              <span className="text-[10px] bg-neutral-200 font-bold text-neutral-600 px-2 py-1 rounded">Telemetry database Logs</span>
-            </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left" id="order-logs-table">
-                <thead className="bg-neutral-50 text-neutral-400 font-bold uppercase tracking-wider border-b border-neutral-100">
-                  <tr>
-                    <th className="px-6 py-3.5">Order ID</th>
-                    <th className="px-6 py-3.5">Product Name</th>
-                    <th className="px-6 py-3.5">Qty / Price</th>
-                    <th className="px-6 py-3.5">Fulfillment Status</th>
-                    <th className="px-6 py-3.5 text-right font-bold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100 font-medium font-sans">
-                  {vendorOrderItems.map((item) => {
-                    const currentStatus = localFulfillment[item.id] || item.fulfillment_status || 'not_shipped';
-                    return (
-                      <tr key={item.id} className="hover:bg-neutral-50/50">
-                        <td className="px-6 py-4 font-bold text-neutral-800 text-[11px] font-mono">{item.order_id}</td>
-                        <td className="px-6 py-4 text-neutral-705">{item.product?.title || 'Product'}</td>
-                        <td className="px-6 py-4 font-mono font-bold text-neutral-700">{item.quantity} x {formatNaira(item.unit_price)}</td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-block font-extrabold text-[10px] uppercase px-2 py-0.5 rounded border ${
-                            currentStatus === "delivered" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                            currentStatus === "shipped" ? "bg-blue-50 text-blue-600 border-blue-105" :
-                            "bg-yellow-50 text-yellow-600 border-yellow-101"
-                          }`}>
-                            {currentStatus.replace('_', ' ')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <select
-                            value={currentStatus}
-                            onChange={(e) => handleUpdateFulfillment(item.id, e.target.value)}
-                            className="text-[10px] font-bold border border-neutral-200 rounded-lg px-2 py-1 outline-none bg-white focus:ring-1 focus:ring-orange-500"
-                          >
-                            <option value="not_shipped">Not Shipped</option>
-                            <option value="shipped">Shipped</option>
-                            <option value="delivered">Delivered</option>
-                          </select>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {vendorOrderItems.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-neutral-400 text-xs font-semibold">
-                        No order items currently registered for your products.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
 
           {/* Active Vendor Reputation Section */}
           <div className="bg-white border border-neutral-200 rounded-2xl shadow-xs overflow-hidden">
