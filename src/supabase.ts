@@ -379,8 +379,8 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
 // Cache resolved categories
 const categoryResolverCache: Record<string, string> = {};
 
-export async function saveSupabaseBatchRecords(tableName: string, records: any[]): Promise<boolean> {
-  if (records.length === 0) return true;
+export async function saveSupabaseBatchRecords(tableName: string, records: any[]): Promise<{ success: boolean; status?: number; message?: string }> {
+  if (records.length === 0) return { success: true };
   if (tableName === "categories") {
     try {
       const token = await getAuthToken();
@@ -411,18 +411,25 @@ export async function saveSupabaseBatchRecords(tableName: string, records: any[]
       });
       if (response.ok) {
         const result = await response.json();
-        if (result.success) return true;
+        if (result.success) return { success: true };
       }
       // Log details on failure for debugging
-      const errBody = await response.text().catch(() => "");
+      let errBody = "";
+      try {
+        const clonedResponse = response.clone();
+        const errJson = await clonedResponse.json();
+        errBody = errJson.message || errJson.error || JSON.stringify(errJson);
+      } catch (e) {
+        errBody = await response.text().catch(() => "");
+      }
       console.error(`[Category Sync] API returned ${response.status}: ${errBody}`);
-      return false;
+      return { success: false, status: response.status, message: errBody };
     } catch (err: any) {
       console.error(`[Category Sync] Exception during batch upsert:`, err.message);
-      return false;
+      return { success: false, message: err.message };
     }
   }
-  return false;
+  return { success: false, message: "Unsupported table" };
 }
 
 // Helper to save or update an record in Supabase with mapping and column filtering

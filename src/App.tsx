@@ -25,6 +25,7 @@ import { Info, CheckCircle, Store } from "lucide-react";
 import { supabase, getSupabaseData, saveSupabaseRecord, ensureUUID, saveSupabaseBatchRecords } from "./supabase";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { sendResendEmail, fetchEmailLogs, MailLogEntry } from "./emailService";
+import { MASTER_ADMIN_EMAILS } from "./utils/adminConfig";
 
 // Standard browser cookie helper functions
 function getCookie(name: string): string {
@@ -463,14 +464,20 @@ export default function App() {
       isSyncingCategories.current = true;
       localStorage.setItem("NAIJA_CATEGORIES_STATE", JSON.stringify(newCats));
       saveSupabaseBatchRecords("categories", newCats)
-        .then((success) => {
+        .then((res) => {
           isSyncingCategories.current = false;
-          if (success) {
+          if (res.success) {
             mutate("categories");
             triggerToast("Categories updated and synced to database!", "success");
           } else {
-            console.warn("Category batch sync was rejected by the server.");
-            triggerToast("⚠️ Category sync failed — changes are local only. Check admin permissions.", "info");
+            console.warn("Category batch sync was rejected by the server.", res);
+            if (res.status === 401) {
+              triggerToast("You need to sign in again to save categories.", "info");
+            } else if (res.status === 403) {
+              triggerToast("Only marketplace admins can save category changes — this change is local only.", "info");
+            } else {
+              triggerToast(`⚠️ Category sync failed — changes are local only. ${res.message || ""}`, "info");
+            }
           }
         })
         .catch(err => {
@@ -504,21 +511,18 @@ export default function App() {
           if (!error && data) {
             setSupabaseUserId(data.id);
             const role = data.role;
-            const isMasterAdmin = uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com";
-            setIsAdmin(isMasterAdmin);
-            if (role === "vendor" || isMasterAdmin) {
+            const isMasterAdminEmail = MASTER_ADMIN_EMAILS.includes(uEmail.toLowerCase());
+            const resolvedIsAdmin = role === "admin" || isMasterAdminEmail;
+            setIsAdmin(resolvedIsAdmin);
+            if (role === "vendor" || resolvedIsAdmin) {
               setVendorAuthenticated(true);
             } else {
               setVendorAuthenticated(false);
             }
           } else {
-            const fallbackAdmin = uEmail.toLowerCase() === "adminnaijastoresonline@gmail.com";
-            setIsAdmin(fallbackAdmin);
-            if (fallbackAdmin) {
-              setVendorAuthenticated(true);
-            } else {
-              setVendorAuthenticated(false);
-            }
+            const isMasterAdminEmail = MASTER_ADMIN_EMAILS.includes(uEmail.toLowerCase());
+            setIsAdmin(isMasterAdminEmail);
+            setVendorAuthenticated(isMasterAdminEmail);
           }
         });
     } else {

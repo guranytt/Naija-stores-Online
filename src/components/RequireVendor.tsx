@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { supabase } from '../supabase';
 import { AlertCircle, LogOut, Store } from 'lucide-react';
+import { MASTER_ADMIN_EMAILS } from '../utils/adminConfig';
 
 interface RequireVendorProps {
   children: React.ReactNode;
@@ -24,7 +25,7 @@ export default function RequireVendor({ children, onNavigate }: RequireVendorPro
 
     // Master admin bypass
     const uEmail = user?.primaryEmailAddress?.emailAddress;
-    if (uEmail?.toLowerCase() === 'adminnaijastoresonline@gmail.com') {
+    if (uEmail && MASTER_ADMIN_EMAILS.includes(uEmail.toLowerCase())) {
       setStatus('authorized');
       return;
     }

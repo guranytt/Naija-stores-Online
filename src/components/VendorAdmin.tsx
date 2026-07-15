@@ -12,6 +12,7 @@ import SalesAnalyticsDashboard from "./SalesAnalyticsDashboard";
 import { sendVendorApproval } from "../emailService";
 import { requestPushPermissionAndSubscribe } from "../pushService";
 import { supabase } from "../supabase";
+import { MASTER_ADMIN_EMAILS } from "../utils/adminConfig";
 
 
 interface VendorAdminProps {
@@ -258,7 +259,7 @@ export default function VendorAdmin({
       phone: ""
     } as Vendor);
 
-  const isMasterAdmin = userEmail?.toLowerCase() === "adminnaijastoresonline@gmail.com";
+  const isMasterAdmin = userEmail ? MASTER_ADMIN_EMAILS.includes(userEmail.toLowerCase()) : false;
 
   const [hasRedirectedMaster, setHasRedirectedMaster] = useState(false);
 
@@ -1741,6 +1742,7 @@ export default function VendorAdmin({
               <span className="text-[9px] bg-emerald-900 font-extrabold text-white px-2.5 py-1 rounded uppercase tracking-wider">Marketplace Schema</span>
             </div>
 
+            {isAdmin ? (
             <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
               
               {/* Left Column: Form builders */}
@@ -1962,6 +1964,14 @@ export default function VendorAdmin({
               </div>
               
             </div>
+            ) : (
+              <div className="p-6">
+                <div className="bg-neutral-50 border border-neutral-150 p-6 rounded-xl text-center text-neutral-500 font-semibold text-xs flex flex-col items-center">
+                  <ShieldPlus className="w-8 h-8 text-neutral-400 mb-3" />
+                  <p>Category management is restricted to marketplace administrators. Contact an admin to add or edit categories.</p>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
