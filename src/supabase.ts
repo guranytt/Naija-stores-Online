@@ -1,18 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 import { getOptimizedImageUrl } from "./utils/imageTransforms";
 
-const getAuthToken = async (): Promise<string> => {
+const getAuthToken = async (): Promise<any> => {
   if (typeof window !== "undefined" && (window as any).Clerk) {
     try {
       const session = (window as any).Clerk.session;
       if (session) {
-        return await session.getToken() || "";
+        return (await session.getToken()) || undefined;
       }
     } catch (e) {
       console.warn("Failed to get Clerk token dynamically:", e);
     }
   }
-  return "";
+  return undefined;
 };
 
 // @ts-ignore
@@ -207,7 +207,7 @@ export async function getSupabaseData<T>(tableName: string, fallbackData: T[], p
           const price = Number(extraMetadata.price !== undefined ? extraMetadata.price : (item.price || 0));
           const originalPrice = Number(extraMetadata.originalPrice || extraMetadata.discount_price || item.discount_price || item.originalPrice || extraMetadata.price || price);
           // Try loading image from joined product_images table, or property image_url/image fallback
-          const rawImage = extraMetadata.image || extraMetadata.image_url || (item.product_images && item.product_images[0]?.image_url) || item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
+          const rawImage = extraMetadata.image || extraMetadata.image_url || (item.image_urls && item.image_urls.length > 0 ? item.image_urls[0] : null) || item.image_url || item.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60&w=600";
           const image = getOptimizedImageUrl(rawImage, { width: 500, quality: "auto" });
           const rating = Number(item.rating || extraMetadata.rating || 0);
           const reviewsCount = Number(item.reviewsCount || extraMetadata.reviewsCount || 0);

@@ -1392,7 +1392,7 @@ function ensureUUID(idValue: any): string {
         return res.status(500).json({ error: queryResult.error.message });
       }
       
-      if(queryResult.data){queryResult.data.forEach((p:any)=>{let i=p.product_images?.[0]?.image_url||p.image_url;if(!i&&p.description&&typeof p.description==="string"){try{const d=JSON.parse(p.description);i=d.image||d.image_url;}catch(e){}}if(i)optimizeImageBackground(p.id,i);});} res.json({ data: queryResult.data || [], total: queryResult.count || 0 });
+      if(queryResult.data){queryResult.data.forEach((p:any)=>{let i=p.image_url || (p.image_urls && p.image_urls.length > 0 ? p.image_urls[0] : null);if(!i&&p.description&&typeof p.description==="string"){try{const d=JSON.parse(p.description);i=d.image||d.image_url;}catch(e){}}if(i)optimizeImageBackground(p.id,i);});} res.json({ data: queryResult.data || [], total: queryResult.count || 0 });
     } catch (err: any) {
       console.error("GET /api/vendors exception:", err);
       res.status(500).json({ error: "Internal Server Error" });
@@ -1415,7 +1415,7 @@ function ensureUUID(idValue: any): string {
 
       const baseCols = "id, name, slug, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at, description";
       
-      let query = supabaseAdmin.from("products").select(`${baseCols}, product_images(image_url), categories(id, name, slug)`, { count: 'exact' });
+      let query = supabaseAdmin.from("products").select(`${baseCols}, categories(id, name, slug)`, { count: 'exact' });
 
       if (categoryFilter && categoryFilter !== "All") {
         query = query.eq('categories.name', categoryFilter);
@@ -1437,7 +1437,7 @@ function ensureUUID(idValue: any): string {
       
       let queryResult: any = await query;
       if (queryResult.error) {
-        query = supabaseAdmin.from("products").select(`${baseCols}, product_images(image_url)`, { count: 'exact' });
+        query = supabaseAdmin.from("products").select(baseCols, { count: 'exact' });
         if (search) query = query.ilike('name', `%${search}%`);
         if (sort === "price-low") query = query.order('price', { ascending: true });
         else if (sort === "price-high") query = query.order('price', { ascending: false });
@@ -1456,7 +1456,7 @@ function ensureUUID(idValue: any): string {
       
       if (queryResult.data) {
         queryResult.data.forEach((p: any) => {
-          let i = p.product_images?.[0]?.image_url || p.image_url;
+          let i = p.image_url || (p.image_urls && p.image_urls.length > 0 ? p.image_urls[0] : null);
           if (!i && p.description && typeof p.description === "string") {
             try {
               const d = JSON.parse(p.description);
@@ -1485,9 +1485,9 @@ function ensureUUID(idValue: any): string {
         }
         const { id } = req.params;
         const baseCols = "id, name, slug, description, price, discount_price, stock_quantity, featured, status, vendor_id, category_id, created_at, external_link";
-        let queryResult: any = await supabaseAdmin.from("products").select(`${baseCols}, product_images(image_url), categories(id, name, slug)`).eq("id", id).maybeSingle();
+        let queryResult: any = await supabaseAdmin.from("products").select(`${baseCols}, categories(id, name, slug)`).eq("id", id).maybeSingle();
         if (queryResult.error) {
-           queryResult = await supabaseAdmin.from("products").select(`${baseCols}, product_images(image_url)`).eq("id", id).maybeSingle();
+           queryResult = await supabaseAdmin.from("products").select(baseCols).eq("id", id).maybeSingle();
         }
         if (queryResult.error) {
            queryResult = await supabaseAdmin.from("products").select(baseCols).eq("id", id).maybeSingle();
@@ -1502,7 +1502,7 @@ function ensureUUID(idValue: any): string {
 
         // Trigger background image optimization
         const p = queryResult.data;
-        let imgToOpt = p.product_images?.[0]?.image_url || p.image_url;
+        let imgToOpt = p.image_url || (p.image_urls && p.image_urls.length > 0 ? p.image_urls[0] : null);
         if (!imgToOpt && p.description && typeof p.description === "string") {
            try { 
              const d = JSON.parse(p.description); 
