@@ -8,7 +8,7 @@ import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles
 import { Vendor, Order, AdminTeamMember, Product, Category } from "../types";
 import { formatNaira } from "./CustomerViews";
 import { uploadToCloudinary, convertFileToBase64, compressImage } from "../cloudinaryService";
-import SalesAnalyticsDashboard from "./SalesAnalyticsDashboard";
+
 import { sendVendorApproval } from "../emailService";
 import { requestPushPermissionAndSubscribe } from "../pushService";
 import { supabase } from "../supabase";
@@ -252,7 +252,7 @@ export default function VendorAdmin({
 
   // Keep adminTab state synced if standard vendor tries to access platform tabs
   React.useEffect(() => {
-    if (!isMasterAdmin && ["platform", "commissions", "ads", "emails"].includes(adminTab)) {
+    if (!isMasterAdmin && ["platform", "commissions", "emails"].includes(adminTab)) {
       setAdminTab("vendor");
     } else if (isMasterAdmin && adminTab === "vendor" && !hasRedirectedMaster) {
       // Auto-redirect master admin to master console on load
@@ -524,29 +524,19 @@ export default function VendorAdmin({
       {/* Tab Selectors Row */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center p-1.5 bg-neutral-100 rounded-2xl gap-2 shadow-xs select-none border border-neutral-150">
         <div className="flex flex-wrap gap-1.5 w-full xl:w-auto">
-          <button
-            onClick={() => setAdminTab("vendor")}
-            className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              adminTab === "vendor"
-                ? "bg-white text-neutral-900 shadow-sm font-extrabold"
-                : "text-neutral-500 hover:text-neutral-900"
-            }`}
-          >
-            <TrendingUp className="w-4 h-4 text-orange-500" />
-            <span>Merchant Cabin</span>
-          </button>
-
-          <button
-            onClick={() => setAdminTab("dashboard")}
-            className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              adminTab === "dashboard"
-                ? "bg-white text-neutral-900 shadow-sm font-extrabold"
-                : "text-neutral-500 hover:text-neutral-900"
-            }`}
-          >
-            <BarChart2 className="w-4 h-4 text-indigo-500" />
-            <span>Visual Analytics Board</span>
-          </button>
+          {!isMasterAdmin && (
+            <button
+              onClick={() => setAdminTab("vendor")}
+              className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                adminTab === "vendor"
+                  ? "bg-white text-neutral-900 shadow-sm font-extrabold"
+                  : "text-neutral-500 hover:text-neutral-900"
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 text-orange-500" />
+              <span>Merchant Cabin</span>
+            </button>
+          )}
           
           {isMasterAdmin && (
             <>
@@ -573,19 +563,6 @@ export default function VendorAdmin({
                 <PieChart className="w-4 h-4 text-purple-500" />
                 <span>Commission & Payouts</span>
               </button>
-
-              <button
-                onClick={() => setAdminTab("ads")}
-                className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  adminTab === "ads"
-                    ? "bg-white text-neutral-900 shadow-sm font-extrabold"
-                    : "text-neutral-500 hover:text-neutral-900"
-                }`}
-              >
-                <Megaphone className="w-4 h-4 text-pink-500" />
-                <span>Ad Campaigns</span>
-              </button>
-
             </>
           )}
         </div>
@@ -1196,11 +1173,6 @@ export default function VendorAdmin({
         </div>
       )}
 
-      {/* ---------------- INTERACTIVE SALES ANALYTICS DASHBOARD ---------------- */}
-      {adminTab === "dashboard" && (
-        <SalesAnalyticsDashboard orders={orders} />
-      )}
-
       {/* ---------------- B. MASTER SYSTEM ADMINISTRATOR VIEW ---------------- */}
       {adminTab === "platform" && (
         <div className="space-y-6">
@@ -1253,17 +1225,7 @@ export default function VendorAdmin({
             </div>
           </div>
 
-          {/* Platform system incidents */}
-          <div className="bg-red-50/50 border border-red-100 p-4 rounded-xl flex items-start space-x-3 text-xs leading-relaxed text-red-800">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5 animate-pulse" />
-            <div className="space-y-1 text-left">
-              <p className="font-extrabold text-red-900">Urgent Critical Network Updates & Gateway Alerts:</p>
-              <ul className="list-disc leading-loose pl-4 font-semibold text-neutral-600">
-                <li className="text-red-700">Abuja courier pathway experiencing flash highway detours due to Lokoja river overflows. Relogging ETAs dynamically.</li>
-                <li>Lagoon traffic warning: Peak congestion predicted along Lekki tollgate paths between 4:00 PM and 7:00 PM.</li>
-              </ul>
-            </div>
-          </div>
+
 
 
 
@@ -1714,10 +1676,7 @@ export default function VendorAdmin({
         <CommissionAnalyticsTab products={products} vendors={vendorsList} orders={orders} />
       )}
 
-      {/* ---------------- E. ADS TAB ---------------- */}
-      {adminTab === "ads" && (
-        <AdsManagementTab />
-      )}
+
 
     </div>
   );
@@ -2432,86 +2391,3 @@ function CommissionAnalyticsTab({ products, vendors, orders }: { products: Produ
   );
 }
 
-function AdsManagementTab() {
-  const [ads] = useState([
-    { id: "a1", name: "Summer iPhone Splash", status: "Active", clicks: 1240, impressions: 45000, position: "Homepage", type: "Banner" },
-    { id: "a2", name: "Fairly Used Cars Expo", status: "Scheduled", clicks: 0, impressions: 0, position: "Category: Cars", type: "Sidebar" },
-    { id: "a3", name: "Fashion Week Promo", status: "Active", clicks: 4320, impressions: 120000, position: "Homepage", type: "Hero" },
-    { id: "a4", name: "Phone Accessories Bundle", status: "Paused", clicks: 890, impressions: 15000, position: "Search Results", type: "Inline" }
-  ]);
-  
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-xl font-black text-neutral-900 tracking-tight">Advertisement Placement System</h2>
-          <p className="text-xs text-neutral-500 font-semibold">Organize and monitor cross-platform marketing campaigns</p>
-        </div>
-        <button className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md">
-          <PlusIcon className="w-4 h-4" />
-          <span>New Ad Campaign</span>
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs flex items-center justify-between">
-           <div>
-             <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Active Campaigns</p>
-             <h3 className="text-2xl font-black text-emerald-600 tracking-tight">2</h3>
-           </div>
-           <Megaphone className="w-8 h-8 text-neutral-200" />
-        </div>
-        <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs flex items-center justify-between">
-           <div>
-             <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Total Impressions</p>
-             <h3 className="text-2xl font-black text-neutral-900 tracking-tight font-mono">180,000</h3>
-           </div>
-           <Eye className="w-8 h-8 text-neutral-200" />
-        </div>
-        <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs flex items-center justify-between">
-           <div>
-             <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Click Through (Avg)</p>
-             <h3 className="text-2xl font-black text-neutral-900 tracking-tight font-mono">3.8%</h3>
-           </div>
-           <PieChart className="w-8 h-8 text-neutral-200" />
-        </div>
-      </div>
-      
-      <div className="bg-white border border-neutral-150 rounded-2xl p-5 shadow-xs">
-        <h3 className="text-sm font-bold text-neutral-800 mb-4">Ad Placement Roster</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs whitespace-nowrap">
-             <thead className="bg-neutral-50 text-neutral-500 font-bold uppercase tracking-widest text-[9px]">
-               <tr>
-                 <th className="px-4 py-3 rounded-l-xl">Campaign Name</th>
-                 <th className="px-4 py-3">Location / Type</th>
-                 <th className="px-4 py-3">Status</th>
-                 <th className="px-4 py-3">Impressions</th>
-                 <th className="px-4 py-3 rounded-r-xl text-right">Clicks</th>
-               </tr>
-             </thead>
-             <tbody className="divide-y divide-neutral-100">
-               {ads.map(ad => (
-                 <tr key={ad.id} className="hover:bg-neutral-50 transition-colors">
-                   <td className="px-4 py-3 font-bold text-neutral-800">{ad.name}</td>
-                   <td className="px-4 py-3 text-neutral-600 font-semibold">{ad.position} <span className="text-neutral-300 mx-1">|</span> {ad.type}</td>
-                   <td className="px-4 py-3">
-                     <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
-                        ad.status === 'Active' ? 'bg-emerald-100 text-emerald-700' :
-                        ad.status === 'Scheduled' ? 'bg-amber-100 text-amber-700' : 
-                        'bg-neutral-100 text-neutral-600'
-                     }`}>
-                       {ad.status}
-                     </span>
-                   </td>
-                   <td className="px-4 py-3 font-mono">{ad.impressions.toLocaleString()}</td>
-                   <td className="px-4 py-3 text-right font-bold text-orange-500 font-mono">{ad.clicks.toLocaleString()}</td>
-                 </tr>
-               ))}
-             </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
