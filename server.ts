@@ -84,10 +84,16 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SU
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SUPABASE_SERVICE_KEY) {
-  throw new Error("FATAL: SUPABASE_SERVICE_ROLE_KEY is not set. The server cannot perform admin operations or sync categories/products globally. Please add this to your .env file.");
+let supabaseAdmin: any = null;
+if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+  try {
+    supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  } catch (err) {
+    console.error("Failed to initialize Supabase Admin:", err);
+  }
+} else {
+  console.error("CRITICAL WARNING: SUPABASE_SERVICE_ROLE_KEY is not set! Backend Admin operations will fail.");
 }
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 export async function sendOrderEmail(email: string) {
   const apiKey = process.env.RESEND_API_KEY;
