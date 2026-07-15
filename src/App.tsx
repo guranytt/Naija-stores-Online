@@ -538,14 +538,14 @@ export default function App() {
   );
 
   const { data: dbVendors } = useSWR(
-    ["vendors", { limit: 1000 }],
-    ([table]) => getSupabaseData<Vendor>(table as string, [], 1, 1000).then(res => res.data),
+    ["vendors", { limit: 100 }],
+    ([table]) => getSupabaseData<Vendor>(table as string, [], 1, 100).then(res => res.data),
     { revalidateOnFocus: false, dedupingInterval: 300000 }
   );
 
   const { data: dbProducts } = useSWR(
-    ["products", { limit: 1000 }],
-    ([table]) => getSupabaseData<Product>(table as string, [], 1, 1000).then(res => res.data),
+    ["products", { limit: 100 }],
+    ([table]) => getSupabaseData<Product>(table as string, [], 1, 100).then(res => res.data),
     { revalidateOnFocus: false, dedupingInterval: 300000 }
   );
 
