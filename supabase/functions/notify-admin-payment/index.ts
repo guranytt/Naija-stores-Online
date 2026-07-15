@@ -99,13 +99,11 @@ serve(async (req) => {
     .select('email')
     .eq('role', 'admin');
 
-  if (adminError || !admins || admins.length === 0) {
-    console.warn('No admin users found to notify.');
-    await markNotificationSent(supabase, notificationId);
-    return new Response('No admins found, skipping email', { status: 200 });
+  let adminEmails = admins ? admins.map(a => a.email) : [];
+  if (adminEmails.length === 0) {
+    console.warn('No admin users found in DB, falling back to default admin email.');
+    adminEmails = ['adminnaijastoresonline@gmail.com'];
   }
-
-  const adminEmails = admins.map(a => a.email);
   
   const subject = `[Sale Alert] Order #${order.order_number} Processed`;
   const html = buildEmailTemplate(subject, `
