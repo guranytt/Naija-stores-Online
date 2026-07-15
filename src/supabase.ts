@@ -756,45 +756,60 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
     }
 
     if (tableName === "vendors") {
+      let directSuccess = false;
       try {
-        const apiPayload = {
-          ...payload,
-          bankName: record.bankName || record.bank_account_name,
-          accountNumber: record.accountNumber || record.bank_account_number,
-          bankCode: record.bankCode || record.bank_code,
-          cacNumber: record.cacNumber || record.cac_number,
-          whatsappNumber: record.whatsappNumber || record.whatsapp_number,
-          location: record.location || record.business_address || record.physical_location,
-          isVerified: record.isVerified !== undefined ? record.isVerified : record.verification_status === "verified",
-          description: record.description || record.business_description,
-          bank_account_name: record.bankName || record.bank_account_name,
-          bank_account_number: record.accountNumber || record.bank_account_number,
-          bank_code: record.bankCode || record.bank_code,
-          cac_number: record.cacNumber || record.cac_number,
-          whatsapp_number: record.whatsappNumber || record.whatsapp_number,
-          business_address: record.location || record.business_address || record.physical_location,
-          verification_status: record.isVerified ? "verified" : (record.verification_status || "pending"),
-          business_description: record.description || record.business_description
-        };
-
-        const token = await getAuthToken();
-
-        const response = await fetch("/api/vendor/upsert", {
-          method: "POST",
-          credentials: "include",
-          headers: { 
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify(apiPayload)
-        });
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) return true;
+        // ── Primary: Direct Supabase Upsert (Bypasses Express Backend) ──
+        const { error: directErr } = await supabase.from("vendors").upsert(payload);
+        if (!directErr) {
+          console.log(`[Vendor Save] Direct Supabase upsert successful for vendors.`);
+          return true; // Fast exit
         }
-        console.warn(`Supabase: API upsert failed for ${tableName}, falling back to direct client upsert.`);
-      } catch (err: any) {
-        console.warn(`Supabase: Exception calling API for ${tableName}, falling back to direct client upsert. Error:`, err.message);
+        console.warn(`[Vendor Save] Direct Supabase upsert failed: ${directErr.message}, trying API fallback...`);
+      } catch (directCatchErr: any) {
+        console.warn(`[Vendor Save] Direct Supabase upsert exception: ${directCatchErr.message}, trying API fallback...`);
+      }
+
+      if (!directSuccess) {
+        try {
+          const apiPayload = {
+            ...payload,
+            bankName: record.bankName || record.bank_account_name,
+            accountNumber: record.accountNumber || record.bank_account_number,
+            bankCode: record.bankCode || record.bank_code,
+            cacNumber: record.cacNumber || record.cac_number,
+            whatsappNumber: record.whatsappNumber || record.whatsapp_number,
+            location: record.location || record.business_address || record.physical_location,
+            isVerified: record.isVerified !== undefined ? record.isVerified : record.verification_status === "verified",
+            description: record.description || record.business_description,
+            bank_account_name: record.bankName || record.bank_account_name,
+            bank_account_number: record.accountNumber || record.bank_account_number,
+            bank_code: record.bankCode || record.bank_code,
+            cac_number: record.cacNumber || record.cac_number,
+            whatsapp_number: record.whatsappNumber || record.whatsapp_number,
+            business_address: record.location || record.business_address || record.physical_location,
+            verification_status: record.isVerified ? "verified" : (record.verification_status || "pending"),
+            business_description: record.description || record.business_description
+          };
+
+          const token = await getAuthToken();
+
+          const response = await fetch("/api/vendor/upsert", {
+            method: "POST",
+            credentials: "include",
+            headers: { 
+              "Content-Type": "application/json",
+              ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify(apiPayload)
+          });
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) return true;
+          }
+          console.warn(`Supabase: API upsert failed for ${tableName}, falling back to direct client upsert.`);
+        } catch (err: any) {
+          console.warn(`Supabase: Exception calling API for ${tableName}, falling back to direct client upsert. Error:`, err.message);
+        }
       }
     } else if (tableName === "products") {
       try {
