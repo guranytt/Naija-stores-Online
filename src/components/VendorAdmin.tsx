@@ -344,16 +344,16 @@ export default function VendorAdmin({
 
   React.useEffect(() => {
     if (activeVendor) {
-      setEditShopName(activeVendor.name || "");
-      setEditOwnerName(activeVendor.ownerName || "");
-      setEditLocation(activeVendor.location || "");
-      setEditAvatar(activeVendor.avatar || "");
-      setEditCacNumber(activeVendor.cacNumber || "");
-      setEditWhatsapp(activeVendor.whatsappNumber || "");
-      setEditBankName(activeVendor.bankName || "");
-      setEditAccountNumber(activeVendor.accountNumber || "");
+      setEditShopName(activeVendor.name || (activeVendor as any).business_name || "");
+      setEditOwnerName(activeVendor.ownerName || (activeVendor as any).owner_name || "");
+      setEditLocation(activeVendor.location || (activeVendor as any).business_address || (activeVendor as any).physical_location || "");
+      setEditAvatar(activeVendor.avatar || (activeVendor as any).logo_url || "");
+      setEditCacNumber(activeVendor.cacNumber || (activeVendor as any).cac_number || "");
+      setEditWhatsapp(activeVendor.whatsappNumber || (activeVendor as any).whatsapp_number || "");
+      setEditBankName(activeVendor.bankName || (activeVendor as any).bank_account_name || (activeVendor as any).bank_name || "");
+      setEditAccountNumber(activeVendor.accountNumber || (activeVendor as any).bank_account_number || (activeVendor as any).account_number || "");
       setEditEmail(activeVendor.email || "");
-      setEditPhone(activeVendor.phone || activeVendor.whatsappNumber || "");
+      setEditPhone(activeVendor.phone || activeVendor.whatsappNumber || (activeVendor as any).whatsapp_number || "");
       setEditBusinessDescription((activeVendor as any).description || (activeVendor as any).business_description || "");
       setEditBankCode((activeVendor as any).bankCode || (activeVendor as any).bank_code || "");
     }
@@ -373,6 +373,15 @@ export default function VendorAdmin({
     (activeVendor as any)?.business_description,
     (activeVendor as any)?.bankCode,
     (activeVendor as any)?.bank_code,
+    (activeVendor as any)?.business_name,
+    (activeVendor as any)?.owner_name,
+    (activeVendor as any)?.business_address,
+    (activeVendor as any)?.physical_location,
+    (activeVendor as any)?.logo_url,
+    (activeVendor as any)?.cac_number,
+    (activeVendor as any)?.whatsapp_number,
+    (activeVendor as any)?.bank_account_name,
+    (activeVendor as any)?.bank_account_number,
     showEditProfileModal
   ]);
 
@@ -1150,20 +1159,32 @@ export default function VendorAdmin({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Business Description</label>
+                    <textarea
+                      required
+                      value={editBusinessDescription}
+                      onChange={(e) => setEditBusinessDescription(e.target.value)}
+                      placeholder="Tell us a little bit about your store..."
+                      className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-medium resize-none"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Settlement Bank</label>
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Bank Account Name</label>
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Access Bank"
+                        placeholder="e.g. John Doe"
                         value={editBankName}
                         onChange={(e) => setEditBankName(e.target.value)}
                         className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-medium"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Settlement Account (NUBAN)</label>
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Account (NUBAN)</label>
                       <input
                         type="text"
                         required
@@ -1172,8 +1193,19 @@ export default function VendorAdmin({
                         pattern="[0-9]{10}"
                         value={editAccountNumber}
                         onChange={(e) => setEditAccountNumber(e.target.value.replace(/[^0-9]/g, ""))}
-                        placeholder="10 digit account number"
+                        placeholder="10 digits"
                         className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Bank Code</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. 044"
+                        value={editBankCode}
+                        onChange={(e) => setEditBankCode(e.target.value)}
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-mono"
                       />
                     </div>
                   </div>

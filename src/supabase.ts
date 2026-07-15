@@ -656,30 +656,29 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       payload.business_name = record.name || record.business_name || "";
       payload.business_description = record.description || record.business_description || "";
       payload.logo_url = record.avatar || record.logo_url || "";
-      payload.approval_status = record.approvalStatus || record.approval_status || "approved";
+      payload.verification_status = record.approvalStatus || record.approval_status || record.verification_status || "pending";
       payload.user_id = record.userId || record.user_id || null;
-      payload.bank_name = record.bankName || record.bank_name || "";
-      payload.account_number = record.accountNumber || record.account_number || "";
+      payload.bank_account_name = record.bankName || record.bank_account_name || "";
+      payload.bank_account_number = record.accountNumber || record.bank_account_number || "";
+      payload.bank_code = record.bankCode || record.bank_code || "";
       payload.cac_number = record.cacNumber || record.cac_number || "";
       payload.whatsapp_number = record.whatsappNumber || record.whatsapp_number || "";
-      payload.physical_location = record.location || record.physicalLocation || record.physical_location || "";
-      payload.is_verified = record.isVerified !== undefined ? record.isVerified : (record.is_verified || false);
+      payload.business_address = record.location || record.business_address || record.physical_location || "";
       payload.phone = record.phone || record.whatsappNumber || "";
       payload.email = record.email || "";
       payload.owner_name = record.ownerName || record.owner_name || "";
 
       // Legacy mapping
-      payload.name = record.name || record.business_name || "";
-      payload.avatar = record.avatar || record.logo_url || "";
-      payload.bankName = record.bankName || record.bank_name || "";
-      payload.accountNumber = record.accountNumber || record.account_number || "";
-      payload.cacNumber = record.cacNumber || record.cac_number || "";
-      payload.whatsappNumber = record.whatsappNumber || record.whatsapp_number || "";
-      payload.physicalLocation = record.location || record.physicalLocation || record.physical_location || "";
+      payload.name = payload.business_name;
+      payload.avatar = payload.logo_url;
+      payload.bankName = payload.bank_account_name;
+      payload.accountNumber = payload.bank_account_number;
+      payload.bankCode = payload.bank_code;
+      payload.cacNumber = payload.cac_number;
+      payload.whatsappNumber = payload.whatsapp_number;
+      payload.location = payload.business_address;
       payload.isVerified = record.isVerified !== undefined ? record.isVerified : (record.is_verified || false);
-      payload.phone = record.phone || record.whatsappNumber || "";
-      payload.email = record.email || "";
-      payload.ownerName = record.ownerName || record.owner_name || "";
+      payload.ownerName = payload.owner_name;
 
     } else if (tableName === "categories") {
       const catId = record.id || record.slug || ensureUUID(record.id);
@@ -760,19 +759,21 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       try {
         const apiPayload = {
           ...payload,
-          bankName: record.bankName || record.bank_name,
-          accountNumber: record.accountNumber || record.account_number,
+          bankName: record.bankName || record.bank_account_name,
+          accountNumber: record.accountNumber || record.bank_account_number,
+          bankCode: record.bankCode || record.bank_code,
           cacNumber: record.cacNumber || record.cac_number,
           whatsappNumber: record.whatsappNumber || record.whatsapp_number,
-          location: record.location || record.physicalLocation || record.physical_location,
-          isVerified: record.isVerified !== undefined ? record.isVerified : record.is_verified,
+          location: record.location || record.business_address || record.physical_location,
+          isVerified: record.isVerified !== undefined ? record.isVerified : record.verification_status === "verified",
           description: record.description || record.business_description,
-          bank_name: record.bankName || record.bank_name,
-          account_number: record.accountNumber || record.account_number,
+          bank_account_name: record.bankName || record.bank_account_name,
+          bank_account_number: record.accountNumber || record.bank_account_number,
+          bank_code: record.bankCode || record.bank_code,
           cac_number: record.cacNumber || record.cac_number,
           whatsapp_number: record.whatsappNumber || record.whatsapp_number,
-          physical_location: record.location || record.physicalLocation || record.physical_location,
-          is_verified: record.isVerified !== undefined ? record.isVerified : record.is_verified,
+          business_address: record.location || record.business_address || record.physical_location,
+          verification_status: record.isVerified ? "verified" : (record.verification_status || "pending"),
           business_description: record.description || record.business_description
         };
 
