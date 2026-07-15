@@ -311,20 +311,29 @@ export async function startServer() {
   const requireAuth = [
     clerkRequireAuth(),
     async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      const clerkId = (req as any).auth?.userId;
-      if (!clerkId) {
-        return res.status(401).json({ error: "Unauthorized access or invalid token" });
+      try {
+        const clerkId = (req as any).auth?.userId;
+        if (!clerkId) {
+          return res.status(401).json({ error: "Unauthorized access or invalid token" });
+        }
+        
+        if (!supabaseAdmin) {
+          return res.status(500).json({ error: "Backend Supabase connection unavailable" });
+        }
+        
+        const { data, error } = await supabaseAdmin.from('users').select('id, role, email').eq('clerk_id', clerkId).single();
+        if (error || !data) {
+           // Gracefully handle if webhook hasn't synced yet
+           return res.status(401).json({ error: "User profile not yet synced" });
+        }
+        
+        // Attach user to req object for downstream routes to use (backwards compatibility)
+        (req as any).user = { id: data.id, role: data.role, email: data.email, clerk_id: clerkId };
+        next();
+      } catch (err: any) {
+        console.error("Auth Middleware Error:", err);
+        return res.status(500).json({ error: "Internal server error during authentication" });
       }
-      
-      const { data, error } = await supabaseAdmin.from('users').select('id, role, email').eq('clerk_id', clerkId).single();
-      if (error || !data) {
-         // Gracefully handle if webhook hasn't synced yet
-         return res.status(401).json({ error: "User profile not yet synced" });
-      }
-      
-      // Attach user to req object for downstream routes to use (backwards compatibility)
-      (req as any).user = { id: data.id, role: data.role, email: data.email, clerk_id: clerkId };
-      next();
     }
   ];
 
@@ -346,20 +355,28 @@ export async function startServer() {
   const requireVendor = [
     ...requireAuth,
     async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      const user = (req as any).user;
-      const isEmailAdmin = user?.email && MASTER_ADMIN_EMAILS.includes(user.email.toLowerCase());
-      if (user?.role !== 'vendor' && user?.role !== 'admin' && !isEmailAdmin) {
-        return res.status(403).json({ error: "Forbidden: Vendor access required" });
-      }
-      if (user.role === 'vendor') {
-        const { data, error } = await supabaseAdmin.from('vendors').select('id').eq('user_id', user.id).single();
-        if (!error && data) {
-           (req as any).vendorId = data.id;
-        } else {
-           (req as any).vendorId = null;
+      try {
+        const user = (req as any).user;
+        const isEmailAdmin = user?.email && MASTER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+        if (user?.role !== 'vendor' && user?.role !== 'admin' && !isEmailAdmin) {
+          return res.status(403).json({ error: "Forbidden: Vendor access required" });
         }
+        if (user.role === 'vendor') {
+          if (!supabaseAdmin) {
+            return res.status(500).json({ error: "Backend Supabase connection unavailable" });
+          }
+          const { data, error } = await supabaseAdmin.from('vendors').select('id').eq('user_id', user.id).single();
+          if (!error && data) {
+             (req as any).vendorId = data.id;
+          } else {
+             (req as any).vendorId = null;
+          }
+        }
+        next();
+      } catch (err: any) {
+        console.error("Vendor Middleware Error:", err);
+        return res.status(500).json({ error: "Internal server error during vendor verification" });
       }
-      next();
     }
   ];
 
