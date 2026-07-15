@@ -39,7 +39,7 @@ serve(async (req) => {
     // Determine email content based on notification type
     switch (notification.type) {
       case 'signup':
-        subject = 'Welcome to Naija-Stores-Online!';
+        subject = 'Welcome to Naija Online Stores!';
         html = `<h1>Welcome, ${user.full_name || 'User'}!</h1><p>Thanks for joining our platform.</p>`;
         break;
       case 'order_confirmation':
@@ -55,7 +55,7 @@ serve(async (req) => {
         html = `<h1>Payout Processed</h1><p>A payout of ${notification.payload.amount} has been processed.</p>`;
         break;
       default:
-        subject = 'Notification from Naija-Stores-Online';
+        subject = 'Notification from Naija Online Stores';
         html = `<p>You have a new notification.</p>`;
     }
 

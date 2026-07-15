@@ -53,7 +53,7 @@ serve(async (req) => {
     <p>Hello <strong>${user.full_name || 'Merchant Partner'}</strong>,</p>
     <p>Thank you for applying to be a vendor on Naija Online Stores. Please confirm your email address by clicking the button below to continue setting up your store:</p>
     <div style="text-align: center;">
-      <a href="https://clerk.naijaonlinestores.com.ng" class="btn">Verify Merchant Account</a>
+      <a href="https://naijaonlinestores.com.ng" class="btn">Verify Merchant Account</a>
     </div>
     <p style="font-size: 12px; color: #64748b; margin-top: 30px;">If you did not request this, you can safely ignore this email.</p>
   `);

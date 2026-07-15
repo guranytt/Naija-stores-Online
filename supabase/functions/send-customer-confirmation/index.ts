@@ -53,7 +53,7 @@ serve(async (req) => {
     <p>Hello <strong>${user.full_name || 'Valued Customer'}</strong>,</p>
     <p>Thank you for signing up. Please confirm your email address by clicking the button below to activate your account and start shopping:</p>
     <div style="text-align: center;">
-      <a href="https://clerk.naijaonlinestores.com.ng" class="btn">Confirm Email Address</a>
+      <a href="https://naijaonlinestores.com.ng" class="btn">Confirm Email Address</a>
     </div>
     <p style="font-size: 12px; color: #64748b; margin-top: 30px;">If you didn't create an account, you can safely ignore this email.</p>
   `);
