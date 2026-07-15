@@ -58,17 +58,36 @@ serve(async (req: Request) => {
     const name = `${first_name || ''} ${last_name || ''}`.trim() || email.split('@')[0] || 'Unknown User';
     const role = public_metadata?.role || unsafe_metadata?.role || "customer";
 
-    const { error } = await supabaseAdmin.from('users').upsert({
+    const { data: userRecord, error } = await supabaseAdmin.from('users').upsert({
       clerk_id: id,
       email,
       full_name: name,
       role: role,
       updated_at: new Date().toISOString()
-    }, { onConflict: 'clerk_id' });
+    }, { onConflict: 'clerk_id' }).select().single();
 
     if (error) {
       console.error("[CLERK WEBHOOK ERROR] Supabase Upsert Failed:", error);
       return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    }
+    
+    // Auto-create vendor profile if role is vendor
+    if (role === 'vendor' && userRecord) {
+      const businessName = public_metadata?.shopName || unsafe_metadata?.shopName || public_metadata?.business_name || unsafe_metadata?.business_name || `${name}'s Store`;
+      const businessAddress = public_metadata?.business_address || unsafe_metadata?.business_address || "To be updated";
+      
+      const { error: vendorError } = await supabaseAdmin.from('vendors').upsert({
+        user_id: userRecord.id,
+        business_name: businessName,
+        business_address: businessAddress,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+      
+      if (vendorError) {
+         console.error("[CLERK WEBHOOK ERROR] Vendor Profile Creation Failed:", vendorError);
+      } else {
+         console.log(`Successfully created vendor profile for user ${id}`);
+      }
     }
     
     console.log(`Successfully synced user ${id} to Supabase`);
