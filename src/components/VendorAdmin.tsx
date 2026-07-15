@@ -287,7 +287,7 @@ export default function VendorAdmin({
     return false;
   });
 
-  const vendorOrderItems = orders.flatMap(o => (o.order_items || []).map(item => ({ ...item, order_customer: o.customerName || (o.shipping_address as any)?.customerName || 'Customer', shipping_address: o.shipping_address, order_status: o.status }))).filter(item => {
+  const vendorOrderItems = orders.flatMap(o => (o.order_items || []).map(item => ({ ...item, order_customer: o.customerName || ((o as any).shipping_address as any)?.customerName || 'Customer', shipping_address: (o as any).shipping_address, order_status: o.status }))).filter(item => {
     return item.vendor_id === activeVendor.id || (currentUserId && item.vendor_id === currentUserId) || item.vendor_id === activeVendor.userId;
   });
 

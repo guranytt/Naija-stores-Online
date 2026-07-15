@@ -1195,9 +1195,9 @@ Return valid JSON only matching this schema exactly:
       // Dynamically probe the table columns to support backward compatibility with incomplete schemas
       let dbColumns: string[] = [
         'id', 'user_id', 'business_name', 'owner_name', 'business_description', 
-        'logo_url', 'verification_status', 'phone', 'email', 'created_at',
-        'bank_account_name', 'bank_account_number', 'bank_code', 'whatsapp_number', 
-        'business_address', 'cac_number'
+        'logo_url', 'approval_status', 'phone', 'email', 'created_at',
+        'bank_name', 'account_number', 'whatsapp_number', 
+        'physical_location', 'cac_number', 'is_verified'
       ];
 
       // Do NOT JSON stringify metadata into business_description! 
@@ -1205,9 +1205,9 @@ Return valid JSON only matching this schema exactly:
       const finalPayload: any = {};
       
       const coreKeys = [
-        'id', 'user_id', 'business_name', 'owner_name', 'logo_url', 'verification_status', 
-        'phone', 'email', 'created_at', 'business_description', 'bank_account_name', 
-        'bank_account_number', 'bank_code', 'whatsapp_number', 'business_address', 'cac_number'
+        'id', 'user_id', 'business_name', 'owner_name', 'logo_url', 'approval_status', 
+        'phone', 'email', 'created_at', 'business_description', 'bank_name', 
+        'account_number', 'whatsapp_number', 'physical_location', 'cac_number', 'is_verified'
       ];
 
       coreKeys.forEach((key) => {
@@ -1226,23 +1226,23 @@ Return valid JSON only matching this schema exactly:
       if (payload.description && dbColumns.includes('business_description') && !finalPayload.business_description) {
         finalPayload.business_description = payload.description;
       }
-      if (payload.bankName && dbColumns.includes('bank_account_name') && !finalPayload.bank_account_name) {
-        finalPayload.bank_account_name = payload.bankName;
+      if (payload.bankName && dbColumns.includes('bank_name') && !finalPayload.bank_name) {
+        finalPayload.bank_name = payload.bankName;
       }
-      if (payload.accountNumber && dbColumns.includes('bank_account_number') && !finalPayload.bank_account_number) {
-        finalPayload.bank_account_number = payload.accountNumber;
-      }
-      if (payload.bankCode && dbColumns.includes('bank_code') && !finalPayload.bank_code) {
-        finalPayload.bank_code = payload.bankCode;
+      if (payload.accountNumber && dbColumns.includes('account_number') && !finalPayload.account_number) {
+        finalPayload.account_number = payload.accountNumber;
       }
       if (payload.whatsappNumber && dbColumns.includes('whatsapp_number') && !finalPayload.whatsapp_number) {
         finalPayload.whatsapp_number = payload.whatsappNumber;
       }
-      if ((payload.location || payload.physicalLocation || payload.physical_location) && dbColumns.includes('business_address') && !finalPayload.business_address) {
-        finalPayload.business_address = payload.location || payload.physicalLocation || payload.physical_location;
+      if ((payload.location || payload.physicalLocation || payload.physical_location) && dbColumns.includes('physical_location') && !finalPayload.physical_location) {
+        finalPayload.physical_location = payload.location || payload.physicalLocation || payload.physical_location;
       }
-      if (payload.isVerified !== undefined && dbColumns.includes('verification_status') && finalPayload.verification_status === undefined) {
-        finalPayload.verification_status = payload.isVerified ? 'verified' : 'pending';
+      if (payload.isVerified !== undefined && dbColumns.includes('is_verified') && finalPayload.is_verified === undefined) {
+        finalPayload.is_verified = payload.isVerified;
+      }
+      if (payload.approvalStatus !== undefined && dbColumns.includes('approval_status') && finalPayload.approval_status === undefined) {
+        finalPayload.approval_status = payload.approvalStatus;
       }
 
       const { data, error } = await supabaseAdmin.from("vendors").upsert(finalPayload).select("id");

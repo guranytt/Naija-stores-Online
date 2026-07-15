@@ -107,6 +107,8 @@ export interface Vendor {
   accountNumber?: string;
   bank_name?: string;
   account_number?: string;
+  bankCode?: string;
+  bank_code?: string;
   userId?: string;
   user_id?: string;
   isVerified?: boolean;
@@ -124,6 +126,7 @@ export interface Order {
   user_id?: string;
   customerName: string;
   deliveryAddress?: string;
+  shipping_address?: any;
   phoneNumber?: string;
   emailAddress?: string;
   status: "Delivered" | "Processing" | "Shipped" | "Flagged";
