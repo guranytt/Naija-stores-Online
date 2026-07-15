@@ -1599,12 +1599,12 @@ function ensureUUID(idValue: any): string {
           slug: item.slug || item.id,
           image_url: item.image_url || item.image || "",
           description: item.description || "",
-          icon_name: item.icon_name || item.iconName || "",
-          item_count: item.item_count || item.itemCount || 0,
-          subcategories: item.subcategories || [],
+          icon_name: item.icon_name || "Package",
+          item_count: item.item_count || 0,
+          subcategories: Array.isArray(item.subcategories) ? item.subcategories : [],
           status: item.status || "active",
-          default_commission_percentage: item.default_commission_percentage || item.defaultCommissionPercentage || 5.0,
-          sort_order: item.sort_order || item.sortOrder || 0
+          sort_order: item.sort_order || 0,
+          default_commission_percentage: item.default_commission_percentage || 5.0
         };
       });
 

@@ -99,16 +99,11 @@ export default function VendorAdmin({
   const [selectedParentId, setSelectedParentId] = useState("");
   const [newSubcatName, setNewSubcatName] = useState("");
 
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleCreateCategorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
-    const newId = newCatName.toLowerCase().trim().replace(/[^a-z0-9]/g, "-");
     
-    if (localCategories.some((c) => c.id === newId)) {
-      alert("A category with this name already exists!");
-      return;
-    }
-
+    const newId = "cat_" + Date.now();
     const newCat: Category = {
       id: newId,
       name: newCatName.trim(),
@@ -119,7 +114,9 @@ export default function VendorAdmin({
       subcategories: [],
       status: newCatStatus as "active" | "pending" | "rejected",
       sortOrder: newCatSortOrder,
-      defaultCommissionPercentage: newCatCommission
+      defaultCommissionPercentage: newCatCommission,
+      slug: newCatName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      categoryId: newId
     };
 
     const updated = [...localCategories, newCat];
@@ -192,16 +189,17 @@ export default function VendorAdmin({
   
   // States for adding a customized new product
   const [showAddProductModal, setShowAddProductModal] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
+  const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("");
+  const [newStockQuantity, setNewStockQuantity] = useState("");
   const [newCategory, setNewCategory] = useState("Fashion");
   const [proposingCategory, setProposingCategory] = useState(false);
   const [customCategoryName, setCustomCategoryName] = useState("");
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [newDescription, setNewDescription] = useState("");
   const [proposingSubcategory, setProposingSubcategory] = useState(false);
   const [customSubcategoryName, setCustomSubcategoryName] = useState("");
-  const [newStock, setNewStock] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-  const [newImage, setNewImage] = useState("");
+  
   const [activeProductTab, setActiveProductTab] = useState<"All" | "Live" | "Draft">("All");
   const [localFulfillment, setLocalFulfillment] = useState<Record<string, string>>({});
   
@@ -209,14 +207,10 @@ export default function VendorAdmin({
     setLocalFulfillment(prev => ({ ...prev, [itemId]: newStatus }));
     await supabase.from('order_items').update({ fulfillment_status: newStatus }).eq('id', itemId);
   };
-
-  const [newCondition, setNewCondition] = useState<string>("New");
-  const [newCommissionPercent, setNewCommissionPercent] = useState<string>("5");
+  
   const [isUploading, setIsUploading] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [uploadError, setUploadError] = useState("");
-
-  // States for updating vendor profile and branding picture
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editShopName, setEditShopName] = useState("");
   const [editOwnerName, setEditOwnerName] = useState("");
@@ -508,7 +502,7 @@ export default function VendorAdmin({
       const base64 = await convertFileToBase64(compressedFile);
       const res = await uploadToCloudinary(base64);
       if (res.success && res.url) {
-        setNewImage(res.url);
+        setNewImageUrl(res.url);
       } else {
         setUploadError(res.error || "Uploader returned an invalid state.");
       }
@@ -521,7 +515,7 @@ export default function VendorAdmin({
 
   const handleCreateProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle || !newPrice || !newStock) return;
+    if (!newName || !newPrice || !newStockQuantity) return;
     
     let resolvedCategory = newCategory;
     
@@ -556,14 +550,12 @@ export default function VendorAdmin({
     if (onAddNewProduct) {
       const prod: Product = {
         id: "p_" + Date.now(),
-        title: newTitle,
-        description: newDesc || "High-quality item customized for Nigerian markets.",
+        title: newName,
+        description: newDescription || "High-quality item customized for Nigerian markets.",
         price: Number(newPrice),
-        stock: Number(newStock),
+        stock: Number(newStockQuantity),
         category: resolvedCategory,
-        condition: newCondition,
-        commissionPercentage: Number(newCommissionPercent),
-        image: newImage || "https://lh3.googleusercontent.com/aida-public/AB6AXuBXHHRDhnfXAPzOsfwJAJsaalg4cWfRii5vBleuGOxKrptM-qmw3JgFBhmDSeXClxBlfi3YbQJiQs13dl3CJxFMTrEsoeKAI1JkXEckU88mcDf64zuwrUdWJW8NNuhXEbmbimeAKXSCpzoTENrA7IaXi3jzD_WCPb-on3IiWMAikNItCyKkPDuCIxGIIFS30rf-qvm-aGDzOiKqproxCid4Yu_VB_ycleJTW0iXWyz1WZUzAk_v-gZdvKW2YKJet89-kA4ee4AC0u9d",
+        image: newImageUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuBXHHRDhnfXAPzOsfwJAJsaalg4cWfRii5vBleuGOxKrptM-qmw3JgFBhmDSeXClxBlfi3YbQJiQs13dl3CJxFMTrEsoeKAI1JkXEckU88mcDf64zuwrUdWJW8NNuhXEbmbimeAKXSCpzoTENrA7IaXi3jzD_WCPb-on3IiWMAikNItCyKkPDuCIxGIIFS30rf-qvm-aGDzOiKqproxCid4Yu_VB_ycleJTW0iXWyz1WZUzAk_v-gZdvKW2YKJet89-kA4ee4AC0u9d",
         vendorId: activeVendor.id,
         vendorName: activeVendor.name,
         rating: 5.0,
@@ -573,18 +565,14 @@ export default function VendorAdmin({
       onAddNewProduct(prod);
     }
 
-    setNewTitle("");
+    setNewName("");
     setNewPrice("");
-    setNewStock("");
-    setNewDesc("");
-    setNewImage("");
-    setNewCondition("New");
-    setNewCommissionPercent("5");
+    setNewStockQuantity("");
+    setNewCategory("Fashion");
     setProposingCategory(false);
-    setProposingSubcategory(false);
     setCustomCategoryName("");
-    setCustomSubcategoryName("");
-    setUploadError("");
+    setNewImageUrl("");
+    setNewDescription("");
     setShowAddProductModal(false);
   };
 
@@ -1068,12 +1056,12 @@ export default function VendorAdmin({
                 
                 <form onSubmit={handleCreateProductSubmit} className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Product Title</label>
+                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Product Name</label>
                     <input
                       type="text"
                       required
-                      value={newTitle}
-                      onChange={(e) => setNewTitle(e.target.value)}
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
                       placeholder="e.g. Ankara Velvet Evening Gown"
                       className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
                     />
@@ -1092,12 +1080,12 @@ export default function VendorAdmin({
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Stock Level</label>
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Stock Quantity</label>
                       <input
                         type="number"
                         required
-                        value={newStock}
-                        onChange={(e) => setNewStock(e.target.value)}
+                        value={newStockQuantity}
+                        onChange={(e) => setNewStockQuantity(e.target.value)}
                         placeholder="18"
                         className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-mono"
                       />
@@ -1140,95 +1128,7 @@ export default function VendorAdmin({
                     )}
                   </div>
 
-                  {/* Subcategory Proposal Field */}
-                  {!proposingCategory && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center px-1">
-                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Subcategory</label>
-                        <button type="button" onClick={() => setProposingSubcategory(!proposingSubcategory)} className="text-[10px] text-orange-500 font-extrabold hover:underline">
-                          {proposingSubcategory ? "Cancel" : "+ Propose Subcategory"}
-                        </button>
-                      </div>
-                      
-                      {proposingSubcategory ? (
-                         <div className="animate-fade-in space-y-1 pt-1">
-                           <input
-                             type="text"
-                             placeholder={`E.g., Smartphones in ${newCategory}`}
-                             value={customSubcategoryName}
-                             onChange={(e) => setCustomSubcategoryName(e.target.value)}
-                             className="w-full px-4 py-2 text-xs border border-orange-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none placeholder-neutral-400 bg-orange-50 shadow-sm font-bold"
-                             required
-                           />
-                         </div>
-                      ) : (
-                         <select
-                           className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-bold text-neutral-500"
-                         >
-                           <option value="">-- Main Category Default --</option>
-                           {(localCategories.find(c => c.name === newCategory)?.subcategories || []).map((sub, idx) => (
-                             <option key={idx} value={sub}>{sub}</option>
-                           ))}
-                         </select>
-                      )}
-                    </div>
-                  )}
-
-                  {proposingCategory && (
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Subcategory (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="E.g., Smart Phones"
-                        value={customSubcategoryName}
-                        onChange={(e) => {
-                          setCustomSubcategoryName(e.target.value);
-                          if (e.target.value.trim().length > 0) {
-                            setProposingSubcategory(true);
-                          } else {
-                            setProposingSubcategory(false);
-                          }
-                        }}
-                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none placeholder-neutral-400 bg-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
-                      />
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Condition</label>
-                      <select
-                        value={newCondition}
-                        onChange={(e: any) => setNewCondition(e.target.value)}
-                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-bold text-neutral-700"
-                      >
-                        <option value="New">New</option>
-                        <option value="Fairly Used">Fairly Used</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Commission (%)</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="100"
-                        required
-                        value={newCommissionPercent}
-                        onChange={(e) => setNewCommissionPercent(e.target.value)}
-                        placeholder="5"
-                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-mono"
-                      />
-                    </div>
-                  </div>
-                  
-                  {newPrice && newCommissionPercent && (
-                    <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl flex justify-between items-center text-xs">
-                      <span className="font-bold text-neutral-600">Expected Earnings:</span>
-                      <span className="font-black text-emerald-800 font-mono">
-                        {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(Number(newPrice) * (1 - Number(newCommissionPercent) / 100))}
-                      </span>
-                    </div>
-                  )}
+                  {/* Removed Condition, Commission % and Expected Earnings since they don't map to products */}
 
                   {/* Cloudinary CDN Image Upload Asset Manager */}
                   <div className="space-y-1.5 p-3.5 bg-neutral-50/70 border border-neutral-150 rounded-2xl">
@@ -1257,12 +1157,12 @@ export default function VendorAdmin({
                         />
                       </div>
 
-                      {newImage && (
+                      {newImageUrl && (
                         <div className="w-12 h-12 rounded-xl overflow-hidden border border-neutral-250 flex-shrink-0 relative group">
-                          <img src={newImage} alt="Cloudinary Thumbnail Preview" className="w-full h-full object-cover" />
+                          <img src={newImageUrl} alt="Cloudinary Thumbnail Preview" className="w-full h-full object-cover" />
                           <button
                             type="button"
-                            onClick={() => setNewImage("")}
+                            onClick={() => setNewImageUrl("")}
                             className="absolute inset-0 bg-neutral-900/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"
                           >
                             <X className="w-4 h-4 text-white" />
@@ -1285,7 +1185,7 @@ export default function VendorAdmin({
                       </div>
                     )}
 
-                    {newImage && !isUploading && (
+                    {newImageUrl && !isUploading && (
                       <div className="text-[10px] text-emerald-600 bg-emerald-50 p-2 rounded-xl border border-emerald-100 font-bold flex items-center space-x-1">
                         <CheckCircle className="w-3.5 h-3.5" />
                         <span className="truncate">Active link assigned!</span>
@@ -1294,12 +1194,12 @@ export default function VendorAdmin({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Detailed Features</label>
+                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Description</label>
                     <textarea
-                      value={newDesc}
-                      onChange={(e) => setNewDesc(e.target.value)}
+                      value={newDescription}
+                      onChange={(e) => setNewDescription(e.target.value)}
                       rows={3}
-                      placeholder="Specify size tolerances, fabric details, or audio constraints..."
+                      placeholder="Specify detailed product description..."
                       className="w-full text-xs p-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-neutral-700"
                     />
                   </div>
@@ -1847,32 +1747,32 @@ export default function VendorAdmin({
               <div className="lg:col-span-5 space-y-6">
                 
                 {/* Form 1: Add Category */}
-                <form onSubmit={handleAddCategory} className="bg-neutral-50 p-4 border border-neutral-150 rounded-xl space-y-3 text-left">
+                <form onSubmit={handleCreateCategorySubmit} className="space-y-4 bg-neutral-50 p-4 border border-neutral-150 rounded-xl text-left">
                   <h4 className="text-xs font-extrabold uppercase text-neutral-500 tracking-wider flex items-center space-x-1.5 mb-2">
                     <Database className="w-3.5 h-3.5 text-orange-500" />
                     <span>Create Parent Category</span>
                   </h4>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-neutral-450 block">Category Name *</label>
+                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Name</label>
                     <input
                       type="text"
                       required
                       value={newCatName}
                       onChange={(e) => setNewCatName(e.target.value)}
-                      className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-xs bg-white outline-none focus:ring-1.5 focus:ring-neutral-900 font-semibold"
-                      placeholder="e.g. Computers"
+                      placeholder="e.g. Traditional Wear"
+                      className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-[#8B5CF6] outline-none"
                     />
                   </div>
-
+                  
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-neutral-450 block">Short Description</label>
-                    <input
-                      type="text"
+                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Description</label>
+                    <textarea
                       value={newCatDesc}
                       onChange={(e) => setNewCatDesc(e.target.value)}
-                      className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-xs bg-white outline-none focus:ring-1.5 focus:ring-neutral-900 font-medium"
-                      placeholder="e.g. Laptops, desktops and accessories"
+                      rows={2}
+                      placeholder="Brief description for the category..."
+                      className="w-full text-xs p-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-[#8B5CF6] outline-none text-neutral-700"
                     />
                   </div>
 
@@ -1893,39 +1793,29 @@ export default function VendorAdmin({
                     </select>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-neutral-450 block">Status</label>
-                    <select
-                      value={newCatStatus}
-                      onChange={(e) => setNewCatStatus(e.target.value)}
-                      className="w-full px-3 py-2 border border-neutral-200 bg-white rounded-lg text-xs outline-none focus:ring-1.5 focus:ring-neutral-900 font-bold"
-                    >
-                      <option value="active">Active</option>
-                      <option value="pending">Pending</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-neutral-450 block">Sort Order</label>
-                      <input
-                        type="number"
-                        value={newCatSortOrder}
-                        onChange={(e) => setNewCatSortOrder(Number(e.target.value))}
-                        className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-xs bg-white outline-none focus:ring-1.5 focus:ring-neutral-900 font-semibold"
-                        placeholder="0"
-                      />
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Status</label>
+                      <select
+                        value={newCatStatus}
+                        onChange={(e) => setNewCatStatus(e.target.value)}
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-[#8B5CF6] outline-none bg-white font-bold"
+                      >
+                        <option value="active">Active</option>
+                        <option value="pending">Pending</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-neutral-450 block">Base Comm. (%)</label>
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Commission Rate (%)</label>
                       <input
                         type="number"
                         step="0.1"
+                        required
                         value={newCatCommission}
-                        onChange={(e) => setNewCatCommission(Number(e.target.value))}
-                        className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-xs bg-white outline-none focus:ring-1.5 focus:ring-neutral-900 font-semibold"
+                        onChange={(e) => setNewCatCommission(parseFloat(e.target.value) || 0)}
                         placeholder="5.0"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-[#8B5CF6] outline-none font-mono"
                       />
                     </div>
                   </div>

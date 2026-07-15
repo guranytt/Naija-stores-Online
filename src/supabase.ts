@@ -556,34 +556,26 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
         throw new Error(`Category resolution failed. No valid category found or created for: ${record.category || record.categoryId || record.category_id || "Unknown"}`);
       }
 
-      // User's Schema mapping
-      payload.name = record.title || record.name;
-      payload.slug = record.slug || ((record.title || record.name || "product").toLowerCase().trim().replace(/[^a-z0-9]/g, "-") + "-" + Date.now());
+      // Schema mapping
+      payload.name = record.name || record.title;
+      if (!payload.name) {
+         throw new Error("Product name is required");
+      }
       
-      // Parse entire record as a string into description for site-wide UI display and persistence
-      payload.description = JSON.stringify(record);
-
+      payload.description = record.description || "";
       payload.price = Number(record.price || 0);
-      payload.discount_price = Number(record.originalPrice || record.discount_price || record.price || 0);
-      payload.stock_quantity = Number(record.stock !== undefined ? record.stock : record.stock_quantity || 10);
-      payload.featured = record.featured || false;
+      payload.stock_quantity = Number(record.stock_quantity !== undefined ? record.stock_quantity : record.stock || 10);
       payload.status = record.status || "active";
-      payload.vendor_id = record.vendorId || record.vendor_id || undefined;
+      payload.vendor_id = record.vendor_id || record.vendorId || undefined;
       payload.category_id = resolvedCategoryId;
-      payload.external_link = record.externalLink || record.external_link || undefined;
-
-      // Legacy/Compatibility mapping
-      payload.title = record.title || record.name;
-      payload.originalPrice = Number(record.originalPrice || record.price || 0);
-      payload.image = record.image || record.image_url;
-      payload.stock = Number(record.stock !== undefined ? record.stock : 10);
-      payload.vendorId = record.vendorId || undefined;
-      payload.vendorName = record.vendorName || "Eko Heritage Weavers";
-      payload.category = record.category || "General";
-      payload.sizes = Array.isArray(record.sizes) ? record.sizes.join(",") : record.sizes;
-      payload.colors = Array.isArray(record.colors) ? record.colors.join(",") : record.colors;
-      payload.highlights = Array.isArray(record.highlights) ? record.highlights.join(",") : record.highlights;
-      payload.whatsInTheBox = Array.isArray(record.whatsInTheBox) ? record.whatsInTheBox.join(",") : record.whatsInTheBox;
+      
+      // Map frontend images to DB image_urls JSON
+      const img = record.image_url || record.image;
+      if (img) {
+         payload.image_urls = JSON.stringify([img]);
+      } else {
+         payload.image_urls = JSON.stringify([]);
+      }
 
     } else if (tableName === "vendors") {
       // User's Schema mapping
