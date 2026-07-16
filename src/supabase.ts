@@ -758,10 +758,16 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
     if (tableName === "vendors") {
       let directSuccess = false;
       try {
-        // ── Primary: Direct Supabase Upsert (Bypasses Express Backend) ──
-        const { error: directErr } = await supabase.from("vendors").upsert(payload);
+        let directErr = null;
+        if (payload.id) {
+          const { error } = await supabase.from("vendors").update(payload).eq("id", payload.id);
+          directErr = error;
+        } else {
+          const { error } = await supabase.from("vendors").insert(payload);
+          directErr = error;
+        }
         if (!directErr) {
-          console.log(`[Vendor Save] Direct Supabase upsert successful for vendors.`);
+          console.log(`[Vendor Save] Direct Supabase save successful for vendors.`);
           return true; // Fast exit
         }
         console.warn(`[Vendor Save] Direct Supabase upsert failed: ${directErr.message}, trying API fallback...`);
@@ -835,13 +841,6 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
     } else if (tableName === "categories") {
       let directSuccess = false;
       try {
-        // ── Primary: Direct Supabase Upsert (Bypasses Express Backend) ──
-        const { error: directErr } = await supabase.from(tableName).upsert(payload);
-        if (!directErr) {
-          console.log(`[Category Save] Direct Supabase upsert successful for ${tableName}.`);
-          return true; // Fast exit
-        }
-        console.warn(`[Category Save] Direct Supabase upsert failed: ${directErr.message}, trying API fallback...`);
       } catch (directCatchErr: any) {
         console.warn(`[Category Save] Direct Supabase upsert exception: ${directCatchErr.message}, trying API fallback...`);
       }
@@ -886,9 +885,17 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       }
     }
 
-    const { error } = await supabase.from(tableName).upsert(payload);
-    if (error) {
-      console.warn(`Supabase: Failed to save record to ${tableName}:`, error.message);
+    let finalError = null;
+    if (payload.id) {
+      const { error } = await supabase.from(tableName).update(payload).eq("id", payload.id);
+      finalError = error;
+    } else {
+      const { error } = await supabase.from(tableName).insert(payload);
+      finalError = error;
+    }
+
+    if (finalError) {
+      console.warn(`Supabase: Failed to save record to ${tableName}:`, finalError.message);
       return false;
     }
     return true;

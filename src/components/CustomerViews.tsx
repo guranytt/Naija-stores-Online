@@ -9,6 +9,7 @@ import { Star, ShoppingCart, ArrowLeft, ChevronRight, Check, Trash2, Heart, Shie
 import { Product, Category, CartItem, Vendor, Advertisement, Order } from "../types";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_ADS, FLASH_SALE_PRODUCTS } from "../data/mockData";
 import { trackProductViewed } from "../lib/posthog";
+import { getOptimizedImageUrl } from "../utils/imageTransforms";
 
 // Naira formatter helper
 export const formatNaira = (value: number) => {
@@ -430,7 +431,7 @@ export default function CustomerViews({
                     className="absolute inset-0 w-full h-full"
                   >
                     <img 
-                      src={homepageAds[currentAdIndex].imageUrl} 
+                      src={getOptimizedImageUrl(homepageAds[currentAdIndex].imageUrl, { width: 1200 })} 
                       alt={homepageAds[currentAdIndex].title} 
                       className="w-full h-full object-cover transition-transform duration-[20s] group-hover:scale-110 ease-out" 
                       referrerPolicy="no-referrer"
@@ -776,7 +777,7 @@ export default function CustomerViews({
 
                   {/* Background cover */}
                   <img
-                    src={cat.image}
+                    src={getOptimizedImageUrl(cat.image, { width: 500 })}
                     alt={cat.name}
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-112"
                     referrerPolicy="no-referrer"
@@ -823,7 +824,7 @@ export default function CustomerViews({
                     {/* Left: Image */}
                     <div className="w-[35%] h-full bg-neutral-50 rounded-xl overflow-hidden relative shrink-0">
                       {p.image ? (
-                        <img src={p.image} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} />
+                        <img src={getOptimizedImageUrl(p.image, { width: 500 })} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} />
                       ) : (
                         <div className="flex w-full h-full items-center justify-center text-[9px] uppercase font-bold text-neutral-300">No Img</div>
                       )}
@@ -912,7 +913,7 @@ export default function CustomerViews({
                       {/* Left: Image */}
                       <div className="w-[30%] h-full bg-neutral-50 rounded-xl overflow-hidden relative shrink-0">
                         {p.image ? (
-                          <img src={p.image} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} referrerPolicy="no-referrer" />
+                          <img src={getOptimizedImageUrl(p.image, { width: 500 })} className="w-full h-full object-cover transition-transform hover:scale-110" alt={p.title} referrerPolicy="no-referrer" />
                         ) : (
                           <div className="flex w-full h-full items-center justify-center text-[9px] uppercase font-bold text-neutral-300">No Img</div>
                         )}
@@ -968,7 +969,7 @@ export default function CustomerViews({
                     <div className="relative aspect-square bg-neutral-50 overflow-hidden flex items-center justify-center border-b border-neutral-100/60">
                       {p.image ? (
                         <img
-                          src={p.image}
+                          src={getOptimizedImageUrl(p.image, { width: 500 })}
                           alt={p.title}
                           className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                           referrerPolicy="no-referrer"
@@ -1145,7 +1146,7 @@ export default function CustomerViews({
                     // Tracking logic
                  }}
                >
-                 <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                 <img src={getOptimizedImageUrl(ad.imageUrl, { width: 800 })} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-4">
                    <span className="text-[9px] text-orange-400 font-extrabold uppercase tracking-widest mb-1 bg-black/50 w-fit px-1.5 py-0.5 rounded">Promoted</span>
                    <h3 className="text-white font-black text-lg sm:text-xl">{ad.title}</h3>
@@ -1262,7 +1263,7 @@ export default function CustomerViews({
                   <div className="relative w-full aspect-square bg-neutral-50 overflow-hidden flex flex-col items-center justify-center border-b border-neutral-100/60">
                     {p.image ? (
                       <img
-                        src={p.image}
+                        src={getOptimizedImageUrl(p.image, { width: 500 })}
                         alt={p.title}
                         className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                         referrerPolicy="no-referrer"
@@ -1458,7 +1459,7 @@ export default function CustomerViews({
                   <AnimatePresence mode="wait">
                     <motion.img
                       key={selectedImageIndex}
-                      src={detailProduct.image}
+                      src={getOptimizedImageUrl(detailProduct.image, { width: 1200 })}
                       initial={{ opacity: 0, scale: 0.98 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 1.02 }}
@@ -1508,7 +1509,7 @@ export default function CustomerViews({
                         />
                       )}
                       <img
-                        src={detailProduct.image}
+                        src={getOptimizedImageUrl(detailProduct.image, { width: 300 })}
                         alt="Product thumbnail view"
                         className={`w-full h-full object-cover transition-all duration-300 ${
                           idx === 1
@@ -1959,7 +1960,7 @@ export default function CustomerViews({
                       <div className="flex items-center space-x-4 w-full sm:w-auto">
                         <div className="w-16 h-16 bg-neutral-50 rounded-xl overflow-hidden border border-neutral-100 flex-shrink-0 flex items-center justify-center">
                           {item.product.image ? (
-                            <img src={item.product.image} alt={item.product.title} className="w-full h-full object-cover pointer-events-none" />
+                            <img src={getOptimizedImageUrl(item.product.image, { width: 300 })} alt={item.product.title} className="w-full h-full object-cover pointer-events-none" />
                           ) : (
                             <ShoppingCart className="w-5 h-5 text-neutral-300" />
                           )}
@@ -2326,7 +2327,7 @@ export default function CustomerViews({
 
                         <div className="relative aspect-square w-full bg-neutral-50 overflow-hidden border-b border-neutral-100 flex items-center justify-center">
                           {p.image ? (
-                            <img src={p.image} alt={p.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" referrerPolicy="no-referrer" />
+                            <img src={getOptimizedImageUrl(p.image, { width: 300 })} alt={p.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108" referrerPolicy="no-referrer" />
                           ) : (
                             <span className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">IMAGING READY</span>
                           )}

@@ -1246,9 +1246,22 @@ Return valid JSON only matching this schema exactly:
       }
 
 
-      const { data, error } = await supabaseAdmin.from("vendors").upsert(finalPayload).select("id");
+      let data: any = null;
+      let error: any = null;
+      
+      const { data: existingVendor } = await supabaseAdmin.from("vendors").select("id").eq("id", finalPayload.id).maybeSingle();
+      if (existingVendor) {
+        const { data: updateData, error: updateError } = await supabaseAdmin.from("vendors").update(finalPayload).eq("id", finalPayload.id).select("id");
+        data = updateData;
+        error = updateError;
+      } else {
+        const { data: insertData, error: insertError } = await supabaseAdmin.from("vendors").insert(finalPayload).select("id");
+        data = insertData;
+        error = insertError;
+      }
+
       if (error) {
-        console.error("[SERVER] Error upserting vendor:", error);
+        console.error("[SERVER] Error saving vendor:", error);
         return res.status(500).json({ error: error.message });
       }
       
@@ -1304,9 +1317,19 @@ Return valid JSON only matching this schema exactly:
         }
       }
 
-      const { error } = await supabaseAdmin.from("products").upsert(sanitizedPayload);
+      let error = null;
+      const { data: existingProduct } = await supabaseAdmin.from("products").select("id").eq("id", sanitizedPayload.id).maybeSingle();
+      
+      if (existingProduct) {
+        const { error: updateError } = await supabaseAdmin.from("products").update(sanitizedPayload).eq("id", sanitizedPayload.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabaseAdmin.from("products").insert(sanitizedPayload);
+        error = insertError;
+      }
+
       if (error) {
-        console.error("[SERVER] Error upserting product:", error);
+        console.error("[SERVER] Error saving product:", error);
         return res.status(500).json({ error: error.message });
       }
       // Return the full payload to the frontend so they don't lose local state
