@@ -66,21 +66,34 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
     setIsLoading(true);
 
     try {
-      await signUp.create({
-        emailAddress: email,
-        password,
-        unsafeMetadata: {
-          role: "vendor",
-          fullName: ownerName,
-          shopName: businessName
-        }
-      });
+      console.log("Starting vendor signup for:", email);
+      
+      // Safety timeout to prevent infinite spinner
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Signup request timed out. Please try again.")), 15000)
+      );
 
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      const signupPromise = async () => {
+        await signUp.create({
+          emailAddress: email,
+          password,
+          unsafeMetadata: {
+            role: "vendor",
+            fullName: ownerName,
+            shopName: businessName
+          }
+        });
+        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      };
+
+      await Promise.race([signupPromise(), timeoutPromise]);
+      
+      console.log("Signup created, moving to OTP step");
       setStep(4); // Move to OTP step
     } catch (err: any) {
-      console.error(err);
-      setError(err.errors?.[0]?.message || err.message || "Failed to start signup");
+      console.error("Signup error:", err);
+      const errMsg = err?.errors?.[0]?.message || err?.message || (typeof err === "string" ? err : "Failed to start signup");
+      setError(errMsg);
     } finally {
       setIsLoading(false);
     }
@@ -156,8 +169,9 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
       }, 500);
 
     } catch (err: any) {
-      console.error(err);
-      setError(err.errors?.[0]?.message || err.message || "Invalid verification code");
+      console.error("OTP Verification Error:", err);
+      const errMsg = err?.errors?.[0]?.message || err?.message || (typeof err === "string" ? err : "Invalid verification code");
+      setError(errMsg);
       setIsLoading(false);
     }
   };
