@@ -6,7 +6,8 @@ export const getAuthToken = async (): Promise<any> => {
     try {
       const session = (window as any).Clerk.session;
       if (session) {
-        return (await session.getToken()) || undefined;
+        // We request the 'supabase' template so the JWT is correctly formatted for Supabase RLS
+        return (await session.getToken({ template: 'supabase' })) || (await session.getToken()) || undefined;
       }
     } catch (e) {
       console.warn("Failed to get Clerk token dynamically:", e);
@@ -97,7 +98,7 @@ export function ensureUUID(idValue: any): string {
 async function getTableColumns(tableName: string): Promise<string[]> {
   const fallbacks: Record<string, string[]> = {
     categories: ['id', 'name', 'slug', 'image_url'],
-    products: ['id', 'vendor_id', 'category_id', 'name', 'slug', 'description', 'price', 'discount_price', 'stock_quantity', 'featured', 'status', 'created_at'],
+    products: ['id', 'vendor_id', 'category_id', 'name', 'slug', 'description', 'price', 'discount_price', 'stock_quantity', 'featured', 'status', 'created_at', 'image_urls'],
     vendors: ['id', 'user_id', 'business_name', 'owner_name', 'business_description', 'logo_url', 'approval_status', 'created_at', 'bank_name', 'account_number', 'cac_number', 'whatsapp_number', 'phone', 'email', 'physical_location', 'is_verified'],
     orders: ['id', 'user_id', 'total_amount', 'order_status', 'payment_status', 'shipping_address', 'created_at']
   };
@@ -637,6 +638,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       }
       
       payload.description = record.description || "";
+      payload.slug = record.slug || (payload.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now().toString().slice(-6));
       payload.price = Number(record.price || 0);
       payload.stock_quantity = Number(record.stock_quantity !== undefined ? record.stock_quantity : record.stock || 10);
       payload.status = record.status || "active";
@@ -886,7 +888,7 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
     }
 
     let finalError = null;
-    if (payload.id) {
+    if (payload.id && !record.isNew) {
       const { error } = await supabase.from(tableName).update(payload).eq("id", payload.id);
       finalError = error;
     } else {

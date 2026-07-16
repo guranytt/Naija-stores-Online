@@ -1,62 +1,51 @@
 import { useState } from 'react';
-import { supabase } from '../supabase';
-import { ensureUUID } from '../supabase';
+import { getAuthToken } from '../supabase';
 import { Vendor } from '../types';
 import { mutate } from 'swr';
 
-export function useUpdateVendorProfile() {
+export const useUpdateVendorProfile = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const updateProfile = async (vendorData: Vendor) => {
+  const updateProfile = async (vendorData: Partial<Vendor>) => {
     setIsUpdating(true);
     setError(null);
-
+    
     try {
-      // Map frontend Vendor interface to Supabase database schema
+      const token = await getAuthToken();
+      if (!token) {
+         throw new Error("Authentication session expired. Please log in again.");
+      }
+
       const payload = {
-        business_name: vendorData.name,
-        business_description: (vendorData as any).description || (vendorData as any).business_description || "",
-        logo_url: vendorData.avatar || "",
-        verification_status: vendorData.approval_status || "verified",
-        user_id: (vendorData.userId || vendorData.user_id) ? ensureUUID(vendorData.userId || vendorData.user_id) : undefined,
-        bank_account_name: vendorData.bankName || "",
-        bank_account_number: vendorData.accountNumber || "",
-        bank_code: (vendorData as any).bankCode || "",
-        cac_number: vendorData.cacNumber || "",
-        whatsapp_number: vendorData.whatsappNumber || "",
-        business_address: vendorData.location || "",
-        phone: vendorData.phone || vendorData.whatsappNumber || "",
-        email: vendorData.email || "",
-        owner_name: vendorData.ownerName || "",
+        id: vendorData.id,
+        business_name: vendorData.business_name || vendorData.name,
+        business_description: vendorData.business_description || vendorData.description,
+        business_address: vendorData.business_address || vendorData.address,
+        logo_url: vendorData.logo_url,
+        bank_account_name: vendorData.bank_account_name,
+        bank_account_number: vendorData.bank_account_number,
+        bank_code: vendorData.bank_code,
+        whatsapp_number: vendorData.whatsapp_number,
+        cac_number: vendorData.cac_number,
+        phone: vendorData.phone,
+        email: vendorData.email,
+        owner_name: vendorData.owner_name
       };
 
-      // Direct Supabase JS client call! No Express API fallback needed.
-      const { error: sbError } = await supabase
-        .from('vendors')
-        .update(payload)
-        .eq('id', ensureUUID(vendorData.id));
+      const res = await fetch('/api/vendor/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
 
-      if (sbError) {
-        // Handle specific Postgres errors
-        if (sbError.code === '23505') {
-          if (sbError.message.includes('whatsapp_number')) {
-            throw new Error("This WhatsApp number is already registered to another vendor.");
-          }
-          if (sbError.message.includes('cac_number')) {
-            throw new Error("This CAC number is already registered.");
-          }
-          if (sbError.message.includes('email')) {
-             throw new Error("This email is already registered to another vendor.");
-          }
-        }
-        
-        // Handle RLS errors explicitly
-        if (sbError.code === '42501' || sbError.message.toLowerCase().includes('policy')) {
-           throw new Error("You do not have permission to edit this profile. Session may have expired.");
-        }
-
-        throw new Error(sbError.message || "Failed to update vendor profile");
+      const json = await res.json();
+      
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to update profile. Server rejected the request.");
       }
 
       // Globally revalidate vendor lists using SWR
@@ -74,4 +63,4 @@ export function useUpdateVendorProfile() {
   };
 
   return { updateProfile, isUpdating, error };
-}
+};

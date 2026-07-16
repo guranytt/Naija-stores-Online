@@ -1259,6 +1259,64 @@ Return valid JSON only matching this schema exactly:
     }
   });
 
+  // Dedicated endpoint for updating a vendor's profile securely
+  app.put("/api/vendor/profile", express.json(), strictLimiter, requireVendor, async (req, res) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
+      }
+
+      const user = (req as any).user;
+      const isRoleAdmin = user?.role === 'admin' || (user?.email && MASTER_ADMIN_EMAILS.includes(user.email.toLowerCase()));
+      const vendorIdFromToken = (req as any).vendorId;
+      
+      const payload = req.body;
+      const targetVendorId = payload.id;
+      
+      if (!targetVendorId) {
+        return res.status(400).json({error: "Vendor ID is required"});
+      }
+
+      if (!isRoleAdmin && vendorIdFromToken !== targetVendorId) {
+        return res.status(403).json({error: "Forbidden: You can only edit your own profile."});
+      }
+
+      // Remove fields that should not be changed by this endpoint
+      delete payload.id;
+      delete payload.user_id;
+      delete payload.created_at;
+      delete payload.verification_status; // Prevents vendors from self-verifying
+      
+      const { data, error } = await supabaseAdmin
+        .from('vendors')
+        .update(payload)
+        .eq('id', targetVendorId)
+        .select();
+      
+      if (error) {
+        if (error.code === '22P02') {
+           return res.status(400).json({error: "Invalid vendor ID format."});
+        }
+        if (error.code === '23505') {
+          if (error.message.includes('whatsapp_number')) return res.status(400).json({error: "This WhatsApp number is already in use."});
+          if (error.message.includes('cac_number')) return res.status(400).json({error: "This CAC number is already registered."});
+          if (error.message.includes('email')) return res.status(400).json({error: "This email is already in use."});
+          return res.status(400).json({error: "A unique value constraint was violated."});
+        }
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+         return res.status(404).json({error: "Vendor not found"});
+      }
+
+      return res.json({success: true, data: data});
+    } catch(err: any) {
+      console.error("[VENDOR PROFILE UPDATE ERROR]", err);
+      return res.status(500).json({error: "Internal server error saving profile."});
+    }
+  });
+
   app.post("/api/product/upsert", express.json(), requireVendor, async (req, res) => {
     try {
       if (!supabaseAdmin) {
