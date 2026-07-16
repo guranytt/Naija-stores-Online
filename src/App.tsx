@@ -935,6 +935,41 @@ export default function App() {
     }
   };
 
+  const handleEditProduct = async (prod: Product) => {
+    // Optimistically update UI immediately
+    setProducts(prev => prev.map(p => p.id === prod.id ? prod : p));
+    
+    try {
+      const success = await saveSupabaseRecord("products", prod);
+      if (success) {
+        mutate(["products", { limit: 1000 }]);
+        triggerToast(`Successfully updated ${prod.title}.`, "success");
+      } else {
+        triggerToast(`⚠️ Failed to update "${prod.title}". Please try again.`, "info");
+      }
+    } catch (err: any) {
+      triggerToast(`⚠️ Error updating "${prod.title}": ${err.message || "Unknown error"}.`, "info");
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    // Optimistically remove from UI
+    setProducts(prev => prev.filter(p => p.id !== productId));
+    
+    try {
+      const { error } = await supabase.from('products').delete().eq('id', productId);
+      if (!error) {
+        mutate(["products", { limit: 1000 }]);
+        triggerToast(`Product deleted successfully.`, "success");
+      } else {
+        triggerToast(`⚠️ Failed to delete product: ${error.message}`, "info");
+        // We could theoretically restore the product here but it requires finding it first
+      }
+    } catch (err: any) {
+      triggerToast(`⚠️ Error deleting product: ${err.message || "Unknown error"}.`, "info");
+    }
+  };
+
   const linkedProducts = products.filter(p => {
     const vId = p.vendorId || (p as any).vendor_id;
     return vId && vendors.some(v => v.id === vId);
@@ -1085,6 +1120,8 @@ export default function App() {
                   onUpdateVendor={handleUpdateVendor}
                   onReviewOrderFlag={handleReviewOrderFlag}
                   onAddNewProduct={handleAddNewProduct}
+                  onEditProduct={handleEditProduct}
+                  onDeleteProduct={handleDeleteProduct}
                   categories={categories}
                   onUpdateCategories={handleUpdateCategories}
                   

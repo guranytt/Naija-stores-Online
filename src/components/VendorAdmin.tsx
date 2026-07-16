@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud, BarChart2, PieChart, Megaphone, BellRing } from "lucide-react";
+import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles, Send, ShieldPlus, Check, ChevronRight, Ban, Mail, Sliders, RefreshCw, CheckCircle, Database, HelpCircle, X, Image as ImageIcon, UploadCloud, BarChart2, PieChart, Megaphone, BellRing, Package } from "lucide-react";
 import { Vendor, Order, AdminTeamMember, Product, Category } from "../types";
 import { formatNaira } from "./CustomerViews";
 import { uploadToCloudinary, convertFileToBase64, compressImage } from "../cloudinaryService";
@@ -21,6 +21,8 @@ interface VendorAdminProps {
   onReviewOrderFlag: (orderId: string, status: Order["status"]) => void;
   products: Product[];
   onAddNewProduct?: (product: Product) => void;
+  onEditProduct?: (product: Product) => void;
+  onDeleteProduct?: (productId: string) => void;
   vendors?: Vendor[];
   onUpdateVendor?: (updatedVendor: Vendor) => void;
   currentUserId?: string | null;
@@ -43,7 +45,9 @@ export default function VendorAdmin({
   orders, 
   onReviewOrderFlag, 
   products, 
-  onAddNewProduct, 
+  onAddNewProduct,
+  onEditProduct,
+  onDeleteProduct,
   vendors = [],
   onUpdateVendor,
   mailLogs = [],
@@ -57,7 +61,7 @@ export default function VendorAdmin({
   onUpdateCategories,
   isAdmin = false
 }: VendorAdminProps) {
-  const [adminTab, setAdminTab] = useState<"vendor" | "orders" | "dashboard" | "platform" | "emails" | "commissions">("vendor");
+  const [adminTab, setAdminTab] = useState<"vendor" | "orders" | "dashboard" | "platform" | "emails" | "commissions" | "products">("vendor");
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
 
   // Sync tab with URL paths on load
@@ -183,6 +187,10 @@ export default function VendorAdmin({
   
   // States for adding a customized new product
   const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  
+  // Create Product Form States
   const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newStockQuantity, setNewStockQuantity] = useState("");
@@ -544,6 +552,40 @@ export default function VendorAdmin({
     setShowAddProductModal(false);
   };
 
+  const handleEditProductSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct || !onEditProduct || !newName || !newPrice || !newStockQuantity) return;
+
+    let resolvedCategory = newCategory;
+    if (proposingCategory && customCategoryName.trim()) {
+      resolvedCategory = customCategoryName.trim();
+    }
+
+    const updatedProd: Product = {
+      ...editingProduct,
+      title: newName,
+      description: newDescription || editingProduct.description,
+      price: Number(newPrice),
+      stock: Number(newStockQuantity),
+      category: resolvedCategory,
+      image: newImageUrl || editingProduct.image,
+    };
+
+    onEditProduct(updatedProd);
+
+    // Reset fields
+    setEditingProduct(null);
+    setNewName("");
+    setNewPrice("");
+    setNewStockQuantity("");
+    setNewCategory("Fashion");
+    setProposingCategory(false);
+    setCustomCategoryName("");
+    setNewImageUrl("");
+    setNewDescription("");
+    setShowEditProductModal(false);
+  };
+
   return (
     <div className="space-y-6 font-sans text-neutral-800 text-left">
       
@@ -573,6 +615,17 @@ export default function VendorAdmin({
               >
                 <Database className="w-4 h-4 text-blue-500" />
                 <span>Order Management</span>
+              </button>
+              <button
+                onClick={() => setAdminTab("products")}
+                className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  adminTab === "products"
+                    ? "bg-white text-neutral-900 shadow-sm font-extrabold"
+                    : "text-neutral-500 hover:text-neutral-900"
+                }`}
+              >
+                <Database className="w-4 h-4 text-purple-500" />
+                <span>Inventory Management</span>
               </button>
             </>
           )}
@@ -1011,6 +1064,163 @@ export default function VendorAdmin({
             </div>
           )}
 
+          {/* Edit product modular mock popup */}
+          {showEditProductModal && editingProduct && (
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-xs" onClick={() => setShowEditProductModal(false)} />
+              <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-premium p-6 z-10 scrollbar-thin scrollbar-thumb-neutral-200">
+                <h3 className="text-lg font-black text-neutral-900 tracking-tight mb-4">Edit Product Details</h3>
+                
+                <form onSubmit={handleEditProductSubmit} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Product Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      placeholder="e.g. Classic Ankara Top"
+                      className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Description</label>
+                    <textarea
+                      rows={2}
+                      value={newDescription}
+                      onChange={(e) => setNewDescription(e.target.value)}
+                      placeholder="Enter product description..."
+                      className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-medium resize-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Price (₦)</label>
+                      <input
+                        type="number"
+                        required
+                        value={newPrice}
+                        onChange={(e) => setNewPrice(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Stock</label>
+                      <input
+                        type="number"
+                        required
+                        value={newStockQuantity}
+                        onChange={(e) => setNewStockQuantity(e.target.value)}
+                        placeholder="Qty"
+                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Main Category</label>
+                    <select
+                      value={newCategory}
+                      onChange={(e) => {
+                        if (e.target.value === "add_new") {
+                           setProposingCategory(true);
+                           setNewCategory("add_new");
+                        } else {
+                           setProposingCategory(false);
+                           setNewCategory(e.target.value);
+                        }
+                      }}
+                      className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-medium bg-white"
+                    >
+                      <option value="" disabled>Select category</option>
+                      {localCategories.map(cat => (
+                         <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                      <option value="add_new">+ Request New Category...</option>
+                    </select>
+
+                    {proposingCategory && (
+                       <input
+                         type="text"
+                         required
+                         placeholder="Type new category name..."
+                         value={customCategoryName}
+                         onChange={(e) => setCustomCategoryName(e.target.value)}
+                         className="w-full mt-2 px-4 py-2 text-xs border border-orange-200 bg-orange-50 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-medium"
+                       />
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Image Upload</label>
+                    <div className="border border-neutral-200 rounded-xl p-2 bg-neutral-50">
+                       <label className="flex items-center justify-center space-x-2 py-4 border-2 border-dashed border-neutral-300 rounded-lg cursor-pointer hover:bg-neutral-100 transition-colors">
+                          <input 
+                             type="file" 
+                             accept="image/*"
+                             onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setIsUploading(true);
+                                try {
+                                  const b64 = await convertFileToBase64(file);
+                                  const optimizedB64 = await compressImage(b64, 800, 800, 0.8);
+                                  const url = await uploadToCloudinary(optimizedB64);
+                                  setNewImageUrl(url);
+                                } catch (err) {
+                                  console.error("Image upload failed:", err);
+                                  alert("Image upload failed. Please try again.");
+                                } finally {
+                                  setIsUploading(false);
+                                }
+                             }}
+                             className="hidden" 
+                          />
+                          {isUploading ? (
+                            <span className="text-xs font-bold text-neutral-500 flex items-center">
+                              <span className="w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mr-2"></span>
+                              Uploading...
+                            </span>
+                          ) : newImageUrl ? (
+                            <div className="flex flex-col items-center">
+                              <img src={getOptimizedImageUrl(newImageUrl, { width: 100 })} alt="Preview" className="h-16 w-16 object-cover rounded shadow-sm mb-2" />
+                              <span className="text-xs font-bold text-emerald-600">Change Image</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-bold text-neutral-500 flex items-center">
+                              <UploadCloud className="w-4 h-4 mr-1.5" /> Select Image
+                            </span>
+                          )}
+                       </label>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowEditProductModal(false);
+                        setEditingProduct(null);
+                      }}
+                      className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-xl text-neutral-600 text-xs font-bold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isUploading}
+                      className="px-5 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+
           {/* Edit Brand Profile settings modal popup */}
           {showEditProfileModal && (
             <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
@@ -1337,6 +1547,113 @@ export default function VendorAdmin({
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-neutral-400 text-xs font-semibold">
                         No order items currently registered for your products.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- PRODUCT INVENTORY MANAGEMENT VIEW ---------------- */}
+      {adminTab === "products" && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">Inventory Management</h2>
+              <p className="text-xs text-neutral-450 font-semibold">Add, edit, and monitor your catalog listings</p>
+            </div>
+            <button
+              onClick={() => {
+                setNewName("");
+                setNewPrice("");
+                setNewStockQuantity("");
+                setNewCategory("Fashion");
+                setNewImageUrl("");
+                setNewDescription("");
+                setShowAddProductModal(true);
+              }}
+              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow transition-colors flex items-center space-x-2"
+            >
+              <Package className="w-4 h-4" />
+              <span>Add New Product</span>
+            </button>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-neutral-150 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-neutral-200">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-neutral-50/50 border-b border-neutral-100 uppercase text-[10px] tracking-wider text-neutral-500 font-extrabold">
+                  <tr>
+                    <th className="px-6 py-4">Product</th>
+                    <th className="px-6 py-4">Category</th>
+                    <th className="px-6 py-4">Price</th>
+                    <th className="px-6 py-4">Stock</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100 font-medium font-sans">
+                  {vendorProducts.map((item) => (
+                    <tr key={item.id} className="hover:bg-neutral-50/50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-neutral-50 border border-neutral-100 rounded-lg overflow-hidden flex-shrink-0">
+                            <img src={getOptimizedImageUrl(item.image, { width: 100 })} alt={item.title} className="w-full h-full object-cover" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-neutral-800 text-[11px] truncate max-w-[200px]">{item.title}</p>
+                            <p className="text-[10px] text-neutral-400">ID: {item.id.split('-')[0]}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-block bg-neutral-100 text-neutral-600 px-2.5 py-1 rounded-lg text-[10px] font-bold">
+                          {item.category || "General"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-mono font-bold text-neutral-700">{formatNaira(item.price)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`font-mono font-bold px-2 py-0.5 rounded border text-[11px] ${
+                          (item.stock || 0) <= 12 ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                        }`}>
+                          {item.stock} left
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right space-x-2">
+                        <button
+                          onClick={() => {
+                            setEditingProduct(item);
+                            setNewName(item.title);
+                            setNewPrice((item.price || 0).toString());
+                            setNewStockQuantity((item.stock || 0).toString());
+                            setNewCategory(item.category || "Fashion");
+                            setNewImageUrl(item.image);
+                            setNewDescription(item.description || "");
+                            setShowEditProductModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-[11px] font-bold transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to delete ${item.title}?`)) {
+                              if (onDeleteProduct) onDeleteProduct(item.id);
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-[11px] font-bold transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {vendorProducts.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-neutral-400 text-xs font-semibold">
+                        No products found in your inventory.
                       </td>
                     </tr>
                   )}
