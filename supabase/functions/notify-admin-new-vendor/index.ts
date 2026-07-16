@@ -46,14 +46,14 @@ serve(async (req) => {
     .select('email')
     .eq('role', 'admin');
 
-  let adminEmails = admins ? admins.map(a => a.email) : [];
+  let adminEmails = admins ? admins.map(a => a.email).filter(Boolean) : [];
   if (adminEmails.length === 0) {
     console.warn('No admin users found in DB, falling back to default admin email.');
     adminEmails = ['adminnaijastoresonline@gmail.com'];
   }
   
   // Mask bank account number if present
-  const bankNum = vendor.bank_account_number;
+  const bankNum = vendor.bank_account_number ? String(vendor.bank_account_number) : null;
   const maskedBankNum = bankNum 
     ? `*`.repeat(Math.max(0, bankNum.length - 4)) + bankNum.substring(Math.max(0, bankNum.length - 4))
     : 'Not Configured';
@@ -87,7 +87,7 @@ serve(async (req) => {
         </tr>
         <tr>
           <td style="font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">Verification Status:</td>
-          <td style="color: #ea580c; font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">${vendor.verification_status.toUpperCase()}</td>
+          <td style="color: #ea580c; font-weight: bold; border-bottom: 1px solid #f1f5f9; padding: 10px 0;">${(vendor.verification_status || 'verified').toUpperCase()}</td>
         </tr>
         <tr>
           <td style="font-weight: bold; padding: 10px 0;">Created At:</td>

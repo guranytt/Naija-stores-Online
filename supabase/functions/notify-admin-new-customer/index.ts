@@ -52,7 +52,7 @@ serve(async (req) => {
     .select('email')
     .eq('role', 'admin');
 
-  let adminEmails = admins ? admins.map(a => a.email) : [];
+  let adminEmails = admins ? admins.map(a => a.email).filter(Boolean) : [];
   if (adminEmails.length === 0) {
     console.warn('No admin users found in DB, falling back to default admin email.');
     adminEmails = ['adminnaijastoresonline@gmail.com'];

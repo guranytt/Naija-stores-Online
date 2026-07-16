@@ -14,6 +14,7 @@ import { sendVendorApproval } from "../emailService";
 import { requestPushPermissionAndSubscribe } from "../pushService";
 import { supabase } from "../supabase";
 import { MASTER_ADMIN_EMAILS } from "../utils/adminConfig";
+import { useUpdateVendorProfile } from "../hooks/useVendorProfile";
 
 
 interface VendorAdminProps {
@@ -61,6 +62,7 @@ export default function VendorAdmin({
   onUpdateCategories,
   isAdmin = false
 }: VendorAdminProps) {
+  const { updateProfile, isUpdating, error: profileUpdateError } = useUpdateVendorProfile();
   const [adminTab, setAdminTab] = useState<"vendor" | "orders" | "dashboard" | "platform" | "emails" | "commissions" | "products">("vendor");
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
 
@@ -472,30 +474,39 @@ export default function VendorAdmin({
     }
   };
 
-  const handleSaveProfileSubmit = (e: React.FormEvent) => {
+  const handleSaveProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editShopName.trim()) return;
 
-    if (onUpdateVendor) {
-      onUpdateVendor({
-        ...activeVendor,
-        userId: currentUserId || activeVendor.userId || activeVendor.user_id,
-        user_id: currentUserId || activeVendor.user_id || activeVendor.userId,
-        name: editShopName,
-        ownerName: editOwnerName,
-        location: editLocation,
-        avatar: editAvatar,
-        cacNumber: editCacNumber,
-        whatsappNumber: editWhatsapp,
-        phone: editPhone || editWhatsapp,
-        email: editEmail || userEmail || activeVendor.email,
-        bankName: editBankName,
-        accountNumber: editAccountNumber,
-        description: editBusinessDescription,
-        bankCode: editBankCode
-      });
+    const payload = {
+      ...activeVendor,
+      userId: currentUserId || activeVendor.userId || activeVendor.user_id,
+      user_id: currentUserId || activeVendor.user_id || activeVendor.userId,
+      name: editShopName,
+      ownerName: editOwnerName,
+      location: editLocation,
+      avatar: editAvatar,
+      cacNumber: editCacNumber,
+      whatsappNumber: editWhatsapp,
+      phone: editPhone || editWhatsapp,
+      email: editEmail || userEmail || activeVendor.email,
+      bankName: editBankName,
+      accountNumber: editAccountNumber,
+      description: editBusinessDescription,
+      bankCode: editBankCode
+    };
+
+    // If it's a master admin editing from the master console, or if the direct hook fails, 
+    // we still provide the onUpdateVendor callback as a fallback, but we primarily try the direct hook.
+    if (!isAdmin) {
+       const res = await updateProfile(payload);
+       if (res.success) {
+         setShowEditProfileModal(false);
+       }
+    } else if (onUpdateVendor) {
+       onUpdateVendor(payload);
+       setShowEditProfileModal(false);
     }
-    setShowEditProfileModal(false);
   };
   const averageVendorRating = vendorsList.length > 0 ? (vendorsList.reduce((acc, curr) => acc + curr.rating, 0) / vendorsList.length) : 0;
 
@@ -1488,6 +1499,13 @@ export default function VendorAdmin({
                   </div>
 
 
+                  {profileUpdateError && (
+                    <div className="pt-2 text-[11px] text-red-600 font-bold flex items-start gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                      <span>{profileUpdateError}</span>
+                    </div>
+                  )}
+
                   <div className="pt-2 flex justify-end space-x-2">
                     <button
                       type="button"
@@ -1498,10 +1516,11 @@ export default function VendorAdmin({
                     </button>
                     <button
                       type="submit"
-                      disabled={isProfileUploading}
-                      className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-sm active:scale-95 transition-transform disabled:opacity-50"
+                      disabled={isProfileUploading || isUpdating}
+                      className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-sm active:scale-95 transition-transform disabled:opacity-50 flex items-center space-x-1.5"
                     >
-                      Save Brand Settings
+                      {isUpdating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+                      <span>{isUpdating ? "Saving..." : "Save Brand Settings"}</span>
                     </button>
                   </div>
                 </form>
