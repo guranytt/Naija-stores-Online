@@ -494,7 +494,7 @@ export default function App() {
   }, [isLoaded, userId, user]);
 
   // Implement SWR for smart caching and paginated data fetching
-  const { data: dbCategories } = useSWR(
+  const { data: dbCategories, isLoading: isCategoriesLoading } = useSWR(
     "categories",
     () => getSupabaseData<Category>("categories", [], 1, 100).then(res => res.data),
     { revalidateOnFocus: true, dedupingInterval: 30000 }
@@ -506,7 +506,7 @@ export default function App() {
     { revalidateOnFocus: false, dedupingInterval: 300000 }
   );
 
-  const { data: dbProducts } = useSWR(
+  const { data: dbProducts, isLoading: isProductsLoading } = useSWR(
     ["products", { limit: 100 }],
     ([table]) => getSupabaseData<Product>(table as string, [], 1, 100).then(res => res.data),
     { revalidateOnFocus: false, dedupingInterval: 300000 }
@@ -1074,10 +1074,11 @@ export default function App() {
                 categories={categories}
                 products={linkedProducts}
                 orders={orders}
-
                 isLoggedIn={!!currentUserId}
                 vendorSlug={selectedVendorSlug}
                 onSelectVendor={setSelectedVendorSlug}
+                isCategoriesLoading={isCategoriesLoading}
+                isProductsLoading={isProductsLoading}
               />
             </motion.div>
           )}

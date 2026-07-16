@@ -109,6 +109,8 @@ interface CustomerViewsProps {
   isLoggedIn?: boolean;
   vendorSlug?: string;
   onSelectVendor?: (slug: string) => void;
+  isCategoriesLoading?: boolean;
+  isProductsLoading?: boolean;
 }
 
 export default function CustomerViews({
@@ -131,7 +133,9 @@ export default function CustomerViews({
   isLoggedIn = false,
   initialCategory = "all",
   vendorSlug = "eko-heritage-weavers",
-  onSelectVendor
+  onSelectVendor,
+  isCategoriesLoading,
+  isProductsLoading
 }: CustomerViewsProps) {
   
   // States for Category Filter inside shop view
@@ -752,7 +756,18 @@ export default function CustomerViews({
               viewport={{ once: true, margin: "-10px" }}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
             >
-              {categories.map((cat, idx) => (
+              {isCategoriesLoading ? (
+                [1, 2, 3, 4].map(idx => (
+                  <div key={`skel-cat-${idx}`} className="group relative h-48 rounded-2xl overflow-hidden cursor-pointer shadow-ambient border border-neutral-150 flex flex-col justify-end p-5 transition-all bg-neutral-100 animate-pulse">
+                    <div className="absolute top-4 right-4 w-9 h-9 rounded-xl bg-neutral-200/50 backdrop-blur-md z-10" />
+                    <div className="relative text-left z-10 space-y-2">
+                      <div className="w-24 h-5 bg-neutral-200/70 rounded" />
+                      <div className="w-16 h-3 bg-neutral-200/50 rounded" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                categories.map((cat, idx) => (
                 <motion.div
                   key={cat.id}
                   onClick={() => {
@@ -789,7 +804,7 @@ export default function CustomerViews({
                     <p className="text-[10px] font-mono text-white/70">{cat.id}</p>
                   </div>
                 </motion.div>
-              ))}
+              )))}
             </motion.div>
           </section>
 
@@ -805,15 +820,29 @@ export default function CustomerViews({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {products.slice(4, 12).map((p, idx) => {
-                const isAdded = !!justAddedProducts[p.id];
-                return (
-                  <motion.div
-                    key={`feat-rect-${p.id}`}
-                    onClick={() => {
-                      onSelectProduct(p.id);
-                      onNavigate("details");
-                    }}
+              {isProductsLoading ? (
+                [1, 2, 3, 4].map(idx => (
+                  <div key={`feat-skel-${idx}`} className="bg-white rounded-2xl border border-neutral-150 p-3 flex flex-row h-36 shadow-sm transition-all animate-pulse">
+                    <div className="w-[35%] h-full bg-neutral-200/60 rounded-xl shrink-0" />
+                    <div className="w-[65%] pl-4 py-2 flex flex-col space-y-2">
+                      <div className="w-16 h-3 bg-neutral-200/50 rounded" />
+                      <div className="w-full h-4 bg-neutral-200/70 rounded" />
+                      <div className="w-3/4 h-4 bg-neutral-200/70 rounded" />
+                      <div className="flex-1" />
+                      <div className="w-20 h-5 bg-neutral-200/80 rounded" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                products.slice(4, 12).map((p, idx) => {
+                  const isAdded = !!justAddedProducts[p.id];
+                  return (
+                    <motion.div
+                      key={`feat-rect-${p.id}`}
+                      onClick={() => {
+                        onSelectProduct(p.id);
+                        onNavigate("details");
+                      }}
                     initial={{ opacity: 0, y: 15 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -865,7 +894,7 @@ export default function CustomerViews({
                     </div>
                   </motion.div>
                 );
-              })}
+              })))}
             </div>
           </section>
 
@@ -1221,7 +1250,7 @@ export default function CustomerViews({
 
           {/* Main Catalog Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {isSearchLoading ? (
+            {isSearchLoading || isProductsLoading ? (
               Array.from({ length: 8 }).map((_, skeletonIdx) => (
                 <div
                   key={`skeleton-card-${skeletonIdx}`}
