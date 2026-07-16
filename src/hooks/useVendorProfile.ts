@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../supabase';
+import { ensureUUID } from '../supabase';
 import { Vendor } from '../types';
 import { mutate } from 'swr';
 
@@ -18,7 +19,7 @@ export function useUpdateVendorProfile() {
         business_description: (vendorData as any).description || (vendorData as any).business_description || "",
         logo_url: vendorData.avatar || "",
         verification_status: vendorData.approval_status || "verified",
-        user_id: vendorData.userId || vendorData.user_id || null,
+        user_id: (vendorData.userId || vendorData.user_id) ? ensureUUID(vendorData.userId || vendorData.user_id) : undefined,
         bank_account_name: vendorData.bankName || "",
         bank_account_number: vendorData.accountNumber || "",
         bank_code: (vendorData as any).bankCode || "",
@@ -34,7 +35,7 @@ export function useUpdateVendorProfile() {
       const { error: sbError } = await supabase
         .from('vendors')
         .update(payload)
-        .eq('id', vendorData.id);
+        .eq('id', ensureUUID(vendorData.id));
 
       if (sbError) {
         // Handle specific Postgres errors

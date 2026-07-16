@@ -62,12 +62,15 @@ serve(async (req) => {
     return new Response('Skipped due to concurrent queueing', { status: 200 });
   }
 
-  // Fetch order items with vendor details
+  // Fetch order items with vendor and pricing details
   const { data: items, error: itemsError } = await supabase
     .from('order_items')
     .select(`
       id,
-      vendors (business_name)
+      quantity,
+      unit_price,
+      commission_amount,
+      vendors (id, business_name, bank_account_name, bank_account_number, bank_code)
     `)
     .eq('order_id', order.id);
 
@@ -75,23 +78,59 @@ serve(async (req) => {
     console.error(`Failed to fetch order items for admin notification: ${itemsError?.message}`);
   }
 
-  // Query commissions from commission_ledger
   let commissionTotal = 0;
-  if (items && items.length > 0) {
-    const { data: ledger, error: ledgerError } = await supabase
-      .from('commission_ledger')
-      .select('amount')
-      .in('order_item_id', items.map(i => i.id));
+  
+  // Group payouts by vendor
+  const vendorPayouts: Record<string, {
+    businessName: string;
+    bankAccountName: string;
+    bankAccountNumber: string;
+    bankCode: string;
+    payoutAmount: number;
+  }> = {};
 
-    if (ledgerError) {
-      console.error(`Failed to fetch ledger commissions: ${ledgerError.message}`);
-    } else if (ledger) {
-      commissionTotal = ledger.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+  if (items && items.length > 0) {
+    for (const item of items) {
+      commissionTotal += Number(item.commission_amount || 0);
+      
+      // The select query returns vendors as either an array or object. With Supabase references it's an object.
+      // We explicitly cast to any to handle type safety safely
+      const vendor: any = item.vendors; 
+      if (!vendor) continue;
+      
+      const vendorId = vendor.id;
+      const itemPayout = (Number(item.quantity) * Number(item.unit_price)) - Number(item.commission_amount || 0);
+      
+      if (!vendorPayouts[vendorId]) {
+        // Mask bank account number if present safely
+        const bankNum = vendor.bank_account_number ? String(vendor.bank_account_number) : null;
+        const maskedBankNum = bankNum 
+          ? `*`.repeat(Math.max(0, bankNum.length - 4)) + bankNum.substring(Math.max(0, bankNum.length - 4))
+          : 'Not Configured';
+
+        vendorPayouts[vendorId] = {
+          businessName: vendor.business_name || 'Unknown Vendor',
+          bankAccountName: vendor.bank_account_name || 'Not Configured',
+          bankAccountNumber: maskedBankNum,
+          bankCode: vendor.bank_code || 'N/A',
+          payoutAmount: 0,
+        };
+      }
+      
+      vendorPayouts[vendorId].payoutAmount += itemPayout;
     }
   }
 
-  // Unique vendors list
-  const vendorsInvolved = Array.from(new Set(items?.map(i => i.vendors?.business_name).filter(Boolean)));
+  const vendorsInvolved = Object.values(vendorPayouts).map(v => v.businessName);
+  
+  // Generate HTML table rows for vendor payouts
+  const vendorPayoutRows = Object.values(vendorPayouts).map(v => `
+    <tr>
+      <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;"><strong>${v.businessName}</strong></td>
+      <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">${v.bankAccountName}<br><span style="font-size: 11px; color: #64748b;">${v.bankAccountNumber} (${v.bankCode})</span></td>
+      <td style="padding: 10px; border-bottom: 1px solid #f1f5f9; font-weight: bold; color: #10b981;">₦${v.payoutAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+    </tr>
+  `).join('');
 
   // Fetch all admin emails
   const { data: admins, error: adminError } = await supabase
@@ -139,7 +178,21 @@ serve(async (req) => {
       </table>
     </div>
 
-    <div style="text-align: center;">
+    ${Object.keys(vendorPayouts).length > 0 ? `
+    <h3 style="margin-top: 30px; font-size: 16px; color: #334155;">Vendor Payout Breakdown</h3>
+    <div class="details-card" style="padding: 0; overflow: hidden;">
+      <table class="details-table" style="margin: 0; width: 100%;">
+        <tr style="background-color: #f8fafc;">
+          <th style="padding: 12px 10px;">Merchant</th>
+          <th style="padding: 12px 10px;">Bank Details</th>
+          <th style="padding: 12px 10px;">Amount to Transfer</th>
+        </tr>
+        ${vendorPayoutRows}
+      </table>
+    </div>
+    ` : ''}
+
+    <div style="text-align: center; margin-top: 30px;">
       <a href="https://naijaonlinestores.com.ng/platform-admin" class="btn btn-green">View Transaction Ledger</a>
     </div>
   `);
