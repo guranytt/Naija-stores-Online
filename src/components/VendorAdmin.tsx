@@ -64,6 +64,15 @@ export default function VendorAdmin({
   const [adminTab, setAdminTab] = useState<"vendor" | "orders" | "dashboard" | "platform" | "emails" | "commissions" | "products">("vendor");
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
 
+  const [totalPlatformUsers, setTotalPlatformUsers] = useState(0);
+
+  React.useEffect(() => {
+    supabase.from('users').select('*', { count: 'exact', head: true })
+      .then(({ count }) => {
+        if (count !== null) setTotalPlatformUsers(count);
+      }).catch(err => console.warn("Could not fetch users count", err));
+  }, []);
+
   // Sync tab with URL paths on load
   React.useEffect(() => {
     if (window.location.pathname.startsWith("/platform-admin")) {
@@ -1439,28 +1448,6 @@ export default function VendorAdmin({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Business Description</label>
-                      <textarea
-                        rows={2}
-                        value={editBusinessDescription}
-                        onChange={(e) => setEditBusinessDescription(e.target.value)}
-                        placeholder="Describe your store..."
-                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none resize-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Bank Code (Optional)</label>
-                      <input
-                        type="text"
-                        value={editBankCode}
-                        onChange={(e) => setEditBankCode(e.target.value)}
-                        placeholder="e.g. 044"
-                        className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
-                      />
-                    </div>
-                  </div>
 
                   <div className="pt-2 flex justify-end space-x-2">
                     <button
@@ -1675,7 +1662,7 @@ export default function VendorAdmin({
           </div>
 
           {/* Metric cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Platform GMV */}
             <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs animate-fade-in">
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Gross Settlement Value (GMV)</p>
@@ -1685,7 +1672,7 @@ export default function VendorAdmin({
             {/* Users */}
             <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs animate-fade-in">
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Active Platform Shoppers</p>
-              <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1">{platformStats.activeUsers} Shoppers</h3>
+              <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1">{totalPlatformUsers} Shoppers</h3>
             </div>
 
             {/* Vendors count */}
@@ -1694,25 +1681,6 @@ export default function VendorAdmin({
               <div className="flex items-center space-x-2 mt-1">
                 <h3 className="text-2xl font-black text-neutral-900 tracking-tight">{vendorsList.length} merchants</h3>
               </div>
-            </div>
-
-            {/* Compliance validations alert limits */}
-            <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs animate-fade-in">
-              <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Pending Shop Verifications</p>
-              <h3 className="text-2xl font-black text-orange-600 tracking-tight">{platformStats.pendingVerifications} shops</h3>
-            </div>
-
-            {/* Average Vendor Rating Card */}
-            <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs animate-fade-in">
-              <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Average Vendor Rating</p>
-              <div className="flex items-center space-x-2 mt-1.5">
-                <h3 className="text-2xl font-black text-amber-500 tracking-tight">
-                  {averageVendorRating > 0 ? averageVendorRating.toFixed(2) : "0.00"} ★
-                </h3>
-              </div>
-              <p className="text-[10px] text-neutral-400 font-semibold mt-1">
-                Avg across all {vendorsList.length} active sellers
-              </p>
             </div>
           </div>
 
@@ -1725,28 +1693,14 @@ export default function VendorAdmin({
           {/* Active Vendor Reputation Section */}
           <div className="bg-white border border-neutral-200 rounded-2xl shadow-xs overflow-hidden">
             <div className="px-6 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/55 select-none animate-fade-in">
-              <p className="font-extrabold text-sm text-neutral-800 tracking-tight">Active Vendor Trust Indexes & Completed Dispatches</p>
-              <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 font-bold px-2.5 py-1 rounded">Dynamic Star Rating Averages</span>
+              <p className="font-extrabold text-sm text-neutral-800 tracking-tight">Active Vendors</p>
             </div>
-
-            {/* Live Email Approval Toast */}
-            {approvalFeedback && (
-              <div className="px-6 py-3 bg-emerald-50 border-b border-emerald-100 text-xs text-emerald-800 font-semibold animate-fade-in flex items-center justify-between">
-                <span>{approvalFeedback}</span>
-                <button onClick={() => setApprovalFeedback(null)} className="text-emerald-550 hover:text-emerald-800 font-bold">dismiss</button>
-              </div>
-            )}
 
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
                 <thead className="bg-neutral-50 text-neutral-400 font-bold uppercase tracking-wider border-b border-neutral-100">
                   <tr>
-                    <th className="px-6 py-3.5">Vendor / Hub ID</th>
-                    <th className="px-6 py-3.5">Managing Partner</th>
-                    <th className="px-6 py-3.5">Operational Center</th>
-                    <th className="px-6 py-3.5">Feedback Weight</th>
-                    <th className="px-6 py-3.5">Reputation Index</th>
-                    <th className="px-6 py-3.5 text-right">Approval Alerts</th>
+                    <th className="px-6 py-3.5">Vendor Name</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100 font-medium">
@@ -1757,43 +1711,18 @@ export default function VendorAdmin({
                           <div className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 font-mono font-black text-xs flex items-center justify-center">
                             {v.name.charAt(0)}
                           </div>
-                          <div>
-                            <p className="font-bold text-neutral-800">{v.name}</p>
-                            <p className="text-[9px] text-neutral-400 font-mono font-bold uppercase">{v.id}</p>
-                          </div>
+                          <p className="font-bold text-neutral-800">{v.name}</p>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-neutral-700">{v.ownerName}</td>
-                      <td className="px-6 py-4 text-neutral-500">{v.location}</td>
-                      <td className="px-6 py-4 text-neutral-450">{v.ratingCount || 10} verified submissions</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-extrabold text-sm text-amber-600 font-mono">{v.rating.toFixed(1)} ★</span>
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <svg
-                                key={s}
-                                className={`w-3 h-3 ${s <= Math.round(v.rating) ? "text-amber-400 fill-amber-400" : "text-neutral-200"}`}
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
-                            ))}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleSendVendorApprovalEmail(v.email, v.name)}
-                          className="font-sans px-2 py-1 bg-orange-50 hover:bg-orange-100 text-orange-600 hover:text-orange-700 font-bold text-[10px] rounded-lg border border-orange-200 transition-colors inline-flex items-center space-x-1"
-                        >
-                          <Mail className="w-3 h-3" />
-                          <span>Approve &amp; Send email</span>
-                        </button>
                       </td>
                     </tr>
                   ))}
+                  {vendorsList.length === 0 && (
+                    <tr>
+                      <td className="px-6 py-8 text-center text-neutral-400">
+                        No active vendors found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -2750,14 +2679,10 @@ function CommissionAnalyticsTab({ products, vendors, orders }: { products: Produ
         <p className="text-xs text-neutral-500 font-semibold">Monitor vendor performance, commission cuts, and outstanding funds</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-5 border border-neutral-150 rounded-2xl shadow-xs">
           <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Total Sales Volume</p>
           <h3 className="text-2xl font-black text-neutral-900 tracking-tight mt-1">{formatNaira(totalSales)}</h3>
-        </div>
-        <div className="bg-emerald-50 p-5 border border-emerald-100 rounded-2xl shadow-xs">
-          <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Vendor Net Earnings</p>
-          <h3 className="text-2xl font-black text-emerald-900 tracking-tight mt-1">{formatNaira(vendorEarnings)}</h3>
         </div>
         <div className="bg-orange-50 p-5 border border-orange-100 rounded-2xl shadow-xs">
           <p className="text-xs font-bold text-orange-600 uppercase tracking-wider">Platform Commission</p>

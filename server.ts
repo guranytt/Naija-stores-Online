@@ -263,30 +263,7 @@ export async function startServer() {
         return res.status(500).json({ error: error.message });
       }
 
-      // Auto-provision a vendors record for new vendor signups
-      if (role === 'vendor') {
-        const { data: newUser } = await supabaseAdmin.from('users').select('id').eq('clerk_id', id).single();
-        if (newUser) {
-          const vendorPayload = {
-            id: newUser.id,
-            user_id: newUser.id,
-            business_name: `${name}'s Store`,
-            owner_name: name,
-            email,
-            phone: phone || null,
-            whatsapp_number: phone || null,
-            business_address: delivery_address || location || "Address provided via profile",
-            verification_status: 'verified',
-            is_verified: true,
-          };
-          const { error: vendorError } = await supabaseAdmin.from('vendors').upsert(vendorPayload, { onConflict: 'id' });
-          if (vendorError) {
-            console.error("[CLERK WEBHOOK ERROR] Supabase Vendor Auto-provision Failed", vendorError);
-          } else {
-            console.log(`[CLERK WEBHOOK] Auto-provisioned vendor record for ${email}`);
-          }
-        }
-      }
+      // Note: Auto-provisioning of vendors is now handled by a rock-solid PostgreSQL Trigger directly in the database.
     }
     if (eventType === 'user.deleted') {
       const { error } = await supabaseAdmin.from('users').delete().eq('id', id);
@@ -1067,10 +1044,18 @@ Return valid JSON only matching this schema exactly:
   app.post("/api/vendor/upsert", express.json(), requireVendor, async (req, res) => {
     try {
       const payload = req.body;
-      const authUserId = (req as any).user?.id;
+      const authUserId = (req as any).user?.id; // This is the Clerk string ID (e.g. user_2a...)
+      
       if (authUserId) {
-        payload.id = authUserId;
-        payload.user_id = authUserId;
+        // Securely fetch the real Supabase UUID associated with this Clerk ID
+        const { data: userRow } = await supabaseAdmin.from('users').select('id').eq('clerk_id', authUserId).single();
+        if (userRow && userRow.id) {
+          payload.id = userRow.id;
+          payload.user_id = userRow.id;
+        } else {
+          // If for some reason they aren't in the users table, we cannot securely verify their DB ID.
+          return res.status(403).json({ error: "Unauthorized: User database record not found" });
+        }
       } else if (!payload.id) {
         return res.status(400).json({ error: "Invalid payload: Vendor ID is required" });
       }
