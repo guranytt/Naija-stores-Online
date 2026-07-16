@@ -2253,10 +2253,24 @@ Sitemap: https://www.naijaonlinestores.com.ng/sitemap.xml`);
       }
     });
 
+
+
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
+  // Global JSON error handler to prevent HTML responses on API errors
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error("[Global Error Handler]", err);
+    if (req.path && req.path.startsWith('/api/')) {
+      return res.status(err.status || err.statusCode || 500).json({
+        success: false,
+        error: err.message || "A server error occurred"
+      });
+    }
+    next(err);
+  });
 
     if (process.env.NODE_ENV !== "production") {
       app.listen(PORT, "0.0.0.0", () => {
