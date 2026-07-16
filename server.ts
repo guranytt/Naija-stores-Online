@@ -1193,7 +1193,7 @@ Return valid JSON only matching this schema exactly:
       }
 
       // Dynamically probe the table columns to support backward compatibility with incomplete schemas
-      let dbColumns: string[] = [
+      let dbColumns: Array<keyof import('./src/types').DatabaseVendorRow> = [
         'id', 'user_id', 'business_name', 'owner_name', 'business_description', 
         'logo_url', 'verification_status', 'phone', 'email', 'created_at',
         'bank_account_name', 'bank_account_number', 'bank_code', 'whatsapp_number', 
@@ -1202,15 +1202,15 @@ Return valid JSON only matching this schema exactly:
 
       // Do NOT JSON stringify metadata into business_description! 
       // Users expect physical text in business_description, not a serialized JSON blob.
-      const finalPayload: any = {};
+      const finalPayload: Partial<import('./src/types').DatabaseVendorRow> = {};
       
-      const coreKeys = [
+      const coreKeys: Array<keyof import('./src/types').DatabaseVendorRow> = [
         'id', 'user_id', 'business_name', 'owner_name', 'logo_url', 'verification_status', 
         'phone', 'email', 'created_at', 'business_description', 'bank_account_name', 
         'bank_account_number', 'bank_code', 'whatsapp_number', 'business_address', 'cac_number'
       ];
 
-      coreKeys.forEach((key) => {
+      coreKeys.forEach((key: keyof import('./src/types').DatabaseVendorRow) => {
         if (dbColumns.includes(key) && payload[key] !== undefined) {
           finalPayload[key] = payload[key];
         }
@@ -1244,9 +1244,7 @@ Return valid JSON only matching this schema exactly:
       if (payload.isVerified !== undefined && dbColumns.includes('verification_status') && finalPayload.verification_status === undefined) {
         finalPayload.verification_status = payload.isVerified ? 'verified' : 'verified';
       }
-      if (payload.approvalStatus !== undefined && dbColumns.includes('approval_status') && finalPayload.approval_status === undefined) {
-        finalPayload.approval_status = payload.approvalStatus;
-      }
+
 
       const { data, error } = await supabaseAdmin.from("vendors").upsert(finalPayload).select("id");
       if (error) {

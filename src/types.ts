@@ -121,6 +121,25 @@ export interface Vendor {
   approval_status?: string;
 }
 
+export interface DatabaseVendorRow {
+  id?: string;
+  user_id?: string | null;
+  business_name?: string;
+  owner_name?: string;
+  logo_url?: string;
+  verification_status?: string;
+  phone?: string;
+  email?: string;
+  created_at?: string;
+  business_description?: string;
+  bank_account_name?: string;
+  bank_account_number?: string;
+  bank_code?: string;
+  whatsapp_number?: string;
+  business_address?: string;
+  cac_number?: string;
+}
+
 export interface Order {
   id: string;
   user_id?: string;
