@@ -1220,6 +1220,12 @@ Return valid JSON only matching this schema exactly:
       if (payload.isVerified !== undefined && dbColumns.includes('verification_status') && finalPayload.verification_status === undefined) {
         finalPayload.verification_status = payload.isVerified ? 'verified' : 'verified';
       }
+      if (payload.ownerName && dbColumns.includes('owner_name') && !finalPayload.owner_name) {
+        finalPayload.owner_name = payload.ownerName;
+      }
+      if (payload.cacNumber && dbColumns.includes('cac_number') && !finalPayload.cac_number) {
+        finalPayload.cac_number = payload.cacNumber;
+      }
 
 
       let data: any = null;

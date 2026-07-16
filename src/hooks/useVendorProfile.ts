@@ -17,29 +17,15 @@ export const useUpdateVendorProfile = () => {
          throw new Error("Authentication session expired. Please log in again.");
       }
 
-      const payload = {
-        id: vendorData.id,
-        business_name: vendorData.business_name || vendorData.name,
-        business_description: vendorData.business_description || vendorData.description,
-        business_address: vendorData.business_address || vendorData.address,
-        logo_url: vendorData.logo_url,
-        bank_account_name: vendorData.bank_account_name,
-        bank_account_number: vendorData.bank_account_number,
-        bank_code: vendorData.bank_code,
-        whatsapp_number: vendorData.whatsapp_number,
-        cac_number: vendorData.cac_number,
-        phone: vendorData.phone,
-        email: vendorData.email,
-        owner_name: vendorData.owner_name
-      };
 
-      const res = await fetch('/api/vendor/profile', {
-        method: 'PUT',
+
+      const res = await fetch('/api/vendor/upsert', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(vendorData)
       });
 
       const json = await res.json();
