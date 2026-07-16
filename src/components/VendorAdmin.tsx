@@ -67,10 +67,15 @@ export default function VendorAdmin({
   const [totalPlatformUsers, setTotalPlatformUsers] = useState(0);
 
   React.useEffect(() => {
-    supabase.from('users').select('*', { count: 'exact', head: true })
-      .then(({ count }) => {
-        if (count !== null) setTotalPlatformUsers(count);
-      }).catch(err => console.warn("Could not fetch users count", err));
+    const fetchUsers = async () => {
+      const { count, error } = await supabase.from('users').select('*', { count: 'exact', head: true });
+      if (error) {
+        console.warn("Could not fetch users count", error);
+      } else if (count !== null) {
+        setTotalPlatformUsers(count);
+      }
+    };
+    fetchUsers();
   }, []);
 
   // Sync tab with URL paths on load
@@ -1207,8 +1212,8 @@ export default function VendorAdmin({
                                 if (!file) return;
                                 setIsUploading(true);
                                 try {
-                                  const b64 = await convertFileToBase64(file);
-                                  const optimizedB64 = await compressImage(b64, 800, 800, 0.8);
+                                  const compressedFile = await compressImage(file);
+                                  const optimizedB64 = await convertFileToBase64(compressedFile);
                                   const url = await uploadToCloudinary(optimizedB64);
                                   setNewImageUrl(url);
                                 } catch (err) {

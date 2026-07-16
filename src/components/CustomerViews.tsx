@@ -894,7 +894,7 @@ export default function CustomerViews({
                     </div>
                   </motion.div>
                 );
-              })))}
+              }))}
             </div>
           </section>
 
