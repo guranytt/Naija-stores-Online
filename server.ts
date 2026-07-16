@@ -1,4 +1,4 @@
-import tinify from "tinify";
+
 import { v2 as cloudinary } from "cloudinary";
 import * as Sentry from "@sentry/node";
 import express from "express";
@@ -15,7 +15,7 @@ import bodyParser from 'body-parser';
 
 dotenv.config();
 
-tinify.key = process.env.TINIFY_API_KEY || "ByhSRqcZwPMjf220YhXNCglgkLRyySjs";
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dt7oz9tdj',
   api_key: process.env.CLOUDINARY_API_KEY || '819278783457951',
@@ -498,12 +498,7 @@ Return valid JSON only matching this schema exactly:
       const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(base64Data, "base64");
       
-      // 2. Compress and convert to webp using Tinify
-      const source = tinify.fromBuffer(buffer);
-      const converted = source.convert({type: ["image/webp", "image/avif"]});
-      const optimizedBuffer = await converted.toBuffer();
-      
-      // 3. Upload to Cloudinary via stream
+      // 2. Upload to Cloudinary via stream directly
       const uploadStream = cloudinary.uploader.upload_stream({ resource_type: "image", width: 1600, height: 1600, crop: "limit", quality: "auto:good" }, (error, result) => {
         if (error) {
           console.error("Cloudinary upload error:", error);
@@ -514,7 +509,7 @@ Return valid JSON only matching this schema exactly:
         }
       });
       
-      uploadStream.end(optimizedBuffer);
+      uploadStream.end(buffer);
   
     } catch (error) {
       console.error("Upload process error:", error);
@@ -538,10 +533,6 @@ Return valid JSON only matching this schema exactly:
         buffer = Buffer.from(arrayBuffer);
       }
 
-      const source = tinify.fromBuffer(buffer);
-      const converted = source.convert({type: ["image/webp", "image/avif"]});
-      const optimizedBuffer = await converted.toBuffer();
-
       cloudinary.uploader.upload_stream({ resource_type: "image", width: 1600, height: 1600, crop: "limit", quality: "auto:good" }, async (error, result) => {
         if (result && result.secure_url) {
           const { data: prod } = await supabaseAdmin.from("products").select("description").eq("id", productId).single();
@@ -553,7 +544,7 @@ Return valid JSON only matching this schema exactly:
              await supabaseAdmin.from("products").update({ description: JSON.stringify(descObj) }).eq("id", productId);
           }
         }
-      }).end(optimizedBuffer);
+      }).end(buffer);
     } catch (err) {
       // Silently fail for background task
     }

@@ -8,6 +8,7 @@ import { DollarSign, Percent, TrendingUp, AlertCircle, Eye, BadgeAlert, Sparkles
 import { Vendor, Order, AdminTeamMember, Product, Category } from "../types";
 import { formatNaira } from "./CustomerViews";
 import { uploadToCloudinary, convertFileToBase64, compressImage } from "../cloudinaryService";
+import { getOptimizedImageUrl } from "../utils/imageTransforms";
 
 import { sendVendorApproval } from "../emailService";
 import { requestPushPermissionAndSubscribe } from "../pushService";
@@ -619,7 +620,7 @@ export default function VendorAdmin({
               <div className="relative group cursor-pointer" onClick={() => setShowEditProfileModal(true)}>
                 {activeVendor.avatar ? (
                   <img 
-                    src={activeVendor.avatar} 
+                    src={getOptimizedImageUrl(activeVendor.avatar, { width: 300 })} 
                     alt={activeVendor.name} 
                     className="w-14 h-14 rounded-full object-cover border-2 border-orange-500 shadow-sm"
                     referrerPolicy="no-referrer"
@@ -644,15 +645,9 @@ export default function VendorAdmin({
                 <p className="text-xs text-neutral-400 font-bold">{activeVendor.name} &bull; 📍 {activeVendor.location}</p>
                 {/* Verification badge — visible immediately without opening edit modal (Issue 3) */}
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  {activeVendor.isVerified ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-extrabold uppercase tracking-wider">
-                      <Check className="w-3 h-3" /> Verified Merchant
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-extrabold uppercase tracking-wider">
-                      <AlertCircle className="w-3 h-3" /> Pending Verification
-                    </span>
-                  )}
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-extrabold uppercase tracking-wider">
+                    <Check className="w-3 h-3" /> Verified Merchant
+                  </span>
                   {(activeVendor.cacNumber || activeVendor.cac_number) && (
                     <span className="text-[10px] font-bold text-neutral-500 font-mono">
                       CAC: {activeVendor.cacNumber || activeVendor.cac_number}
@@ -802,7 +797,7 @@ export default function VendorAdmin({
                   <div key={item.id} className="flex items-center space-x-3 text-xs justify-between">
                     <div className="flex items-center space-x-2.5 min-w-0">
                       <div className="w-9 h-9 bg-neutral-50 border border-neutral-100 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                        <img src={getOptimizedImageUrl(item.image, { width: 300 })} alt={item.title} className="w-full h-full object-cover" />
                       </div>
                       <div className="min-w-0 text-left">
                         <p className="font-bold text-neutral-800 truncate max-w-40">{item.title}</p>
@@ -951,7 +946,7 @@ export default function VendorAdmin({
 
                       {newImageUrl && (
                         <div className="w-12 h-12 rounded-xl overflow-hidden border border-neutral-250 flex-shrink-0 relative group">
-                          <img src={newImageUrl} alt="Cloudinary Thumbnail Preview" className="w-full h-full object-cover" />
+                          <img src={getOptimizedImageUrl(newImageUrl, { width: 300 })} alt="Cloudinary Thumbnail Preview" className="w-full h-full object-cover" />
                           <button
                             type="button"
                             onClick={() => setNewImageUrl("")}
@@ -1057,7 +1052,7 @@ export default function VendorAdmin({
 
                       {editAvatar ? (
                         <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500 flex-shrink-0 relative group">
-                          <img src={editAvatar} alt="Store logo preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          <img src={getOptimizedImageUrl(editAvatar, { width: 300 })} alt="Store logo preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           <button
                             type="button"
                             onClick={() => setEditAvatar("")}
