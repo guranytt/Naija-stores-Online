@@ -803,12 +803,7 @@ export default function VendorAdmin({
               </button>
               <button
                 onClick={() => {
-                  if (!activeVendor.cacNumber || !activeVendor.whatsappNumber) {
-                    alert("Please complete your vendor profile verification (CAC Number and WhatsApp Mobile) before publishing products.");
-                    setShowEditProfileModal(true);
-                  } else {
-                    setShowAddProductModal(true);
-                  }
+                  setShowAddProductModal(true);
                 }}
                 className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center space-x-1.5 shadow-xs"
                 id="add-custom-product-trigger"

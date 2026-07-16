@@ -4,6 +4,7 @@ import { supabase } from "../supabase";
 import { sanitizeFields } from "../sanitize";
 import { getOptimizedImageUrl } from "../utils/imageTransforms";
 import { SignIn, SignUp, useAuth, useUser } from '@clerk/clerk-react';
+import VendorRegistrationForm from './VendorRegistrationForm';
 
 interface UserAuthHubProps {
   currentEmail: string;
@@ -407,11 +408,17 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
                     }
                   }}
                 />
+              ) : isVendor ? (
+                <VendorRegistrationForm onLoginClick={() => {
+                  setFeedback(null);
+                  setAuthMode("login");
+                  window.location.hash = "login-vendor";
+                }} />
               ) : (
                 <SignUp 
                   routing="hash"
-                  signInUrl={isVendor ? "#login-vendor" : "#login"}
-                  unsafeMetadata={{ role: isVendor ? "vendor" : "customer" }}
+                  signInUrl="#login"
+                  unsafeMetadata={{ role: "customer" }}
                   appearance={{
                     elements: {
                       footerAction: { display: "none" }
@@ -436,14 +443,14 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
                     Sign Up
                   </button>
                 </p>
-              ) : (
+              ) : !isVendor && (
                 <p className="text-xs text-neutral-500 font-medium">
                   Already have an account?
                   <button
                     onClick={() => {
                       setFeedback(null);
                       setAuthMode("login");
-                      window.location.hash = isVendor ? "login-vendor" : "login";
+                      window.location.hash = "login";
                     }}
                     className="ml-1.5 font-bold hover:underline text-orange-650 text-orange-600 transition-colors cursor-pointer"
                   >
