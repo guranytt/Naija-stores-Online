@@ -294,32 +294,66 @@ export default function VendorAdmin({
     );
   });
 
-  const vendorOrders = orders.filter(o => {
-    const oVendorId = (o as any).vendorId || (o as any).vendor_id;
-    if (oVendorId) {
-      return oVendorId === activeVendor.id || (currentUserId && oVendorId === currentUserId);
-    }
-    if (o.productIds && o.productIds.length > 0) {
-      return o.productIds.some(pId => vendorProducts.some(vp => vp.id === pId));
-    }
-    return false;
-  });
+  const [realVendorOrderItems, setRealVendorOrderItems] = useState<any[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
-  const vendorOrderItems = orders.flatMap(o => (o.order_items || []).map(item => ({ ...item, order_customer: o.customerName || ((o as any).shipping_address as any)?.customerName || 'Customer', shipping_address: (o as any).shipping_address, order_status: o.status }))).filter(item => {
-    return item.vendor_id === activeVendor.id || (currentUserId && item.vendor_id === currentUserId) || item.vendor_id === activeVendor.userId;
-  });
+  React.useEffect(() => {
+    const fetchVendorOrders = async () => {
+      const vendorId = activeVendor?.id;
+      const vUserId = activeVendor?.userId || (activeVendor as any)?.user_id || currentUserId;
+      if (!vendorId && !vUserId) return;
+      
+      setIsLoadingOrders(true);
+      
+      const { data, error } = await supabase
+        .from('order_items')
+        .select(`
+          id, order_id, product_id, quantity, unit_price, vendor_id, fulfillment_status, created_at,
+          orders ( id, customer_id, subtotal, shipping_address, created_at, status, total_amount ),
+          products ( name, title )
+        `)
+        .or(`vendor_id.eq.${vendorId}${vUserId ? `,vendor_id.eq.${vUserId}` : ''}`)
+        .order('created_at', { ascending: false });
 
-  const totalSalesValue = vendorOrders
-    .filter(o => {
-      const s = o.status as string;
+      if (data && !error) {
+        const formattedItems = data.map((item: any) => {
+          let orderInfo = item.orders;
+          if (Array.isArray(orderInfo)) orderInfo = orderInfo[0];
+          
+          let parsedShipping: any = {};
+          if (orderInfo?.shipping_address && typeof orderInfo.shipping_address === 'string' && orderInfo.shipping_address.trim().startsWith('{')) {
+             try { parsedShipping = JSON.parse(orderInfo.shipping_address); } catch(e) {}
+          }
+          
+          return {
+            ...item,
+            order_customer: parsedShipping?.customerName || orderInfo?.customer_id || 'Customer',
+            shipping_address: parsedShipping || orderInfo?.shipping_address || {},
+            order_status: orderInfo?.status || 'Processing',
+            product: { title: item.products?.name || item.products?.title || 'Product' },
+            date: item.created_at || orderInfo?.created_at
+          };
+        });
+        setRealVendorOrderItems(formattedItems);
+      }
+      setIsLoadingOrders(false);
+    };
+
+    fetchVendorOrders();
+  }, [activeVendor?.id, activeVendor?.userId, (activeVendor as any)?.user_id, currentUserId]);
+
+  const totalSalesValue = realVendorOrderItems
+    .filter(item => {
+      const s = item.order_status as string;
       return s === "Success" || s === "Delivered" || s === "Paid" || s === "Shipped" || s === "Processing";
     })
-    .reduce((acc, curr) => acc + (curr.value || 0), 0);
+    .reduce((acc, curr) => acc + ((curr.unit_price || 0) * (curr.quantity || 1)), 0);
 
-  const pendingOrdersCount = vendorOrders.filter(o => {
-    const s = o.status as string;
-    return s === "Pending" || s === "Processing" || s === "Manifested";
+  const pendingOrdersCount = realVendorOrderItems.filter(item => {
+    const fs = item.fulfillment_status;
+    return fs === "not_shipped" || !fs;
   }).length;
+
   const lowStockThreshold = 15;
   const stockAlertsCount = vendorProducts.filter(p => (p.stock || 0) < lowStockThreshold).length;
 
@@ -328,11 +362,11 @@ export default function VendorAdmin({
 
   // Real, dynamic weekly sales activity bar charts
   const dayTotals: Record<string, number> = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
-  vendorOrders.forEach(o => {
+  realVendorOrderItems.forEach(item => {
     let day = "Fri";
-    if (o.date) {
+    if (item.date) {
       try {
-        const dateObj = new Date(o.date);
+        const dateObj = new Date(item.date);
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         day = dayNames[dateObj.getDay()] || "Fri";
       } catch (err) {
@@ -340,7 +374,7 @@ export default function VendorAdmin({
       }
     }
     if (dayTotals[day] !== undefined) {
-      dayTotals[day] += o.value || 0;
+      dayTotals[day] += (item.unit_price || 0) * (item.quantity || 1);
     }
   });
 
@@ -1494,7 +1528,14 @@ export default function VendorAdmin({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100 font-medium font-sans">
-                  {vendorOrderItems.map((item) => {
+                  {isLoadingOrders && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-neutral-400 text-xs font-semibold">
+                        Fetching live orders...
+                      </td>
+                    </tr>
+                  )}
+                  {!isLoadingOrders && realVendorOrderItems.map((item) => {
                     const currentStatus = localFulfillment[item.id] || item.fulfillment_status || 'not_shipped';
                     const shipAddr = typeof item.shipping_address === 'string' ? { address: item.shipping_address, state: 'N/A' } : (item.shipping_address || {});
                     return (
@@ -1530,7 +1571,7 @@ export default function VendorAdmin({
                       </tr>
                     );
                   })}
-                  {vendorOrderItems.length === 0 && (
+                  {!isLoadingOrders && realVendorOrderItems.length === 0 && (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-neutral-400 text-xs font-semibold">
                         No order items currently registered for your products.
