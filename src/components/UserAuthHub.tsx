@@ -63,16 +63,20 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
     return () => window.removeEventListener("hashchange", handleHash);
   }, [vendorOnly]);
 
-  // Auto-redirect to vendor admin panel if logged in as a vendor
+  // Auto-redirect to vendor admin panel if logged in as a vendor via Supabase
   useEffect(() => {
-    if (userId && isVendor && profile.role === "vendor") {
-      if (onNavigate) {
-        onNavigate("admin");
-      } else {
-        window.location.replace("/admin");
-      }
+    if (isVendor) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          if (onNavigate) {
+            onNavigate("admin");
+          } else {
+            window.location.replace("/admin");
+          }
+        }
+      });
     }
-  }, [userId, isVendor, profile.role, onNavigate]);
+  }, [isVendor, onNavigate]);
 
   // Load profile from Clerk and Supabase
   useEffect(() => {
