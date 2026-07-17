@@ -7,12 +7,15 @@ export const getAuthToken = async (): Promise<any> => {
       const session = (window as any).Clerk.session;
       if (session) {
         // We request the 'supabase' template so the JWT is correctly formatted for Supabase RLS
-        return (await session.getToken({ template: 'supabase' })) || (await session.getToken()) || undefined;
+        const clerkToken = (await session.getToken({ template: 'supabase' })) || (await session.getToken());
+        if (clerkToken) return clerkToken;
       }
     } catch (e) {
       console.warn("Failed to get Clerk token dynamically:", e);
     }
   }
+  
+  // If no Clerk token, return undefined to let Supabase use its own native Auth token
   return undefined;
 };
 
@@ -32,12 +35,21 @@ const SUPABASE_ANON_KEY = viteSupabaseKey || envSupabaseKey;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    persistSession: false,
-    detectSessionInUrl: false,
+    persistSession: true,
+    detectSessionInUrl: true,
+    autoRefreshToken: true,
   },
-  accessToken: getAuthToken,
   global: {
     fetch: async (url, options) => {
+      // Inject Clerk token if available, otherwise Supabase handles its own token
+      const clerkToken = await getAuthToken();
+      if (clerkToken) {
+        options = options || {};
+        options.headers = {
+          ...options.headers,
+          Authorization: `Bearer ${clerkToken}`,
+        };
+      }
       try {
         const res = await globalThis.fetch(url, options);
         return res;

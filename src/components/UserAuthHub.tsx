@@ -5,6 +5,7 @@ import { sanitizeFields } from "../sanitize";
 import { getOptimizedImageUrl } from "../utils/imageTransforms";
 import { SignIn, SignUp, useAuth, useUser } from '@clerk/clerk-react';
 import VendorRegistrationForm from './VendorRegistrationForm';
+import VendorLoginForm from './VendorLoginForm';
 
 interface UserAuthHubProps {
   currentEmail: string;
@@ -399,15 +400,23 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
 
             <div className="w-full flex justify-center py-2">
               {authMode === "login" ? (
-                <SignIn 
-                  routing="hash"
-                  signUpUrl={isVendor ? "#register-vendor" : "#register"}
-                  appearance={{
-                    elements: {
-                      footerAction: { display: "none" }
-                    }
-                  }}
-                />
+                isVendor ? (
+                  <VendorLoginForm onRegisterClick={() => {
+                    setFeedback(null);
+                    setAuthMode("register");
+                    window.location.hash = "register-vendor";
+                  }} />
+                ) : (
+                  <SignIn 
+                    routing="hash"
+                    signUpUrl="#register"
+                    appearance={{
+                      elements: {
+                        footerAction: { display: "none" }
+                      }
+                    }}
+                  />
+                )
               ) : isVendor ? (
                 <VendorRegistrationForm onLoginClick={() => {
                   setFeedback(null);

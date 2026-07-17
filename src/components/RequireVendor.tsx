@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth, useUser } from '@clerk/clerk-react';
 import { supabase } from '../supabase';
 import { AlertCircle, LogOut, Store } from 'lucide-react';
 import { MASTER_ADMIN_EMAILS } from '../utils/adminConfig';
@@ -10,58 +9,65 @@ interface RequireVendorProps {
 }
 
 export default function RequireVendor({ children, onNavigate }: RequireVendorProps) {
-  const { isLoaded: authLoaded, userId, signOut } = useAuth();
-  const { isLoaded: userLoaded, user } = useUser();
   const [status, setStatus] = useState<'loading' | 'authorized' | 'customer' | 'guest'>('loading');
 
   useEffect(() => {
-    if (!authLoaded || !userLoaded) return;
-
-    // Not logged in at all
-    if (!userId) {
-      setStatus('guest');
-      return;
-    }
-
-    // Master admin bypass
-    const uEmail = user?.primaryEmailAddress?.emailAddress;
-    if (uEmail && MASTER_ADMIN_EMAILS.includes(uEmail.toLowerCase())) {
-      setStatus('authorized');
-      return;
-    }
-
-    // Check role in Supabase
-    const checkRole = async () => {
+    const checkAuth = async () => {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session || !session.user) {
+          setStatus('guest');
+          return;
+        }
+
+        const email = session.user.email || '';
+        
+        // Master admin bypass
+        if (MASTER_ADMIN_EMAILS.includes(email.toLowerCase())) {
+          setStatus('authorized');
+          return;
+        }
+
+        // Check role in Supabase using the user's ID
         const { data, error } = await supabase
           .from('users')
           .select('role')
-          .eq('clerk_id', userId)
+          .eq('id', session.user.id)
           .single();
 
         if (!error && data && (data.role === 'vendor' || data.role === 'admin')) {
           setStatus('authorized');
         } else {
-          // Logged in but not a vendor — show access denied
-          setStatus('customer');
+          // Check by email as a fallback if 'id' wasn't matched yet
+          const { data: emailData } = await supabase
+            .from('users')
+            .select('role')
+            .eq('email', email)
+            .single();
+
+          if (emailData && (emailData.role === 'vendor' || emailData.role === 'admin')) {
+             setStatus('authorized');
+          } else {
+             setStatus('customer');
+          }
         }
       } catch (e) {
-        setStatus('customer');
+        setStatus('guest');
       }
     };
 
-    checkRole();
-  }, [authLoaded, userLoaded, userId, user]);
+    checkAuth();
+  }, []);
 
-  // --- Guest: redirect to vendor sign-up ---
+  // --- Guest: redirect to vendor login ---
   useEffect(() => {
     if (status === 'guest') {
-      // Set the hash FIRST so UserAuthHub picks it up when it mounts
-      window.location.hash = 'register-vendor';
+      window.location.hash = 'login-vendor';
       if (onNavigate) {
         onNavigate('auth');
       } else {
-        window.location.replace('/auth#register-vendor');
+        window.location.replace('/auth#login-vendor');
       }
     }
   }, [status, onNavigate]);
@@ -83,8 +89,8 @@ export default function RequireVendor({ children, onNavigate }: RequireVendorPro
   // Authenticated customer (wrong role) — show inline access-denied panel
   if (status === 'customer') {
     const handleSignOut = async () => {
-      await signOut();
-      window.location.hash = 'register-vendor';
+      await supabase.auth.signOut();
+      window.location.hash = 'login-vendor';
       if (onNavigate) onNavigate('auth');
     };
 
@@ -99,14 +105,7 @@ export default function RequireVendor({ children, onNavigate }: RequireVendorPro
             Vendor Access Only
           </h2>
           <p className="text-sm text-neutral-500 leading-relaxed">
-            You're currently signed in as a <span className="font-bold text-orange-500">customer</span>. The Vendor Admin dashboard requires a merchant account.
-          </p>
-        </div>
-
-        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-left space-y-1">
-          <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">To become a vendor:</p>
-          <p className="text-xs text-amber-600 leading-relaxed">
-            Sign out of your customer account, then return here to create a separate vendor account.
+            Your account does not have vendor privileges.
           </p>
         </div>
 
@@ -116,7 +115,7 @@ export default function RequireVendor({ children, onNavigate }: RequireVendorPro
             className="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
-            Sign Out &amp; Create Vendor Account
+            Sign Out
           </button>
           <button
             onClick={() => onNavigate && onNavigate('home')}

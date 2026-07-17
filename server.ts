@@ -160,14 +160,36 @@ export async function startServer() {
   // MIDDLEWARE SETUP
   // ────────────────────────────────────────────────────────────
 
-  // Middleware to verify Clerk authentication
+  // Helper to extract Auth info from either Clerk or Supabase
+  const getDualAuth = async (req: express.Request): Promise<{ userId: string | null; authType: 'clerk' | 'supabase' | null }> => {
+    // 1. Try Clerk first
+    const { userId: clerkUserId } = getAuth(req);
+    if (clerkUserId) {
+      return { userId: clerkUserId, authType: 'clerk' };
+    }
+
+    // 2. Try Supabase via Authorization header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ') && supabaseAdmin) {
+      const token = authHeader.split(' ')[1];
+      const { data } = await supabaseAdmin.auth.getUser(token);
+      if (data && data.user) {
+        return { userId: data.user.id, authType: 'supabase' };
+      }
+    }
+
+    return { userId: null, authType: null };
+  };
+
+  // Middleware to verify authentication (Dual)
   const requireAuth = [
-    (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      const { userId } = getAuth(req);
+    async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const { userId, authType } = await getDualAuth(req);
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized: Please sign in first" });
       }
       (req as any).user = { id: userId };
+      (req as any).authType = authType;
       next();
     }
   ];
@@ -177,7 +199,8 @@ export async function startServer() {
     ...requireAuth,
     async (req: express.Request, res: express.Response, next: express.NextFunction) => {
       try {
-        const { userId } = getAuth(req);
+        const userId = (req as any).user?.id;
+        const authType = (req as any).authType;
         if (!userId) {
           return res.status(401).json({ error: "Unauthorized" });
         }
@@ -186,7 +209,14 @@ export async function startServer() {
           return res.status(500).json({ error: "Backend connection unavailable" });
         }
 
-        const { data: user } = await supabaseAdmin.from('users').select('role, email').eq('clerk_id', userId).single();
+        let user;
+        if (authType === 'supabase') {
+          const { data } = await supabaseAdmin.from('users').select('role, email').eq('id', userId).single();
+          user = data;
+        } else {
+          const { data } = await supabaseAdmin.from('users').select('role, email').eq('clerk_id', userId).single();
+          user = data;
+        }
         
         if (user && (user.role === 'admin' || user.role === 'superadmin' || (user.email && MASTER_ADMIN_EMAILS.includes(user.email.toLowerCase())))) {
           (req as any).user = { id: userId, email: user.email, role: user.role };
@@ -206,7 +236,8 @@ export async function startServer() {
     ...requireAuth,
     async (req: express.Request, res: express.Response, next: express.NextFunction) => {
       try {
-        const { userId } = getAuth(req);
+        const userId = (req as any).user?.id;
+        const authType = (req as any).authType;
         if (!userId) {
           return res.status(401).json({ error: "Unauthorized" });
         }
@@ -215,12 +246,21 @@ export async function startServer() {
           return res.status(500).json({ error: "Backend connection unavailable" });
         }
 
-        const { data: user } = await supabaseAdmin.from('users').select('id, role').eq('clerk_id', userId).single();
+        let user;
+        let internalUserId = userId; // To query the vendors table
+        if (authType === 'supabase') {
+          const { data } = await supabaseAdmin.from('users').select('id, role').eq('id', userId).single();
+          user = data;
+        } else {
+          const { data } = await supabaseAdmin.from('users').select('id, role').eq('clerk_id', userId).single();
+          user = data;
+          if (data) internalUserId = data.id; // Clerk returns clerk_id, we need internal UUID
+        }
         
         if (user && (user.role === 'vendor' || user.role === 'admin')) {
           (req as any).user = { id: userId, role: user.role };
           if (user.role === 'vendor') {
-            const { data, error } = await supabaseAdmin.from('vendors').select('id').eq('user_id', user.id).single();
+            const { data, error } = await supabaseAdmin.from('vendors').select('id').eq('user_id', internalUserId).single();
             if (!error && data) {
                (req as any).vendorId = data.id;
             } else {
@@ -245,7 +285,7 @@ export async function startServer() {
   // AI Product Listing Generator using Gemini
   app.post("/api/ai/generate-listing", ...requireVendor, async (req, res) => {
     try {
-      const { userId } = getAuth(req);
+      const { userId } = await getDualAuth(req);
       
       const today = new Date().toISOString().split('T')[0];
       let usage = aiUsageTracker.get(userId!);
@@ -387,7 +427,7 @@ Return valid JSON only matching this schema exactly:
         return res.status(500).json({ error: "Backend Supabase admin connection unavailable" });
       }
 
-      const { userId } = getAuth(req);
+      const { userId, authType } = await getDualAuth(req);
       const payload = req.body;
 
       console.log("[VENDOR UPSERT] Received payload:", {
@@ -395,27 +435,51 @@ Return valid JSON only matching this schema exactly:
         email: payload.email,
         business_name: payload.business_name,
         authenticated: !!userId,
-        clerkId: userId
+        authId: userId,
+        authType
       });
 
       let vendorUserId: string | null = null;
 
       // CASE 1: Authenticated request (user_id from JWT)
       if (userId) {
-        const { data: userRow } = await supabaseAdmin
-          .from('users')
-          .select('id')
-          .eq('clerk_id', userId)
-          .maybeSingle();
+        if (authType === 'supabase') {
+          // Supabase auth already gives us the native user ID
+          vendorUserId = userId;
+          payload.user_id = vendorUserId;
+          console.log("[VENDOR UPSERT] Authenticated via Supabase resolved to UUID:", vendorUserId);
+        } else {
+          // Clerk auth gives us clerk_id, we need the internal ID
+          const { data: userRow } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .eq('clerk_id', userId)
+            .maybeSingle();
 
-        if (!userRow) {
-          console.error("[VENDOR UPSERT] Authenticated user not found in database:", userId);
-          return res.status(403).json({ error: "Unauthorized: User database record not found" });
+          if (!userRow) {
+            console.error("[VENDOR UPSERT] Authenticated Clerk user not found in database:", userId);
+            // Auto provision missing Clerk user so we don't block registration
+            const { data: newRow, error: insertErr } = await supabaseAdmin.from('users').upsert({
+              clerk_id: userId,
+              email: payload.email || '',
+              role: 'vendor',
+              full_name: payload.owner_name || '',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'clerk_id' }).select('id').single();
+
+            if (newRow) {
+              vendorUserId = newRow.id;
+              console.log("[VENDOR UPSERT] Auto-provisioned missing user to UUID:", vendorUserId);
+            } else {
+              return res.status(403).json({ error: "Unauthorized: User database record missing and auto-provision failed" });
+            }
+          } else {
+            vendorUserId = userRow.id;
+            payload.user_id = vendorUserId;
+            console.log("[VENDOR UPSERT] Authenticated Clerk user resolved to UUID:", vendorUserId);
+          }
         }
-
-        vendorUserId = userRow.id;
-        payload.user_id = vendorUserId;
-        console.log("[VENDOR UPSERT] Authenticated user resolved to UUID:", vendorUserId);
       }
       // CASE 2: Unauthenticated request (initial signup) - must have email and user_id
       else if (payload.user_id && payload.email) {
@@ -1089,10 +1153,16 @@ function optimizeImageBackground(productId: string, imageUrl: string) {
   console.log(`[IMAGE OPTIMIZE] Queued optimization for product ${productId}`);
 }
 
+import url from 'url';
+
 // Start the server if this file is run directly
-if (typeof require !== 'undefined' && require.main === module) {
+const isMain = typeof require !== 'undefined' 
+  ? require.main === module 
+  : process.argv[1] === url.fileURLToPath(import.meta.url);
+
+if (isMain) {
   startServer().then(server => {
-    server.start();
+    server?.start();
   }).catch(err => {
     console.error("Failed to start server:", err);
   });
