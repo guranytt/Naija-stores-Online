@@ -1090,7 +1090,10 @@ function optimizeImageBackground(productId: string, imageUrl: string) {
 }
 
 // Start the server if this file is run directly
-if (import.meta.main) {
-  const server = await startServer();
-  server.start();
+if (typeof require !== 'undefined' && require.main === module) {
+  startServer().then(server => {
+    server.start();
+  }).catch(err => {
+    console.error("Failed to start server:", err);
+  });
 }
