@@ -583,6 +583,8 @@ export default function VendorAdmin({
     }
 
     if (onAddNewProduct) {
+      const matchedCategory = localCategories.find(c => c.name === resolvedCategory);
+      
       const prod: Product = {
         id: "p_" + Date.now(),
         title: newName,
@@ -590,6 +592,7 @@ export default function VendorAdmin({
         price: Number(newPrice),
         stock: Number(newStockQuantity),
         category: resolvedCategory,
+        categoryId: matchedCategory?.id,
         image: newImageUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuBXHHRDhnfXAPzOsfwJAJsaalg4cWfRii5vBleuGOxKrptM-qmw3JgFBhmDSeXClxBlfi3YbQJiQs13dl3CJxFMTrEsoeKAI1JkXEckU88mcDf64zuwrUdWJW8NNuhXEbmbimeAKXSCpzoTENrA7IaXi3jzD_WCPb-on3IiWMAikNItCyKkPDuCIxGIIFS30rf-qvm-aGDzOiKqproxCid4Yu_VB_ycleJTW0iXWyz1WZUzAk_v-gZdvKW2YKJet89-kA4ee4AC0u9d",
         vendorId: activeVendor.id,
         vendorName: activeVendor.name,
@@ -620,6 +623,8 @@ export default function VendorAdmin({
       resolvedCategory = customCategoryName.trim();
     }
 
+    const matchedCategory = localCategories.find(c => c.name === resolvedCategory);
+
     const updatedProd: Product = {
       ...editingProduct,
       title: newName,
@@ -627,6 +632,7 @@ export default function VendorAdmin({
       price: Number(newPrice),
       stock: Number(newStockQuantity),
       category: resolvedCategory,
+      categoryId: matchedCategory?.id || editingProduct.categoryId,
       image: newImageUrl || editingProduct.image,
     };
 

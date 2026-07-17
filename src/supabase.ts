@@ -645,12 +645,12 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
       payload.vendor_id = record.vendor_id || record.vendorId || undefined;
       payload.category_id = resolvedCategoryId;
       
-      // Map frontend images to DB image_urls JSON
+      // Map frontend images to DB image_urls array
       const img = record.image_url || record.image;
       if (img) {
-         payload.image_urls = JSON.stringify([img]);
+         payload.image_urls = [img];
       } else {
-         payload.image_urls = JSON.stringify([]);
+         payload.image_urls = [];
       }
 
     } else if (tableName === "vendors") {

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useSignUp } from "@clerk/clerk-react";
 import { uploadToCloudinary, convertFileToBase64, compressImage } from "../cloudinaryService";
+import { getAuthToken } from "../supabase";
 import { 
   Building2, Phone, MapPin, User, Mail, Lock, CheckCircle, 
   ChevronRight, ChevronLeft, UploadCloud, RefreshCw, AlertCircle
@@ -152,9 +153,14 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
         verification_status: "verified" // Immediately verify new vendors
       };
 
+      const token = await getAuthToken();
+
       const res = await fetch("/api/vendor/upsert", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
         body: JSON.stringify(vendorPayload)
       });
 
