@@ -448,8 +448,23 @@ Return valid JSON only matching this schema exactly:
           vendorUserId = userId;
           payload.user_id = vendorUserId;
           console.log("[VENDOR UPSERT] Authenticated via Supabase resolved to UUID:", vendorUserId);
-          // Upgrade role to vendor
-          await supabaseAdmin.from('users').update({ role: 'vendor' }).eq('id', vendorUserId);
+          
+          // Ensure the user exists in public.users to satisfy foreign key constraints
+          const { data: userRow } = await supabaseAdmin.from('users').select('id').eq('id', vendorUserId).maybeSingle();
+          if (!userRow) {
+            console.log("[VENDOR UPSERT] Auto-provisioning missing Supabase user:", vendorUserId);
+            await supabaseAdmin.from('users').upsert({
+              id: vendorUserId,
+              email: payload.email || '',
+              role: 'vendor',
+              full_name: payload.owner_name || '',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          } else {
+            // Upgrade role to vendor
+            await supabaseAdmin.from('users').update({ role: 'vendor' }).eq('id', vendorUserId);
+          }
         } else {
           // Clerk auth gives us clerk_id, we need the internal ID
           const { data: userRow } = await supabaseAdmin
@@ -488,7 +503,23 @@ Return valid JSON only matching this schema exactly:
       // CASE 2: Unauthenticated request (initial signup) - must have email and user_id
       else if (payload.user_id && payload.email) {
         vendorUserId = payload.user_id;
-        console.log("[VENDOR UPSERT] Unauthenticated registration with Clerk ID:", vendorUserId);
+        console.log("[VENDOR UPSERT] Unauthenticated registration with ID:", vendorUserId);
+        
+        const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+        if (UUID_REGEX.test(vendorUserId)) {
+          const { data: userRow } = await supabaseAdmin.from('users').select('id').eq('id', vendorUserId).maybeSingle();
+          if (!userRow) {
+            console.log("[VENDOR UPSERT] Auto-provisioning missing Supabase user (unauthenticated):", vendorUserId);
+            await supabaseAdmin.from('users').upsert({
+              id: vendorUserId,
+              email: payload.email || '',
+              role: 'vendor',
+              full_name: payload.owner_name || '',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          }
+        }
       }
       // CASE 3: No valid context
       else {

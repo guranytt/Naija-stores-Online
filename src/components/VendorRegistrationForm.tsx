@@ -147,7 +147,13 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
         verification_status: "verified" // Immediately verify new vendors
       };
 
-      const token = await getAuthToken();
+      let token = await getAuthToken();
+      if (!token) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          token = session.access_token;
+        }
+      }
 
       const res = await fetch("/api/vendor/upsert", {
         method: "POST",
