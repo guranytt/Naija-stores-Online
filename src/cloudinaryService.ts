@@ -13,41 +13,39 @@ export interface CloudinaryUploadResponse {
 }
 
 /**
- * Uploads a base64 encoded image string or raw base64 data URL to the server proxy
+ * Uploads a base64 encoded image string or raw base64 data URL directly to Cloudinary
  */
 export async function uploadToCloudinary(base64Image: string): Promise<CloudinaryUploadResponse> {
   try {
-    const response = await fetch("/api/cloudinary/upload", {
+    const cloudUrl = "https://api.cloudinary.com/v1_1/dqpjjfsya/image/upload";
+    const uploadPreset = "naija_stores";
+
+    const formData = new FormData();
+    formData.append("file", base64Image.startsWith("data:image") ? base64Image : `data:image/jpeg;base64,${base64Image}`);
+    formData.append("upload_preset", uploadPreset);
+
+    const response = await fetch(cloudUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ image: base64Image }),
+      body: formData,
     });
 
-    const contentType = response.headers.get("content-type") || "";
-    if (response.ok && contentType.includes("application/json")) {
+    if (response.ok) {
       const data = await response.json();
-      if (data && data.success) {
-        return {
-          success: true,
-          url: data.url,
-          bytes: data.bytes,
-          format: data.format,
-        };
-      }
+      return {
+        success: true,
+        url: data.secure_url,
+        bytes: data.bytes,
+        format: data.format,
+      };
+    } else {
+      const errText = await response.text();
+      console.error("[CLOUDINARY ERROR]", response.status, errText);
+      return { success: false, error: `Cloudinary upload failed: ${response.status}` };
     }
   } catch (error: any) {
-    console.warn("[CLOUDINARY FALLBACK] Server offline or route returned HTML, bypassing to secure client-side blob format.", error);
+    console.error("[CLOUDINARY EXCEPTION]", error);
+    return { success: false, error: error.message || "Failed to upload to Cloudinary" };
   }
-
-  // Client-only Website fallback: Return the Base64 Data URL directly
-  return {
-    success: true,
-    url: base64Image,
-    bytes: Math.round(base64Image.length * 0.75),
-    format: "base64"
-  };
 }
 
 /**

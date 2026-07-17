@@ -160,25 +160,10 @@ export async function startServer() {
   // MIDDLEWARE SETUP
   // ────────────────────────────────────────────────────────────
 
-  // Helper to extract Auth info from either Clerk or Supabase
+  // Helper to extract Auth info strictly from Clerk
   const getDualAuth = async (req: express.Request): Promise<{ userId: string | null; authType: 'clerk' | 'supabase' | null }> => {
-    // 1. Try Clerk first
     const { userId: clerkUserId } = getAuth(req);
-    if (clerkUserId) {
-      return { userId: clerkUserId, authType: 'clerk' };
-    }
-
-    // 2. Try Supabase via Authorization header
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ') && supabaseAdmin) {
-      const token = authHeader.split(' ')[1];
-      const { data } = await supabaseAdmin.auth.getUser(token);
-      if (data && data.user) {
-        return { userId: data.user.id, authType: 'supabase' };
-      }
-    }
-
-    return { userId: null, authType: null };
+    return { userId: clerkUserId || null, authType: clerkUserId ? 'clerk' : null };
   };
 
   // Middleware to verify authentication (Dual)
@@ -209,14 +194,7 @@ export async function startServer() {
           return res.status(500).json({ error: "Backend connection unavailable" });
         }
 
-        let user;
-        if (authType === 'supabase') {
-          const { data } = await supabaseAdmin.from('users').select('role, email').eq('id', userId).single();
-          user = data;
-        } else {
-          const { data } = await supabaseAdmin.from('users').select('role, email').eq('clerk_id', userId).single();
-          user = data;
-        }
+        const { data: user } = await supabaseAdmin.from('users').select('role, email').eq('clerk_id', userId).single();
         
         if (user && (user.role === 'admin' || user.role === 'superadmin' || (user.email && MASTER_ADMIN_EMAILS.includes(user.email.toLowerCase())))) {
           (req as any).user = { id: userId, email: user.email, role: user.role };
@@ -246,16 +224,9 @@ export async function startServer() {
           return res.status(500).json({ error: "Backend connection unavailable" });
         }
 
-        let user;
         let internalUserId = userId; // To query the vendors table
-        if (authType === 'supabase') {
-          const { data } = await supabaseAdmin.from('users').select('id, role').eq('id', userId).single();
-          user = data;
-        } else {
-          const { data } = await supabaseAdmin.from('users').select('id, role').eq('clerk_id', userId).single();
-          user = data;
-          if (data) internalUserId = data.id; // Clerk returns clerk_id, we need internal UUID
-        }
+        const { data: user } = await supabaseAdmin.from('users').select('id, role').eq('clerk_id', userId).single();
+        if (user) internalUserId = user.id; // Clerk returns clerk_id, we need internal UUID
         
         if (user && (user.role === 'vendor' || user.role === 'admin')) {
           (req as any).user = { id: userId, role: user.role };
@@ -381,40 +352,7 @@ Return valid JSON only matching this schema exactly:
 
   // Explicit endpoints required by user
 
-  app.post("/api/cloudinary/upload", async (req, res) => {
-    try {
-      const { base64Data, filename } = req.body;
-      if (!base64Data) {
-        return res.status(400).json({ error: "base64Data is required" });
-      }
-
-      const cloudUrl = "https://api.cloudinary.com/v1_1/dqpjjfsya/image/upload";
-      const uploadPreset = "naija_stores";
-
-      const formData = new FormData();
-      formData.append("file", `data:image/jpeg;base64,${base64Data}`);
-      formData.append("upload_preset", uploadPreset);
-      formData.append("public_id", `naija-stores/${filename || Date.now()}`);
-
-      const response = await fetch(cloudUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Cloudinary upload failed with status ${response.status}`);
-      }
-
-      const data = await response.json();
-      res.json({
-        success: true,
-        url: data.secure_url
-      });
-    } catch (err: any) {
-      console.error("Cloudinary Upload Error:", err);
-      res.status(500).json({ error: "Failed to upload image", details: err.message });
-    }
-  });
+  // Cloudinary direct upload endpoint removed. Handled securely on client-side.
 
   // ────────────────────────────────────────────────────────────
   // FIXED: VENDOR UPSERT ENDPOINT (NEW LOGIC)
@@ -441,63 +379,39 @@ Return valid JSON only matching this schema exactly:
 
       let vendorUserId: string | null = null;
 
-      // CASE 1: Authenticated request (user_id from JWT)
+      // CASE 1: Authenticated request (user_id from Clerk JWT)
       if (userId) {
-        if (authType === 'supabase') {
-          // Supabase auth already gives us the native user ID
-          vendorUserId = userId;
-          payload.user_id = vendorUserId;
-          console.log("[VENDOR UPSERT] Authenticated via Supabase resolved to UUID:", vendorUserId);
-          
-          // Ensure the user exists in public.users to satisfy foreign key constraints
-          const { data: userRow } = await supabaseAdmin.from('users').select('id').eq('id', vendorUserId).maybeSingle();
-          if (!userRow) {
-            console.log("[VENDOR UPSERT] Auto-provisioning missing Supabase user:", vendorUserId);
-            await supabaseAdmin.from('users').upsert({
-              id: vendorUserId,
-              email: payload.email || '',
-              role: 'vendor',
-              full_name: payload.owner_name || '',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
+        // Clerk auth gives us clerk_id, we need the internal ID
+        const { data: userRow } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .eq('clerk_id', userId)
+          .maybeSingle();
+
+        if (!userRow) {
+          console.error("[VENDOR UPSERT] Authenticated Clerk user not found in database:", userId);
+          // Auto provision missing Clerk user so we don't block registration
+          const { data: newRow } = await supabaseAdmin.from('users').upsert({
+            clerk_id: userId,
+            email: payload.email || '',
+            role: 'vendor',
+            full_name: payload.owner_name || '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'clerk_id' }).select('id').single();
+
+          if (newRow) {
+            vendorUserId = newRow.id;
+            console.log("[VENDOR UPSERT] Auto-provisioned missing user to UUID:", vendorUserId);
           } else {
-            // Upgrade role to vendor
-            await supabaseAdmin.from('users').update({ role: 'vendor' }).eq('id', vendorUserId);
+            return res.status(403).json({ error: "Unauthorized: User database record missing and auto-provision failed" });
           }
         } else {
-          // Clerk auth gives us clerk_id, we need the internal ID
-          const { data: userRow } = await supabaseAdmin
-            .from('users')
-            .select('id')
-            .eq('clerk_id', userId)
-            .maybeSingle();
-
-          if (!userRow) {
-            console.error("[VENDOR UPSERT] Authenticated Clerk user not found in database:", userId);
-            // Auto provision missing Clerk user so we don't block registration
-            const { data: newRow, error: insertErr } = await supabaseAdmin.from('users').upsert({
-              clerk_id: userId,
-              email: payload.email || '',
-              role: 'vendor',
-              full_name: payload.owner_name || '',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'clerk_id' }).select('id').single();
-
-            if (newRow) {
-              vendorUserId = newRow.id;
-              console.log("[VENDOR UPSERT] Auto-provisioned missing user to UUID:", vendorUserId);
-            } else {
-              return res.status(403).json({ error: "Unauthorized: User database record missing and auto-provision failed" });
-            }
-          } else {
-            vendorUserId = userRow.id;
-            payload.user_id = vendorUserId;
-            console.log("[VENDOR UPSERT] Authenticated Clerk user resolved to UUID:", vendorUserId);
-            // Upgrade role to vendor
-            await supabaseAdmin.from('users').update({ role: 'vendor' }).eq('id', vendorUserId);
-          }
+          vendorUserId = userRow.id;
+          payload.user_id = vendorUserId;
+          console.log("[VENDOR UPSERT] Authenticated Clerk user resolved to UUID:", vendorUserId);
+          // Upgrade role to vendor
+          await supabaseAdmin.from('users').update({ role: 'vendor' }).eq('id', vendorUserId);
         }
       }
       // CASE 2: Unauthenticated request (initial signup) - must have email and user_id
