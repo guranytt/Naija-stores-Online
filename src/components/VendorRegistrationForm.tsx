@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { uploadToCloudinary, convertFileToBase64, compressImage } from "../cloudinaryService";
-import { supabase, getAuthToken } from "../supabase";
 import { 
   Building2, Phone, MapPin, User, Mail, Lock, CheckCircle, 
   ChevronRight, ChevronLeft, UploadCloud, RefreshCw, AlertCircle
 } from "lucide-react";
+import { useSignUp, useAuth } from "@clerk/clerk-react";
 
 export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick: () => void }) {
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const { getToken } = useAuth();
   
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,37 +52,29 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
       return;
     }
 
+    if (!isLoaded || !signUp) return;
     setIsLoading(true);
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
+      await signUp.create({
+        emailAddress: email,
         password,
-        options: {
-          data: {
-            role: "vendor",
-            full_name: ownerName,
-            shop_name: businessName
-          }
+        unsafeMetadata: {
+          role: "vendor",
+          fullName: ownerName,
+          shopName: businessName
         }
       });
 
-      if (signUpError) {
-        throw signUpError;
-      }
-
-      console.log("Signup created. User:", data.user?.id);
+      // Send OTP to email
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       
-      // If email confirmation is required, session will be null
-      if (data.user && !data.session) {
-        setStep(2); // Move to OTP step
-      } else if (data.session) {
-        // Logged in directly (email confirmation disabled)
-        await completeRegistration(data.user!.id);
-      }
+      console.log("Signup created in Clerk, moving to OTP step");
+      setStep(2); // Move to OTP step
+
     } catch (err: any) {
       console.error("Signup error:", err);
-      const errMsg = err?.message || "Failed to start signup";
+      const errMsg = err?.errors?.[0]?.message || err?.message || "Failed to start signup";
       setError(errMsg);
     } finally {
       setIsLoading(false);
@@ -89,24 +83,30 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLoaded || !signUp) return;
     setIsLoading(true);
     setError(null);
 
     try {
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token: code,
-        type: 'signup'
+      const completeSignUp = await signUp.attemptEmailAddressVerification({
+        code,
       });
 
-      if (verifyError || !data.user) {
-        throw verifyError || new Error("Unable to complete verification. Please check the code.");
+      if (completeSignUp.status !== 'complete') {
+        throw new Error("Unable to complete verification. Please check the code.");
       }
 
-      await completeRegistration(data.user.id);
+      // Set the session active
+      await setActive({ session: completeSignUp.createdSessionId });
+      
+      // Wait briefly for Clerk session to be established globally before completing backend registration
+      setTimeout(() => {
+        completeRegistration(completeSignUp.createdUserId!);
+      }, 1000);
+
     } catch (err: any) {
       console.error("OTP Verification Error:", err);
-      const errMsg = err?.message || "Invalid verification code";
+      const errMsg = err?.errors?.[0]?.message || err?.message || "Invalid verification code";
       setError(errMsg);
       setIsLoading(false);
     }
@@ -147,12 +147,11 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
         verification_status: "verified" // Immediately verify new vendors
       };
 
-      let token = await getAuthToken();
+      // Ensure we get the Clerk token to authenticate the request
+      let token = await getToken();
       if (!token) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          token = session.access_token;
-        }
+        // Fallback to window object if context hasn't fully propagated
+        token = await window.Clerk?.session?.getToken() || null;
       }
 
       const res = await fetch("/api/vendor/upsert", {
@@ -169,14 +168,12 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
         console.error("Backend sync failed");
       }
 
-      // Wait a moment for session to fully establish, then reload to /admin
-      setTimeout(() => {
-        window.location.href = "/admin";
-      }, 500);
+      // Reload to /admin
+      window.location.href = "/admin";
 
     } catch (err: any) {
       console.error("Registration Completion Error:", err);
-      setError(err?.message || "An error occurred during registration");
+      setError(err?.message || "An error occurred during registration sync");
       setIsLoading(false);
     }
   };
@@ -309,6 +306,13 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
           </div>
           </div>
 
+          {error && (
+            <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-semibold border border-red-100 flex items-center">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              {error}
+            </div>
+          )}
+
           <div className="pt-6">
             <button onClick={handleCreateAccount} disabled={isLoading} className="w-full py-4 bg-orange-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all flex items-center justify-center disabled:opacity-70">
               {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : "Create Vendor Account"}
@@ -331,6 +335,13 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
               We've sent a secure 6-digit verification code to <strong className="text-neutral-800">{email}</strong>. Enter it below to activate your store.
             </p>
           </div>
+
+          {error && (
+            <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-semibold border border-red-100 flex items-center justify-center max-w-xs mx-auto">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              {error}
+            </div>
+          )}
 
           <div className="max-w-xs mx-auto">
             <input 

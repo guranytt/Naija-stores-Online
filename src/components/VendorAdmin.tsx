@@ -738,12 +738,6 @@ export default function VendorAdmin({
                     </span>
                   )}
                 </div>
-                <button 
-                  onClick={() => setShowEditProfileModal(true)}
-                  className="text-[10px] text-orange-500 hover:text-orange-600 font-black tracking-wider uppercase underline mt-1 block"
-                >
-                  Edit Logo & Shop Details
-                </button>
               </div>
             </div>
             
@@ -761,12 +755,6 @@ export default function VendorAdmin({
               >
                 <BellRing className="w-4 h-4" />
                 <span>Enable Alerts</span>
-              </button>
-              <button
-                onClick={() => setShowEditProfileModal(true)}
-                className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center space-x-1.5 border border-neutral-200"
-              >
-                <span>⚙️ Edit Brand Profile</span>
               </button>
               <button
                 onClick={() => {

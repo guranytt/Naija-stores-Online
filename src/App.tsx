@@ -917,16 +917,39 @@ export default function App() {
     setProducts(prev => [prod, ...prev]);
     
     try {
-      // Actually persist to backend — await the result
-      const success = await saveSupabaseRecord("products", prod);
+      let token = "";
+      if (typeof window !== "undefined" && (window as any).Clerk?.session) {
+        token = await (window as any).Clerk.session.getToken() || "";
+      }
+
+      const res = await fetch("/api/product/upsert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          id: prod.id,
+          vendor_id: prod.vendorId || (prod as any).vendor_id,
+          category_id: prod.categoryId || (prod as any).category_id,
+          name: prod.title || prod.name,
+          description: prod.description,
+          price: prod.price,
+          stock_quantity: prod.stock || (prod as any).stock_quantity || 10,
+          image_urls: prod.image ? [prod.image] : [],
+          status: 'active',
+          slug: prod.title ? prod.title.toLowerCase().replace(/\s+/g, '-') : 'product'
+        })
+      });
       
-      if (success) {
+      if (res.ok) {
         mutate(["products", { limit: 1000 }]);
         triggerToast(`Successfully published ${prod.title} to NaijaStores Catalog.`, "success");
       } else {
+        const errData = await res.json().catch(() => ({}));
         // Remove the optimistic product since it didn't actually persist
         setProducts(prev => prev.filter(p => p.id !== prod.id));
-        triggerToast(`⚠️ Failed to publish "${prod.title}" — the product could not be saved. Please check that the category exists and try again.`, "info");
+        triggerToast(`⚠️ Failed to publish "${prod.title}": ${errData.error || 'Server rejected the request'}.`, "info");
       }
     } catch (err: any) {
       // Remove the optimistic product on exception
@@ -940,12 +963,37 @@ export default function App() {
     setProducts(prev => prev.map(p => p.id === prod.id ? prod : p));
     
     try {
-      const success = await saveSupabaseRecord("products", prod);
-      if (success) {
+      let token = "";
+      if (typeof window !== "undefined" && (window as any).Clerk?.session) {
+        token = await (window as any).Clerk.session.getToken() || "";
+      }
+
+      const res = await fetch("/api/product/upsert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          id: prod.id,
+          vendor_id: prod.vendorId || (prod as any).vendor_id,
+          category_id: prod.categoryId || (prod as any).category_id,
+          name: prod.title || prod.name,
+          description: prod.description,
+          price: prod.price,
+          stock_quantity: prod.stock || (prod as any).stock_quantity || 10,
+          image_urls: prod.image ? [prod.image] : [],
+          status: 'active',
+          slug: prod.title ? prod.title.toLowerCase().replace(/\s+/g, '-') : 'product'
+        })
+      });
+
+      if (res.ok) {
         mutate(["products", { limit: 1000 }]);
         triggerToast(`Successfully updated ${prod.title}.`, "success");
       } else {
-        triggerToast(`⚠️ Failed to update "${prod.title}". Please try again.`, "info");
+        const errData = await res.json().catch(() => ({}));
+        triggerToast(`⚠️ Failed to update "${prod.title}": ${errData.error || 'Server error'}.`, "info");
       }
     } catch (err: any) {
       triggerToast(`⚠️ Error updating "${prod.title}": ${err.message || "Unknown error"}.`, "info");

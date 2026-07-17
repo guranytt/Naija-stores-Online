@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { supabase } from "../supabase";
 import { Mail, Lock, RefreshCw, LogIn } from "lucide-react";
+import { useSignIn } from "@clerk/clerk-react";
 
 export default function VendorLoginForm({ onRegisterClick }: { onRegisterClick: () => void }) {
   const [email, setEmail] = useState("");
@@ -8,53 +8,37 @@ export default function VendorLoginForm({ onRegisterClick }: { onRegisterClick: 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { isLoaded, signIn, setActive } = useSignIn();
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLoaded || !signIn) return;
     setIsLoading(true);
     setError(null);
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+      const result = await signIn.create({
+        identifier: email,
         password,
       });
 
-      if (signInError || !data.user) {
-        throw signInError || new Error("Invalid login credentials.");
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        
+        // Wait a moment for session to fully establish, then redirect
+        setTimeout(() => {
+          window.location.href = "/admin";
+        }, 500);
+      } else {
+        console.log("SignIn result:", result);
+        throw new Error("Login incomplete or requires additional steps.");
       }
-
-      // Check if user is a vendor
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-
-      // If user isn't found by 'id' directly (maybe sync delayed), try email just in case
-      let finalRole = userData?.role;
-      if (userError || !userData) {
-        const { data: emailData } = await supabase
-          .from('users')
-          .select('role')
-          .eq('email', email)
-          .single();
-        finalRole = emailData?.role;
-      }
-
-      // We allow admin or vendor
-      if (finalRole !== 'vendor' && finalRole !== 'admin') {
-        await supabase.auth.signOut();
-        throw new Error("Access Denied: Your account does not have vendor privileges.");
-      }
-
-      // Wait a moment for session to fully establish, then redirect
-      setTimeout(() => {
-        window.location.href = "/admin";
-      }, 500);
 
     } catch (err: any) {
       console.error("Login Error:", err);
-      setError(err?.message || "Invalid login credentials.");
+      const errMsg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "Invalid login credentials.";
+      setError(errMsg);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -106,7 +90,7 @@ export default function VendorLoginForm({ onRegisterClick }: { onRegisterClick: 
         <div className="pt-2">
           <button 
             type="submit" 
-            disabled={isLoading} 
+            disabled={isLoading || !isLoaded} 
             className="w-full py-3.5 bg-orange-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all flex items-center justify-center disabled:opacity-70"
           >
             {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : (
