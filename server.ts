@@ -6,7 +6,7 @@ import { Webhook } from "svix";
 import rateLimit from "express-rate-limit";
 import { clerkMiddleware, getAuth } from "@clerk/express";
 import { createClient } from "@supabase/supabase-js";
-import { GoogleGenerativeAI } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 // Initialize Supabase Admin Client with explicit service role key
 const supabaseAdmin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -19,7 +19,7 @@ function getGeminiClient() {
   if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey === "your_api_key_here") {
     throw new Error("GEMINI_API_KEY is not configured");
   }
-  return new GoogleGenerativeAI({ apiKey });
+  return new GoogleGenAI({ apiKey });
 }
 
 const MASTER_ADMIN_EMAILS = ["adminnaijastoresonline@gmail.com", "mcgigimeshai@gmail.com"];
@@ -177,25 +177,19 @@ export async function startServer() {
     ...requireAuth,
     async (req: express.Request, res: express.Response, next: express.NextFunction) => {
       try {
-        const { userId, user: clerkUser } = getAuth(req);
+        const { userId } = getAuth(req);
         if (!userId) {
           return res.status(401).json({ error: "Unauthorized" });
-        }
-
-        const email = clerkUser?.emailAddresses?.[0]?.emailAddress;
-        
-        if (email && MASTER_ADMIN_EMAILS.includes(email.toLowerCase())) {
-          (req as any).user = { id: userId, email, role: 'admin' };
-          return next();
         }
 
         if (!supabaseAdmin) {
           return res.status(500).json({ error: "Backend connection unavailable" });
         }
 
-        const { data: user } = await supabaseAdmin.from('users').select('role').eq('clerk_id', userId).single();
-        if (user && (user.role === 'admin' || user.role === 'superadmin')) {
-          (req as any).user = { id: userId, email, role: user.role };
+        const { data: user } = await supabaseAdmin.from('users').select('role, email').eq('clerk_id', userId).single();
+        
+        if (user && (user.role === 'admin' || user.role === 'superadmin' || (user.email && MASTER_ADMIN_EMAILS.includes(user.email.toLowerCase())))) {
+          (req as any).user = { id: userId, email: user.email, role: user.role };
           return next();
         }
 
@@ -221,7 +215,7 @@ export async function startServer() {
           return res.status(500).json({ error: "Backend connection unavailable" });
         }
 
-        const { data: user } = await supabaseAdmin.from('users').select('role').eq('clerk_id', userId).single();
+        const { data: user } = await supabaseAdmin.from('users').select('id, role').eq('clerk_id', userId).single();
         
         if (user && (user.role === 'vendor' || user.role === 'admin')) {
           (req as any).user = { id: userId, role: user.role };
