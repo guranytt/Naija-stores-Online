@@ -211,12 +211,8 @@ export default function VendorAdmin({
   const [newPrice, setNewPrice] = useState("");
   const [newStockQuantity, setNewStockQuantity] = useState("");
   const [newCategory, setNewCategory] = useState("Fashion");
-  const [proposingCategory, setProposingCategory] = useState(false);
-  const [customCategoryName, setCustomCategoryName] = useState("");
   const [newImageUrl, setNewImageUrl] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const [proposingSubcategory, setProposingSubcategory] = useState(false);
-  const [customSubcategoryName, setCustomSubcategoryName] = useState("");
   
   const [activeProductTab, setActiveProductTab] = useState<"All" | "Live" | "Draft">("All");
   const [localFulfillment, setLocalFulfillment] = useState<Record<string, string>>({});
@@ -552,35 +548,7 @@ export default function VendorAdmin({
     e.preventDefault();
     if (!newName || !newPrice || !newStockQuantity) return;
     
-    let resolvedCategory = newCategory;
-    
-    // Auto-create proposed category
-    if (proposingCategory && customCategoryName.trim()) {
-      resolvedCategory = customCategoryName.trim();
-      const cat: import("../types").Category = {
-        id: "cat_" + Date.now().toString(),
-        name: resolvedCategory,
-        description: "New category proposed by vendor: " + activeVendor.name,
-        image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=500&q=80",
-        iconName: "FolderHeart",
-        itemCount: 0,
-        subcategories: proposingSubcategory && customSubcategoryName.trim() ? [customSubcategoryName.trim()] : [],
-        status: "pending"
-      };
-      const updated = [...localCategories, cat];
-      handleUpdateCategoriesState(updated);
-    } else if (proposingSubcategory && customSubcategoryName.trim() && !proposingCategory) {
-      // Find existing category and add pending subcategory
-      const updated = localCategories.map(c => {
-         // Optionally you could add it immediately, or flag it.
-         // For now, if they propose subcategory to existing category, just inject it locally.
-         if (c.name === newCategory) {
-           return { ...c, subcategories: [...c.subcategories, customSubcategoryName.trim()] };
-         }
-         return c;
-      });
-      handleUpdateCategoriesState(updated);
-    }
+    const resolvedCategory = newCategory;
 
     if (onAddNewProduct) {
       const matchedCategory = localCategories.find(c => c.name === resolvedCategory);
@@ -607,8 +575,6 @@ export default function VendorAdmin({
     setNewPrice("");
     setNewStockQuantity("");
     setNewCategory("Fashion");
-    setProposingCategory(false);
-    setCustomCategoryName("");
     setNewImageUrl("");
     setNewDescription("");
     setShowAddProductModal(false);
@@ -618,10 +584,7 @@ export default function VendorAdmin({
     e.preventDefault();
     if (!editingProduct || !onEditProduct || !newName || !newPrice || !newStockQuantity) return;
 
-    let resolvedCategory = newCategory;
-    if (proposingCategory && customCategoryName.trim()) {
-      resolvedCategory = customCategoryName.trim();
-    }
+    const resolvedCategory = newCategory;
 
     const matchedCategory = localCategories.find(c => c.name === resolvedCategory);
 
@@ -644,8 +607,6 @@ export default function VendorAdmin({
     setNewPrice("");
     setNewStockQuantity("");
     setNewCategory("Fashion");
-    setProposingCategory(false);
-    setCustomCategoryName("");
     setNewImageUrl("");
     setNewDescription("");
     setShowEditProductModal(false);
@@ -995,37 +956,16 @@ export default function VendorAdmin({
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Market Category</label>
                     <select
-                      value={proposingCategory ? "PROPOSE_NEW" : newCategory}
+                      value={newCategory}
                       onChange={(e) => {
-                        if (e.target.value === "PROPOSE_NEW") {
-                          setProposingCategory(true);
-                        } else {
-                          setProposingCategory(false);
                           setNewCategory(e.target.value);
-                          // Reset subcategory proposing state if changing main category
-                          setProposingSubcategory(false);
-                        }
                       }}
                       className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white font-bold text-neutral-700"
                     >
                       {localCategories.filter(c => c.status !== "pending" && c.status !== "rejected").map(cat => (
                         <option key={cat.id} value={cat.name}>{cat.name}</option>
                       ))}
-                      <option value="PROPOSE_NEW">+ Propose New Category</option>
                     </select>
-
-                    {proposingCategory && (
-                      <div className="mt-2 animate-fade-in space-y-1">
-                         <input
-                           type="text"
-                           placeholder="Type product category name..."
-                           value={customCategoryName}
-                           onChange={(e) => setCustomCategoryName(e.target.value)}
-                           className="w-full px-4 py-2 text-xs border border-orange-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none placeholder-neutral-400 bg-orange-50 pl-3 shadow-sm font-bold"
-                           required
-                         />
-                      </div>
-                    )}
                   </div>
 
                   {/* Removed Condition, Commission % and Expected Earnings since they don't map to products */}
@@ -1183,13 +1123,7 @@ export default function VendorAdmin({
                     <select
                       value={newCategory}
                       onChange={(e) => {
-                        if (e.target.value === "add_new") {
-                           setProposingCategory(true);
-                           setNewCategory("add_new");
-                        } else {
-                           setProposingCategory(false);
-                           setNewCategory(e.target.value);
-                        }
+                         setNewCategory(e.target.value);
                       }}
                       className="w-full px-4 py-2 text-xs border border-neutral-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-medium bg-white"
                     >
@@ -1197,19 +1131,7 @@ export default function VendorAdmin({
                       {localCategories.map(cat => (
                          <option key={cat.id} value={cat.name}>{cat.name}</option>
                       ))}
-                      <option value="add_new">+ Request New Category...</option>
                     </select>
-
-                    {proposingCategory && (
-                       <input
-                         type="text"
-                         required
-                         placeholder="Type new category name..."
-                         value={customCategoryName}
-                         onChange={(e) => setCustomCategoryName(e.target.value)}
-                         className="w-full mt-2 px-4 py-2 text-xs border border-orange-200 bg-orange-50 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-medium"
-                       />
-                    )}
                   </div>
 
                   <div className="space-y-1">
