@@ -847,6 +847,9 @@ export async function saveSupabaseRecord(tableName: string, record: any): Promis
         if (response.ok) {
           const result = await response.json();
           if (result.success) return true;
+        } else {
+          const errText = await response.text();
+          console.error(`Supabase API error (${response.status}) for ${tableName}:`, errText);
         }
         console.warn(`Supabase: API upsert failed for ${tableName}, falling back to direct client upsert.`);
       } catch (err: any) {

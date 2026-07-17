@@ -45,7 +45,7 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
     setError(null);
     
     // Validate all required fields before proceeding
-    if (!email || !password || !ownerName || !businessName || !businessAddress || !phone) {
+    if (!email || !password || !ownerName || !businessName || !businessAddress || !phone || !whatsappNumber || !cacNumber || !bankAccountName || !bankAccountNumber || !bankCode || !businessDescription) {
       setError("Please fill in all required fields (marked with *).");
       return;
     }
@@ -225,8 +225,8 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Business Description</label>
-              <textarea value={businessDescription} onChange={e => setBusinessDescription(e.target.value)} className="w-full px-4 py-3 text-xs font-medium border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none min-h-[80px]" placeholder="Briefly describe what you sell..." />
+              <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Business Description *</label>
+              <textarea required value={businessDescription} onChange={e => setBusinessDescription(e.target.value)} className="w-full px-4 py-3 text-xs font-medium border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none min-h-[80px]" placeholder="Briefly describe what you sell..." />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -238,10 +238,10 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">WhatsApp</label>
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">WhatsApp *</label>
                 <div className="relative">
                   <Phone className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                  <input type="text" value={whatsappNumber} onChange={e => setWhatsappNumber(e.target.value)} className="w-full pl-9 pr-3 py-2.5 text-xs font-semibold border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" placeholder="+234 800..." />
+                  <input type="text" required value={whatsappNumber} onChange={e => setWhatsappNumber(e.target.value)} className="w-full pl-9 pr-3 py-2.5 text-xs font-semibold border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" placeholder="+234 800..." />
                 </div>
               </div>
             </div>
@@ -260,25 +260,25 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
               <h4 className="text-[10px] font-black text-neutral-900 uppercase tracking-widest flex items-center"><Lock className="w-3.5 h-3.5 mr-1.5 text-neutral-400" /> Verification & Banking</h4>
             
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">CAC Registration Number</label>
-              <input type="text" value={cacNumber} onChange={e => setCacNumber(e.target.value)} className="w-full px-4 py-3 text-sm font-semibold border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none uppercase font-mono" placeholder="RC-123456" />
+              <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">CAC Registration Number *</label>
+              <input type="text" required value={cacNumber} onChange={e => setCacNumber(e.target.value)} className="w-full px-4 py-3 text-sm font-semibold border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none uppercase font-mono" placeholder="RC-123456" />
             </div>
 
             <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-4">
               <h4 className="text-[10px] font-black text-neutral-900 uppercase tracking-widest flex items-center"><Building2 className="w-3.5 h-3.5 mr-1.5 text-neutral-400" /> Bank Details (For Payouts)</h4>
               
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Bank Name</label>
-                <input type="text" value={bankAccountName} onChange={e => setBankAccountName(e.target.value)} className="w-full px-3 py-2.5 text-xs font-semibold border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g. Guarantee Trust Bank" />
+                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Bank Name *</label>
+                <input type="text" required value={bankAccountName} onChange={e => setBankAccountName(e.target.value)} className="w-full px-3 py-2.5 text-xs font-semibold border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g. Guarantee Trust Bank" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Account Number</label>
-                  <input type="text" value={bankAccountNumber} onChange={e => setBankAccountNumber(e.target.value)} className="w-full px-3 py-2.5 text-xs font-semibold border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-mono" placeholder="10 Digits" />
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Account Number *</label>
+                  <input type="text" required value={bankAccountNumber} onChange={e => setBankAccountNumber(e.target.value)} className="w-full px-3 py-2.5 text-xs font-semibold border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-mono" placeholder="10 Digits" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Bank Code</label>
-                  <input type="text" value={bankCode} onChange={e => setBankCode(e.target.value)} className="w-full px-3 py-2.5 text-xs font-semibold border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-mono" placeholder="e.g. 058" />
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest pl-1">Bank Code *</label>
+                  <input type="text" required value={bankCode} onChange={e => setBankCode(e.target.value)} className="w-full px-3 py-2.5 text-xs font-semibold border border-neutral-200 bg-white rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-mono" placeholder="e.g. 058" />
                 </div>
               </div>
             </div>

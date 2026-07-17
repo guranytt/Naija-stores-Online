@@ -448,6 +448,8 @@ Return valid JSON only matching this schema exactly:
           vendorUserId = userId;
           payload.user_id = vendorUserId;
           console.log("[VENDOR UPSERT] Authenticated via Supabase resolved to UUID:", vendorUserId);
+          // Upgrade role to vendor
+          await supabaseAdmin.from('users').update({ role: 'vendor' }).eq('id', vendorUserId);
         } else {
           // Clerk auth gives us clerk_id, we need the internal ID
           const { data: userRow } = await supabaseAdmin
@@ -478,6 +480,8 @@ Return valid JSON only matching this schema exactly:
             vendorUserId = userRow.id;
             payload.user_id = vendorUserId;
             console.log("[VENDOR UPSERT] Authenticated Clerk user resolved to UUID:", vendorUserId);
+            // Upgrade role to vendor
+            await supabaseAdmin.from('users').update({ role: 'vendor' }).eq('id', vendorUserId);
           }
         }
       }
