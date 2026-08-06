@@ -151,7 +151,7 @@ export default function VendorRegistrationForm({ onLoginClick }: { onLoginClick:
       let token = await getToken();
       if (!token) {
         // Fallback to window object if context hasn't fully propagated
-        token = await window.Clerk?.session?.getToken() || null;
+        token = await (window as any).Clerk?.session?.getToken() || null;
       }
 
       const res = await fetch("/api/vendor/upsert", {
