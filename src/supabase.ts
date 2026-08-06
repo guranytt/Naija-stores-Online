@@ -105,6 +105,11 @@ async function getTableColumns(tableName: string): Promise<string[]> {
 const queryCache: Record<string, { data: any; timestamp: number }> = {};
 const CACHE_TTL = 60 * 1000; // 60 seconds
 
+// Clear all cached query data (call on sign-out to prevent stale data leaking between sessions)
+export function clearQueryCache() {
+  Object.keys(queryCache).forEach(key => delete queryCache[key]);
+}
+
 // Helper to check if tables exist and fetch data, or return initial state
 export async function getSupabaseData<T>(tableName: string, fallbackData: T[], page: number = 1, limit: number = 30): Promise<{ data: T[]; synced: boolean; error?: string }> {
   const cacheKey = `${tableName}_${page}_${limit}`;

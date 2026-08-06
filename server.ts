@@ -7,6 +7,16 @@ import rateLimit from "express-rate-limit";
 import { clerkMiddleware, getAuth } from "@clerk/express";
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
+import dotenv from "dotenv";
+dotenv.config();
+
+// Ensure server-side env vars are available even if only VITE_ prefixed versions exist
+if (!process.env.SUPABASE_URL && process.env.VITE_SUPABASE_URL) {
+  process.env.SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+}
+if (!process.env.CLERK_PUBLISHABLE_KEY && process.env.VITE_CLERK_PUBLISHABLE_KEY) {
+  process.env.CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY;
+}
 
 // Initialize Supabase Admin Client with explicit service role key
 const supabaseAdmin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -111,7 +121,7 @@ export async function startServer() {
       return res.status(400).json({ error: 'Error: Verification error' });
     }
 
-    const { id, email_addresses, first_name, last_name, image_url } = evt.data;
+    const { id, email_addresses, first_name, last_name, image_url, unsafe_metadata, public_metadata } = evt.data;
     const eventType = evt.type;
     if (eventType === 'user.created' || eventType === 'user.updated') {
       if (!supabaseAdmin) {
@@ -122,34 +132,64 @@ export async function startServer() {
       const email = email_addresses?.[0]?.email_address;
       const fullName = `${first_name || ''} ${last_name || ''}`.trim() || email?.split("@")[0] || "User";
       
-      // Check if user already exists
+      // Determine role from Clerk metadata — respect vendor signups
+      const metadataRole = unsafe_metadata?.role || public_metadata?.role;
+      
+      // Check if user already exists to preserve their current role on updates
       const { data: existingUser } = await supabaseAdmin
         .from('users')
-        .select('*')
+        .select('id, role')
         .eq('clerk_id', id)
         .maybeSingle();
 
-      const upsertPayload = {
-        id: undefined, // Don't set UUID, let Supabase generate it
+      // Role priority: metadata role (from signup) > existing DB role (preserve on update) > default 'customer'
+      const resolvedRole = metadataRole || existingUser?.role || 'customer';
+
+      const upsertPayload: any = {
         clerk_id: id,
         email,
         full_name: fullName,
-        role: 'customer',
+        role: resolvedRole,
         avatar_url: image_url,
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabaseAdmin.from('users').upsert(upsertPayload, { onConflict: 'clerk_id' });
+      const { data: upsertedUser, error } = await supabaseAdmin.from('users').upsert(upsertPayload, { onConflict: 'clerk_id' }).select('id').single();
 
       if (error) {
         console.error("[CLERK WEBHOOK ERROR] Supabase Upsert Failed", error);
         return res.status(500).json({ error: error.message });
       }
 
-      // Note: Auto-provisioning of vendors is now handled by a rock-solid PostgreSQL Trigger directly in the database.
+      // Auto-provision vendor profile if role is vendor
+      if (resolvedRole === 'vendor' && upsertedUser) {
+        const shopName = unsafe_metadata?.shopName || public_metadata?.shopName || `${fullName}'s Store`;
+        const { error: vendorError } = await supabaseAdmin.from('vendors').upsert({
+          user_id: upsertedUser.id,
+          business_name: shopName,
+          business_address: unsafe_metadata?.business_address || 'To be updated',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+        if (vendorError) {
+          console.error("[CLERK WEBHOOK] Vendor auto-provision failed:", vendorError);
+        } else {
+          console.log(`[CLERK WEBHOOK] Auto-provisioned vendor profile for ${id}`);
+        }
+      }
     }
     if (eventType === 'user.deleted') {
-      const { error } = await supabaseAdmin.from('users').delete().eq('id', id);
+      // First get the internal UUID so we can cascade-delete related records
+      const { data: deletedUser } = await supabaseAdmin!.from('users').select('id').eq('clerk_id', id).maybeSingle();
+      if (deletedUser) {
+        // Delete vendor record if exists
+        await supabaseAdmin!.from('vendors').delete().eq('user_id', deletedUser.id);
+        // Anonymize orders (keep records for vendor history but remove PII)
+        await supabaseAdmin!.from('orders').update({
+          shipping_address: JSON.stringify({ customerName: 'Deleted User', shipping_address: 'Redacted' }),
+        }).eq('customer_id', deletedUser.id);
+      }
+      // Delete the user record itself
+      const { error } = await supabaseAdmin!.from('users').delete().eq('clerk_id', id);
       if (error) console.error("[CLERK WEBHOOK ERROR] Delete Failed", error);
     }
 
@@ -940,6 +980,99 @@ Return valid JSON only matching this schema exactly:
     }
 
     return res.status(200).json({ success: true });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // DELETE ACCOUNT ENDPOINT — Self-service account deletion
+  // ────────────────────────────────────────────────────────────
+  app.delete("/api/account", ...requireAuth, async (req, res) => {
+    try {
+      if (!supabaseAdmin) {
+        return res.status(500).json({ error: "Backend connection unavailable" });
+      }
+
+      const clerkUserId = (req as any).user?.id;
+      if (!clerkUserId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // 1. Resolve internal UUID from clerk_id
+      const { data: userRecord } = await supabaseAdmin
+        .from('users')
+        .select('id, email, role')
+        .eq('clerk_id', clerkUserId)
+        .maybeSingle();
+
+      if (!userRecord) {
+        return res.status(404).json({ error: "User record not found" });
+      }
+
+      console.log(`[DELETE ACCOUNT] Processing deletion for clerk_id=${clerkUserId}, uuid=${userRecord.id}, role=${userRecord.role}`);
+
+      // 2. If vendor, delete vendor profile
+      if (userRecord.role === 'vendor') {
+        const { error: vendorDeleteError } = await supabaseAdmin
+          .from('vendors')
+          .delete()
+          .eq('user_id', userRecord.id);
+        if (vendorDeleteError) {
+          console.error("[DELETE ACCOUNT] Vendor record deletion failed:", vendorDeleteError);
+        }
+      }
+
+      // 3. Anonymize orders (keep order records for vendor/admin history, but strip PII)
+      await supabaseAdmin
+        .from('orders')
+        .update({
+          shipping_address: JSON.stringify({
+            customerName: 'Deleted User',
+            shipping_address: 'Redacted',
+            phoneNumber: '',
+            emailAddress: ''
+          }),
+        })
+        .eq('customer_id', userRecord.id);
+
+      // 4. Delete user record from Supabase
+      const { error: userDeleteError } = await supabaseAdmin
+        .from('users')
+        .delete()
+        .eq('clerk_id', clerkUserId);
+
+      if (userDeleteError) {
+        console.error("[DELETE ACCOUNT] User record deletion failed:", userDeleteError);
+        return res.status(500).json({ error: "Failed to delete user record" });
+      }
+
+      // 5. Delete user from Clerk
+      try {
+        const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+        if (clerkSecretKey) {
+          const clerkRes = await fetch(`https://api.clerk.com/v1/users/${clerkUserId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${clerkSecretKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          if (!clerkRes.ok) {
+            console.error("[DELETE ACCOUNT] Clerk deletion failed:", await clerkRes.text());
+          } else {
+            console.log(`[DELETE ACCOUNT] Successfully deleted user from Clerk: ${clerkUserId}`);
+          }
+        } else {
+          console.warn("[DELETE ACCOUNT] CLERK_SECRET_KEY not available, skipping Clerk deletion");
+        }
+      } catch (clerkErr: any) {
+        console.error("[DELETE ACCOUNT] Clerk API error:", clerkErr.message);
+      }
+
+      console.log(`[DELETE ACCOUNT] Successfully deleted account for ${clerkUserId}`);
+      return res.json({ success: true, message: "Account deleted successfully" });
+    } catch (err: any) {
+      console.error("[DELETE ACCOUNT] Exception:", err);
+      return res.status(500).json({ error: err.message || "Failed to delete account" });
+    }
   });
 
   // GET user metadata

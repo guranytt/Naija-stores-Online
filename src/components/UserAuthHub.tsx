@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { UserCircle, Edit3, ArrowLeft, RefreshCw, AlertCircle, CheckCircle, LogOut } from "lucide-react";
-import { supabase } from "../supabase";
+import { UserCircle, Edit3, ArrowLeft, RefreshCw, AlertCircle, CheckCircle, LogOut, Trash2 } from "lucide-react";
+import { supabase, clearQueryCache } from "../supabase";
 import { sanitizeFields } from "../sanitize";
 import { getOptimizedImageUrl } from "../utils/imageTransforms";
 import { SignIn, SignUp, useAuth, useUser } from '@clerk/clerk-react';
@@ -39,6 +39,8 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
   const [authMode, setAuthMode] = useState<"login" | "register">(vendorOnly ? "register" : "login");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [isVendor, setIsVendor] = useState(vendorOnly);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Sync hash changes to toggle authMode and vendor context
   useEffect(() => {
@@ -203,9 +205,50 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
   const handleSignOut = async () => {
     setIsLoading(true);
     await signOut();
+    // Clear all cached data to prevent stale data leaking to next session
+    clearQueryCache();
+    try {
+      localStorage.removeItem('cart');
+      localStorage.removeItem('recent_searches_' + (user?.primaryEmailAddress?.emailAddress || 'guest'));
+    } catch (e) {}
     setIsLoading(false);
     onUpdateEmail("adminnaijastoresonline@gmail.com");
     if (onNavigateHome) onNavigateHome();
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!userId) return;
+    setIsDeleting(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch('/api/account', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete account');
+      }
+
+      // Clear all local data
+      clearQueryCache();
+      try {
+        localStorage.clear();
+      } catch (e) {}
+
+      // Sign out from Clerk (session may already be invalidated)
+      try { await signOut(); } catch (e) {}
+
+      setDeleteConfirmOpen(false);
+      if (onNavigateHome) onNavigateHome();
+    } catch (err: any) {
+      setFeedback({ type: 'error', msg: err.message || 'Could not delete account' });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (!isLoaded) {
@@ -382,6 +425,45 @@ export default function UserAuthHub({ currentEmail, onNavigateHome, onNavigate, 
                 <LogOut className="w-4 h-4" />
                 <span>Sign Out</span>
               </button>
+            </div>
+
+            {/* Delete Account */}
+            <div className="pt-4 border-t border-neutral-100 mt-4">
+              {!deleteConfirmOpen ? (
+                <button
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  className="flex items-center space-x-1.5 text-[11px] font-medium text-neutral-400 hover:text-red-500 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete my account</span>
+                </button>
+              ) : (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-2xl space-y-3 animate-fade-in">
+                  <div className="flex items-start space-x-2">
+                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-red-800">Are you sure you want to delete your account?</p>
+                      <p className="text-[11px] text-red-600 mt-1">This action is permanent and cannot be undone. Your profile, data, and login will be removed. Order history will be anonymized for vendor records.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={isDeleting}
+                      className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition-all flex items-center cursor-pointer"
+                    >
+                      {isDeleting && <RefreshCw className="w-3 h-3 animate-spin mr-1.5" />}
+                      {isDeleting ? 'Deleting...' : 'Yes, Delete Account'}
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirmOpen(false)}
+                      className="px-4 py-2 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-600 hover:bg-neutral-50 transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           )

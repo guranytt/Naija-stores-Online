@@ -7,6 +7,7 @@ import React, { useState, useEffect } from "react";
 import { ShoppingCart, Search, Store, Map, LayoutDashboard, UserCircle, Menu, X, Landmark, BadgeCheck, ChevronDown, ChevronUp, Package, ShoppingBag } from "lucide-react";
 import { Category } from "../types";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { useClerk } from '@clerk/clerk-react';
 
 interface NavbarProps {
   currentScreen: string;
@@ -39,6 +40,7 @@ export default function Navbar({
   const [cartBounced, setCartBounced] = useState(false);
   const shouldReduceMotion = useReducedMotion();
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const { signOut } = useClerk();
   
   useEffect(() => {
     if (isSearchFocused) {
@@ -646,7 +648,8 @@ export default function Navbar({
                   </div>
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    await signOut();
                     onNavigate("auth");
                     setMobileMenuOpen(false);
                   }}

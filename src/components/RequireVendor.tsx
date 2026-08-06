@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { AlertCircle, LogOut, Store } from 'lucide-react';
 import { MASTER_ADMIN_EMAILS } from '../utils/adminConfig';
+import { useAuth, useUser, useClerk } from '@clerk/clerk-react';
 
 interface RequireVendorProps {
   children: React.ReactNode;
@@ -9,19 +10,22 @@ interface RequireVendorProps {
 }
 
 export default function RequireVendor({ children, onNavigate }: RequireVendorProps) {
+  const { isLoaded, userId } = useAuth();
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const [status, setStatus] = useState<'loading' | 'authorized' | 'customer' | 'guest'>('loading');
 
   useEffect(() => {
+    if (!isLoaded) return;
+
+    if (!userId || !user) {
+      setStatus('guest');
+      return;
+    }
+
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session || !session.user) {
-          setStatus('guest');
-          return;
-        }
-
-        const email = session.user.email || '';
+        const email = user.primaryEmailAddress?.emailAddress || '';
         
         // Master admin bypass
         if (MASTER_ADMIN_EMAILS.includes(email.toLowerCase())) {
@@ -29,36 +33,26 @@ export default function RequireVendor({ children, onNavigate }: RequireVendorPro
           return;
         }
 
-        // Check role in Supabase using the user's ID
+        // Check role in Supabase using clerk_id
         const { data, error } = await supabase
           .from('users')
           .select('role')
-          .eq('id', session.user.id)
+          .eq('clerk_id', userId)
           .single();
 
         if (!error && data && (data.role === 'vendor' || data.role === 'admin')) {
           setStatus('authorized');
         } else {
-          // Check by email as a fallback if 'id' wasn't matched yet
-          const { data: emailData } = await supabase
-            .from('users')
-            .select('role')
-            .eq('email', email)
-            .single();
-
-          if (emailData && (emailData.role === 'vendor' || emailData.role === 'admin')) {
-             setStatus('authorized');
-          } else {
-             setStatus('customer');
-          }
+          setStatus('customer');
         }
       } catch (e) {
-        setStatus('guest');
+        console.error('RequireVendor auth check failed:', e);
+        setStatus('customer');
       }
     };
 
     checkAuth();
-  }, []);
+  }, [isLoaded, userId, user]);
 
   // --- Guest: redirect to vendor login ---
   useEffect(() => {
@@ -73,7 +67,7 @@ export default function RequireVendor({ children, onNavigate }: RequireVendorPro
   }, [status, onNavigate]);
 
   // Loading spinner
-  if (status === 'loading') {
+  if (!isLoaded || status === 'loading') {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600" />
@@ -89,7 +83,7 @@ export default function RequireVendor({ children, onNavigate }: RequireVendorPro
   // Authenticated customer (wrong role) — show inline access-denied panel
   if (status === 'customer') {
     const handleSignOut = async () => {
-      await supabase.auth.signOut();
+      await signOut();
       window.location.hash = 'login-vendor';
       if (onNavigate) onNavigate('auth');
     };
