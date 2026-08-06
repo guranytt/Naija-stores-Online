@@ -33,18 +33,24 @@ export default function RequireVendor({ children, onNavigate }: RequireVendorPro
           return;
         }
 
-        // Check role in Supabase using clerk_id
-        const { data, error } = await supabase
-          .from('users')
-          .select('role')
-          .eq('clerk_id', userId)
-          .single();
-
-        if (!error && data && (data.role === 'vendor' || data.role === 'admin')) {
+        // 1. Check Clerk metadata (instant, no race conditions after signup)
+        const clerkRole = user.unsafeMetadata?.role || user.publicMetadata?.role;
+        if (clerkRole === 'vendor' || clerkRole === 'admin') {
           setStatus('authorized');
-        } else {
-          setStatus('customer');
+          return;
         }
+
+        // 2. Fallback: Check role in Supabase via backend API (in case DB was updated manually)
+        const res = await fetch(`/api/user/${userId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && (data.role === 'vendor' || data.role === 'admin')) {
+            setStatus('authorized');
+            return;
+          }
+        }
+
+        setStatus('customer');
       } catch (e) {
         console.error('RequireVendor auth check failed:', e);
         setStatus('customer');
